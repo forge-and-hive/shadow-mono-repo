@@ -13,6 +13,6 @@
     },
     "files": ["src/index.ts"],
     "include": ["src/**/*.ts", "src/**/*.json"],
-    "exclude": ["node_modules", "src/**/__tests__/**"]
+    "exclude": ["node_modules", "src/test/*", "dist/*"]
   }
   
