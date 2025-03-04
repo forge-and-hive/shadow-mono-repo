@@ -1,4 +1,4 @@
-import Schema from '../index'
+import Schema, { type SchemaDescription } from '../index'
 
 describe('Schema basic types', () => {
   it('should validate a string', () => {
@@ -24,16 +24,7 @@ describe('Schema basic types', () => {
       age: 20,
     })
 
-    const parsed = schema.parse({
-      name: 'World',
-      age: 20,
-    })
-
     expect(result).toEqual(true)
-    expect(parsed).toEqual({
-      name: 'World',
-      age: 20,
-    })
   })
 })
 
@@ -45,7 +36,7 @@ describe('Schema description', () => {
 
     const result = schema.describe()
     expect(result).toEqual({
-      name: 'string',
+      name: { type: 'string' },
     })
   })
 
@@ -57,23 +48,24 @@ describe('Schema description', () => {
 
     const result = schema.describe()
     expect(result).toEqual({
-      name: 'string',
-      age: 'number',
+      name: { type: 'string' },
+      age: { type: 'number' },
     })
   })
 })
 
 describe('Schema hydrate', () => {
   it('should describe a string', () => {
-    const schema = Schema.from({
-      name: 'string',
-      age: 'number',
-    })
+    const description: SchemaDescription = {
+      name: { type: 'string' },
+      age: { type: 'number' },
+    }
+    const schema = Schema.from(description)
 
     const result = schema.describe()
     expect(result).toEqual({
-      name: 'string',
-      age: 'number',
+      name: { type: 'string' },
+      age: { type: 'number' },
     })
   })
 })

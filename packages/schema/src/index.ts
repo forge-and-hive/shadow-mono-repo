@@ -1,5 +1,9 @@
 import { z } from 'zod'
 
+type SchemaType = 'string' | 'boolean' | 'number' | 'string[]' | 'boolean[]' | 'number[]'
+
+type SchemaDescription = Record<string, { type: SchemaType }>
+
 // Static methods for type definitions
 export class Schema<T extends Record<string, z.ZodType<string | boolean | number | string[] | boolean[] | number[]>>> {
   static string() {
@@ -28,13 +32,13 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
 
   /**
    * Creates a Schema instance from a description object
-   * @param description Object describing the schema structure
+   * @param description Object describing the schema structure with type information
    * @returns A new Schema instance
    */
-  static from(description: Record<string, string>): Schema<Record<string, z.ZodType<string | boolean | number | string[] | boolean[] | number[]>>> {
+  static from(description: SchemaDescription): Schema<Record<string, z.ZodType<string | boolean | number | string[] | boolean[] | number[]>>> {
     const fields: Record<string, z.ZodType<string | boolean | number | string[] | boolean[] | number[]>> = {}
 
-    for (const [key, type] of Object.entries(description)) {
+    for (const [key, { type }] of Object.entries(description)) {
       switch (type) {
         case 'string':
           fields[key] = Schema.string()
@@ -97,27 +101,27 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
 
   /**
    * Describes the schema structure and allowed types
-   * @returns An object describing the schema structure
+   * @returns An object describing the schema structure with type information
    */
-  describe(): Record<string, string> {
+  describe(): SchemaDescription {
     const shape = this.schema.shape
-    const description: Record<string, string> = {}
+    const description: SchemaDescription = {}
 
     for (const [key, value] of Object.entries(shape)) {
       if (value instanceof z.ZodString) {
-        description[key] = 'string'
+        description[key] = { type: 'string' }
       } else if (value instanceof z.ZodBoolean) {
-        description[key] = 'boolean'
+        description[key] = { type: 'boolean' }
       } else if (value instanceof z.ZodNumber) {
-        description[key] = 'number'
+        description[key] = { type: 'number' }
       } else if (value instanceof z.ZodArray) {
         const element = value.element
         if (element instanceof z.ZodString) {
-          description[key] = 'string[]'
+          description[key] = { type: 'string[]' }
         } else if (element instanceof z.ZodBoolean) {
-          description[key] = 'boolean[]'
+          description[key] = { type: 'boolean[]' }
         } else if (element instanceof z.ZodNumber) {
-          description[key] = 'number[]'
+          description[key] = { type: 'number[]' }
         }
       }
     }
