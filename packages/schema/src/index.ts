@@ -1,3 +1,3 @@
-export default function buildSchema(greeting: string) {
+export default function buildSchema(greeting: string): string {
   return `Hello ${greeting}`
 }
