@@ -22,6 +22,9 @@
     "semi": ["error", "never"],
     "quotes": ["error", "single"],
     "no-trailing-spaces": "error",
-    "eol-last": ["error", "always"]
+    "eol-last": ["error", "always"],
+    "eqeqeq": "error",
+    "no-console": "warn",
+    "curly": "error"
   }
 } 
