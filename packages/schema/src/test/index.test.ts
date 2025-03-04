@@ -114,7 +114,7 @@ describe('Schema validation errors', () => {
 describe('Schema arrays', () => {
   it('should validate array of strings', () => {
     const schema = new Schema({
-      tags: Schema.stringArray(),
+      tags: Schema.array(Schema.string()),
     })
 
     const result = schema.validate({
@@ -126,7 +126,7 @@ describe('Schema arrays', () => {
 
   it('should validate array of numbers', () => {
     const schema = new Schema({
-      scores: Schema.numberArray(),
+      scores: Schema.array(Schema.number()),
     })
 
     const result = schema.validate({
@@ -138,7 +138,7 @@ describe('Schema arrays', () => {
 
   it('should reject invalid array types', () => {
     const schema = new Schema({
-      tags: Schema.stringArray(),
+      tags: Schema.array(Schema.string()),
     })
 
     const result = schema.validate({
@@ -150,7 +150,7 @@ describe('Schema arrays', () => {
 
   it('should validate empty arrays', () => {
     const schema = new Schema({
-      tags: Schema.stringArray(),
+      tags: Schema.array(Schema.string()),
     })
 
     const result = schema.validate({
@@ -160,17 +160,32 @@ describe('Schema arrays', () => {
     expect(result).toBe(true)
   })
 
-  // it('should validate optional arrays', () => {
-  //   const schema = new Schema({
-  //     tags: Schema.stringArray().optional(),
-  //   })
+  it('should describe array schema', () => {
+    const schema = new Schema({
+      tags: Schema.array(Schema.string()),
+      scores: Schema.array(Schema.number()),
+    })
 
-  //   const result = schema.validate({
-  //     // tags field omitted
-  //   })
+    const result = schema.describe()
+    expect(result).toEqual({
+      tags: { type: 'array', items: { type: 'string' } },
+      scores: { type: 'array', items: { type: 'number' } },
+    })
+  })
 
-  //   expect(result).toBe(true)
-  // })
+  it('should hydrate array schema from description', () => {
+    const description: SchemaDescription = {
+      tags: { type: 'array', items: { type: 'string' } },
+      scores: { type: 'array', items: { type: 'number' } },
+    }
+    const schema = Schema.from(description)
+
+    const result = schema.describe()
+    expect(result).toEqual({
+      tags: { type: 'array', items: { type: 'string' } },
+      scores: { type: 'array', items: { type: 'number' } },
+    })
+  })
 })
 
 describe('Schema custom validation', () => {

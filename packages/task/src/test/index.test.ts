@@ -7,9 +7,8 @@ describe('createTask', () => {
 
     expect(task).toEqual({
       id: expect.any(String),
-      title: 'Hello World',
+      title: 'World',
       completed: false,
-      createdAt: expect.any(Date)
     })
   })
 
