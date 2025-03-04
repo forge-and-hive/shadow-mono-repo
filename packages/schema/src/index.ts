@@ -5,6 +5,7 @@ type ArrayTypes = z.ZodString | z.ZodBoolean | z.ZodNumber | z.ZodDate
 
 type BaseSchemaDescription = {
   type: AllowedBaseTypes
+  optional?: boolean
 }
 
 type ArraySchemaDescription = {
@@ -12,12 +13,13 @@ type ArraySchemaDescription = {
   items: {
     type: AllowedBaseTypes
   }
+  optional?: boolean
 }
 
 export type SchemaDescription = Record<string, BaseSchemaDescription | ArraySchemaDescription>
 
 // Static methods for type definitions
-export class Schema<T extends Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>> {
+export class Schema<T extends Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>>> {
   static string() {
     return z.string()
   }
@@ -43,38 +45,40 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
    * @param description Object describing the schema structure with type information
    * @returns A new Schema instance
    */
-  static from(description: SchemaDescription): Schema<Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>> {
-    const fields: Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>> = {}
+  static from(description: SchemaDescription): Schema<Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>>> {
+    const fields: Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>> = {}
 
     for (const [key, field] of Object.entries(description)) {
       const fieldType = field.type
+      let fieldSchema: z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>
+
       switch (fieldType) {
         case 'string':
-          fields[key] = Schema.string()
+          fieldSchema = Schema.string()
           break
         case 'boolean':
-          fields[key] = Schema.boolean()
+          fieldSchema = Schema.boolean()
           break
         case 'number':
-          fields[key] = Schema.number()
+          fieldSchema = Schema.number()
           break
         case 'date':
-          fields[key] = Schema.date()
+          fieldSchema = Schema.date()
           break
         case 'array':
           const arrayField = field as ArraySchemaDescription
           switch (arrayField.items.type) {
             case 'string':
-              fields[key] = Schema.array(Schema.string())
+              fieldSchema = Schema.array(Schema.string())
               break
             case 'boolean':
-              fields[key] = Schema.array(Schema.boolean())
+              fieldSchema = Schema.array(Schema.boolean())
               break
             case 'number':
-              fields[key] = Schema.array(Schema.number())
+              fieldSchema = Schema.array(Schema.number())
               break
             case 'date':
-              fields[key] = Schema.array(Schema.date())
+              fieldSchema = Schema.array(Schema.date())
               break
             default:
               throw new Error(`Unsupported array item type: ${arrayField.items.type}`)
@@ -83,6 +87,8 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
         default:
           throw new Error(`Unsupported type: ${fieldType}`)
       }
+
+      fields[key] = field.optional ? fieldSchema.optional() : fieldSchema
     }
 
     return new Schema(fields)
@@ -130,24 +136,27 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
     const description: SchemaDescription = {}
 
     for (const [key, value] of Object.entries(shape)) {
-      if (value instanceof z.ZodString) {
-        description[key] = { type: 'string' }
-      } else if (value instanceof z.ZodBoolean) {
-        description[key] = { type: 'boolean' }
-      } else if (value instanceof z.ZodNumber) {
-        description[key] = { type: 'number' }
-      } else if (value instanceof z.ZodDate) {
-        description[key] = { type: 'date' }
-      } else if (value instanceof z.ZodArray) {
-        const element = value.element
+      const isOptional = value instanceof z.ZodOptional
+      const baseValue = isOptional ? value.unwrap() : value
+
+      if (baseValue instanceof z.ZodString) {
+        description[key] = { type: 'string', ...(isOptional && { optional: true }) }
+      } else if (baseValue instanceof z.ZodBoolean) {
+        description[key] = { type: 'boolean', ...(isOptional && { optional: true }) }
+      } else if (baseValue instanceof z.ZodNumber) {
+        description[key] = { type: 'number', ...(isOptional && { optional: true }) }
+      } else if (baseValue instanceof z.ZodDate) {
+        description[key] = { type: 'date', ...(isOptional && { optional: true }) }
+      } else if (baseValue instanceof z.ZodArray) {
+        const element = baseValue.element
         if (element instanceof z.ZodString) {
-          description[key] = { type: 'array', items: { type: 'string' } }
+          description[key] = { type: 'array', items: { type: 'string' }, ...(isOptional && { optional: true }) }
         } else if (element instanceof z.ZodBoolean) {
-          description[key] = { type: 'array', items: { type: 'boolean' } }
+          description[key] = { type: 'array', items: { type: 'boolean' }, ...(isOptional && { optional: true }) }
         } else if (element instanceof z.ZodNumber) {
-          description[key] = { type: 'array', items: { type: 'number' } }
+          description[key] = { type: 'array', items: { type: 'number' }, ...(isOptional && { optional: true }) }
         } else if (element instanceof z.ZodDate) {
-          description[key] = { type: 'array', items: { type: 'date' } }
+          description[key] = { type: 'array', items: { type: 'date' }, ...(isOptional && { optional: true }) }
         }
       }
     }
