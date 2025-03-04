@@ -3,9 +3,22 @@ import { z } from 'zod'
 type AllowedBaseTypes = 'string' | 'boolean' | 'number' | 'date'
 type ArrayTypes = z.ZodString | z.ZodBoolean | z.ZodNumber | z.ZodDate
 
+type NumberValidations = {
+  min?: number
+  max?: number
+}
+
+type StringValidations = {
+  email?: boolean
+  minLength?: number
+  maxLength?: number
+  regex?: string
+}
+
 type BaseSchemaDescription = {
   type: AllowedBaseTypes
   optional?: boolean
+  validations?: NumberValidations | StringValidations
 }
 
 type ArraySchemaDescription = {
@@ -53,15 +66,43 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
       let fieldSchema: z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>
 
       switch (fieldType) {
-        case 'string':
-          fieldSchema = Schema.string()
+        case 'string': {
+          let stringSchema = Schema.string()
+          if (field.validations) {
+            const validations = field.validations as StringValidations
+            if (validations.email) {
+              stringSchema = stringSchema.email()
+            }
+            if (validations.minLength !== undefined) {
+              stringSchema = stringSchema.min(validations.minLength)
+            }
+            if (validations.maxLength !== undefined) {
+              stringSchema = stringSchema.max(validations.maxLength)
+            }
+            if (validations.regex !== undefined) {
+              stringSchema = stringSchema.regex(new RegExp(validations.regex))
+            }
+          }
+          fieldSchema = stringSchema
           break
+        }
         case 'boolean':
           fieldSchema = Schema.boolean()
           break
-        case 'number':
-          fieldSchema = Schema.number()
+        case 'number': {
+          let numberSchema = Schema.number()
+          if (field.validations) {
+            const validations = field.validations as NumberValidations
+            if (validations.min !== undefined) {
+              numberSchema = numberSchema.min(validations.min)
+            }
+            if (validations.max !== undefined) {
+              numberSchema = numberSchema.max(validations.max)
+            }
+          }
+          fieldSchema = numberSchema
           break
+        }
         case 'date':
           fieldSchema = Schema.date()
           break
@@ -140,11 +181,43 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
       const baseValue = isOptional ? value.unwrap() : value
 
       if (baseValue instanceof z.ZodString) {
-        description[key] = { type: 'string', ...(isOptional && { optional: true }) }
+        const validations: StringValidations = {}
+        if (baseValue._def.checks) {
+          for (const check of baseValue._def.checks) {
+            if (check.kind === 'email') {
+              validations.email = true
+            } else if (check.kind === 'min') {
+              validations.minLength = check.value
+            } else if (check.kind === 'max') {
+              validations.maxLength = check.value
+            } else if (check.kind === 'regex') {
+              validations.regex = check.regex.toString().replace(/^\/|\/$/g, '')
+            }
+          }
+        }
+        description[key] = { 
+          type: 'string', 
+          ...(isOptional && { optional: true }),
+          ...(Object.keys(validations).length > 0 && { validations })
+        }
       } else if (baseValue instanceof z.ZodBoolean) {
         description[key] = { type: 'boolean', ...(isOptional && { optional: true }) }
       } else if (baseValue instanceof z.ZodNumber) {
-        description[key] = { type: 'number', ...(isOptional && { optional: true }) }
+        const validations: NumberValidations = {}
+        if (baseValue._def.checks) {
+          for (const check of baseValue._def.checks) {
+            if (check.kind === 'min') {
+              validations.min = check.value
+            } else if (check.kind === 'max') {
+              validations.max = check.value
+            }
+          }
+        }
+        description[key] = { 
+          type: 'number', 
+          ...(isOptional && { optional: true }),
+          ...(Object.keys(validations).length > 0 && { validations })
+        }
       } else if (baseValue instanceof z.ZodDate) {
         description[key] = { type: 'date', ...(isOptional && { optional: true }) }
       } else if (baseValue instanceof z.ZodArray) {
