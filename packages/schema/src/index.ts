@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // Static methods for type definitions
-export class Schema {
+export class Schema<T extends Record<string, z.ZodType<string | boolean | number | string[] | boolean[] | number[]>>> {
   static string() {
     return z.string()
   }
@@ -31,8 +31,8 @@ export class Schema {
    * @param description Object describing the schema structure
    * @returns A new Schema instance
    */
-  static from(description: Record<string, string>): Schema {
-    const fields: Record<string, z.ZodType<any>> = {}
+  static from(description: Record<string, string>): Schema<Record<string, z.ZodType<string | boolean | number | string[] | boolean[] | number[]>>> {
+    const fields: Record<string, z.ZodType<string | boolean | number | string[] | boolean[] | number[]>> = {}
 
     for (const [key, type] of Object.entries(description)) {
       switch (type) {
@@ -62,17 +62,16 @@ export class Schema {
     return new Schema(fields)
   }
 
-  private readonly schema: z.ZodObject<any>
+  private readonly schema: z.ZodObject<T>
 
-  constructor(fields: Record<string, z.ZodType<any>>) {
+  constructor(fields: T) {
     this.schema = z.object(fields)
   }
 
   /**
    * Validates the provided data against the schema
    * @param data The data to validate
-   * @returns The validated and typed data
-   * @throws {z.ZodError} If the data is invalid
+   * @returns A boolean indicating whether the data is valid
    */
   validate(data: unknown): boolean {
     let result = false
@@ -84,6 +83,16 @@ export class Schema {
     }
 
     return result
+  }
+
+  /**
+   * Parses and validates the provided data against the schema
+   * @param data The data to parse and validate
+   * @returns The parsed and typed data
+   * @throws {z.ZodError} If the data is invalid
+   */
+  parse(data: unknown): z.infer<z.ZodObject<T>> {
+    return this.schema.parse(data)
   }
 
   /**
