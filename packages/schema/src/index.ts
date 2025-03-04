@@ -66,67 +66,67 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
       let fieldSchema: z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>
 
       switch (fieldType) {
-        case 'string': {
-          let stringSchema = Schema.string()
-          if (field.validations) {
-            const validations = field.validations as StringValidations
-            if (validations.email) {
-              stringSchema = stringSchema.email()
-            }
-            if (validations.minLength !== undefined) {
-              stringSchema = stringSchema.min(validations.minLength)
-            }
-            if (validations.maxLength !== undefined) {
-              stringSchema = stringSchema.max(validations.maxLength)
-            }
-            if (validations.regex !== undefined) {
-              stringSchema = stringSchema.regex(new RegExp(validations.regex))
-            }
+      case 'string': {
+        let stringSchema = Schema.string()
+        if (field.validations) {
+          const validations = field.validations as StringValidations
+          if (validations.email) {
+            stringSchema = stringSchema.email()
           }
-          fieldSchema = stringSchema
-          break
+          if (validations.minLength !== undefined) {
+            stringSchema = stringSchema.min(validations.minLength)
+          }
+          if (validations.maxLength !== undefined) {
+            stringSchema = stringSchema.max(validations.maxLength)
+          }
+          if (validations.regex !== undefined) {
+            stringSchema = stringSchema.regex(new RegExp(validations.regex))
+          }
         }
+        fieldSchema = stringSchema
+        break
+      }
+      case 'boolean':
+        fieldSchema = Schema.boolean()
+        break
+      case 'number': {
+        let numberSchema = Schema.number()
+        if (field.validations) {
+          const validations = field.validations as NumberValidations
+          if (validations.min !== undefined) {
+            numberSchema = numberSchema.min(validations.min)
+          }
+          if (validations.max !== undefined) {
+            numberSchema = numberSchema.max(validations.max)
+          }
+        }
+        fieldSchema = numberSchema
+        break
+      }
+      case 'date':
+        fieldSchema = Schema.date()
+        break
+      case 'array':
+        const arrayField = field as ArraySchemaDescription
+        switch (arrayField.items.type) {
+        case 'string':
+          fieldSchema = Schema.array(Schema.string())
+          break
         case 'boolean':
-          fieldSchema = Schema.boolean()
+          fieldSchema = Schema.array(Schema.boolean())
           break
-        case 'number': {
-          let numberSchema = Schema.number()
-          if (field.validations) {
-            const validations = field.validations as NumberValidations
-            if (validations.min !== undefined) {
-              numberSchema = numberSchema.min(validations.min)
-            }
-            if (validations.max !== undefined) {
-              numberSchema = numberSchema.max(validations.max)
-            }
-          }
-          fieldSchema = numberSchema
+        case 'number':
+          fieldSchema = Schema.array(Schema.number())
           break
-        }
         case 'date':
-          fieldSchema = Schema.date()
-          break
-        case 'array':
-          const arrayField = field as ArraySchemaDescription
-          switch (arrayField.items.type) {
-            case 'string':
-              fieldSchema = Schema.array(Schema.string())
-              break
-            case 'boolean':
-              fieldSchema = Schema.array(Schema.boolean())
-              break
-            case 'number':
-              fieldSchema = Schema.array(Schema.number())
-              break
-            case 'date':
-              fieldSchema = Schema.array(Schema.date())
-              break
-            default:
-              throw new Error(`Unsupported array item type: ${arrayField.items.type}`)
-          }
+          fieldSchema = Schema.array(Schema.date())
           break
         default:
-          throw new Error(`Unsupported type: ${fieldType}`)
+          throw new Error(`Unsupported array item type: ${arrayField.items.type}`)
+        }
+        break
+      default:
+        throw new Error(`Unsupported type: ${fieldType}`)
       }
 
       fields[key] = field.optional ? fieldSchema.optional() : fieldSchema
@@ -195,8 +195,8 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
             }
           }
         }
-        description[key] = { 
-          type: 'string', 
+        description[key] = {
+          type: 'string',
           ...(isOptional && { optional: true }),
           ...(Object.keys(validations).length > 0 && { validations })
         }
@@ -213,8 +213,8 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
             }
           }
         }
-        description[key] = { 
-          type: 'number', 
+        description[key] = {
+          type: 'number',
           ...(isOptional && { optional: true }),
           ...(Object.keys(validations).length > 0 && { validations })
         }
