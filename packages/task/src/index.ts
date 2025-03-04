@@ -1,4 +1,4 @@
-import buildSchema from '@shadow/schema';
+import buildSchema from '@shadow/schema'
 
 export interface Task {
   id: string;
@@ -13,5 +13,5 @@ export function createTask(title: string): Task {
     title: buildSchema(title),
     completed: false,
     createdAt: new Date(),
-  };
+  }
 } 
