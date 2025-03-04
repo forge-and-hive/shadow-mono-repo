@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-type AllowedBaseTypes = 'string' | 'boolean' | 'number'
-type ArrayTypes = z.ZodString | z.ZodBoolean | z.ZodNumber
+type AllowedBaseTypes = 'string' | 'boolean' | 'number' | 'date'
+type ArrayTypes = z.ZodString | z.ZodBoolean | z.ZodNumber | z.ZodDate
 
 type BaseSchemaDescription = {
   type: AllowedBaseTypes
@@ -17,7 +17,7 @@ type ArraySchemaDescription = {
 export type SchemaDescription = Record<string, BaseSchemaDescription | ArraySchemaDescription>
 
 // Static methods for type definitions
-export class Schema<T extends Record<string, z.ZodType<string | boolean | number | string[] | boolean[] | number[]>>> {
+export class Schema<T extends Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>> {
   static string() {
     return z.string()
   }
@@ -30,6 +30,10 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
     return z.number()
   }
 
+  static date() {
+    return z.date()
+  }
+
   static array<T extends ArrayTypes>(type: T) {
     return z.array(type)
   }
@@ -39,8 +43,8 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
    * @param description Object describing the schema structure with type information
    * @returns A new Schema instance
    */
-  static from(description: SchemaDescription): Schema<Record<string, z.ZodType<string | boolean | number | string[] | boolean[] | number[]>>> {
-    const fields: Record<string, z.ZodType<string | boolean | number | string[] | boolean[] | number[]>> = {}
+  static from(description: SchemaDescription): Schema<Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>> {
+    const fields: Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>> = {}
 
     for (const [key, field] of Object.entries(description)) {
       const fieldType = field.type
@@ -54,6 +58,9 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
         case 'number':
           fields[key] = Schema.number()
           break
+        case 'date':
+          fields[key] = Schema.date()
+          break
         case 'array':
           const arrayField = field as ArraySchemaDescription
           switch (arrayField.items.type) {
@@ -65,6 +72,9 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
               break
             case 'number':
               fields[key] = Schema.array(Schema.number())
+              break
+            case 'date':
+              fields[key] = Schema.array(Schema.date())
               break
             default:
               throw new Error(`Unsupported array item type: ${arrayField.items.type}`)
@@ -126,6 +136,8 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
         description[key] = { type: 'boolean' }
       } else if (value instanceof z.ZodNumber) {
         description[key] = { type: 'number' }
+      } else if (value instanceof z.ZodDate) {
+        description[key] = { type: 'date' }
       } else if (value instanceof z.ZodArray) {
         const element = value.element
         if (element instanceof z.ZodString) {
@@ -134,6 +146,8 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
           description[key] = { type: 'array', items: { type: 'boolean' } }
         } else if (element instanceof z.ZodNumber) {
           description[key] = { type: 'array', items: { type: 'number' } }
+        } else if (element instanceof z.ZodDate) {
+          description[key] = { type: 'array', items: { type: 'date' } }
         }
       }
     }
