@@ -1,17 +1,23 @@
-import buildSchema from '@shadow/schema'
+import { Schema } from '@shadow/schema'
 
 export interface Task {
   id: string;
   title: string;
   completed: boolean;
-  createdAt: Date;
 }
 
 export function createTask(title: string): Task {
-  return {
+  const schema = new Schema({
+    id: Schema.string(),
+    title: Schema.string(),
+    completed: Schema.boolean(),
+  })
+
+  const data = schema.parse({
     id: crypto.randomUUID(),
-    title: buildSchema(title),
+    title,
     completed: false,
-    createdAt: new Date(),
-  }
-} 
+  })
+
+  return data
+}

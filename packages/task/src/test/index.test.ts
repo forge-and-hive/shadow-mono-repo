@@ -7,9 +7,8 @@ describe('createTask', () => {
 
     expect(task).toEqual({
       id: expect.any(String),
-      title: 'Hello World',
+      title: 'World',
       completed: false,
-      createdAt: expect.any(Date)
     })
   })
 
@@ -17,8 +16,6 @@ describe('createTask', () => {
     const task1 = createTask('Task 1')
     const task2 = createTask('Task 2')
 
-    console.log('task1', task1)
-    console.log('task2', task2)
     expect(task1.id).not.toBe(task2.id)
   })
-}) 
+})
