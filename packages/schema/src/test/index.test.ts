@@ -5,4 +5,4 @@ describe('buildSchema', () => {
     const result = buildSchema('World')
     expect(result).toBe('Hello World')
   })
-}) 
+})

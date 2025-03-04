@@ -14,4 +14,4 @@ export function createTask(title: string): Task {
     completed: false,
     createdAt: new Date(),
   }
-} 
+}
