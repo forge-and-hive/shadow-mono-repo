@@ -22,7 +22,7 @@ export interface TaskConfig<B extends Boundaries = Boundaries> {
 /**
  * Represents the record passed to task listeners
  */
-export interface TaskRecord<InputType = any, OutputType = any> {
+export interface TaskRecord<InputType = unknown, OutputType = unknown> {
   /** The input arguments passed to the task */
   input: InputType;
   /** The output returned by the task (if successful) */
@@ -30,7 +30,7 @@ export interface TaskRecord<InputType = any, OutputType = any> {
   /** The error message if the task failed */
   error?: string;
   /** Boundary execution data */
-  boundaries?: Record<string, any>;
+  boundaries?: Record<string, unknown>;
 }
 
 export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B extends Boundaries = Boundaries> {
@@ -68,7 +68,7 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
   _boundariesData: Record<string, any> | null
 
   _schema: Schema<Record<string, SchemaType>> | undefined
-  _listener?: ((record: TaskRecord<any, any>) => void) | undefined
+  _listener?: ((record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void) | undefined
 
   constructor (fn: Func, conf: TaskConfig<B> = {
     validate: undefined,
