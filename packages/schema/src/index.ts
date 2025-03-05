@@ -15,6 +15,20 @@ type StringValidations = {
   regex?: string
 }
 
+// Export extended Zod types for use throughout the app
+export type ShadowString = z.ZodString
+export type ShadowBoolean = z.ZodBoolean
+export type ShadowNumber = z.ZodNumber
+export type ShadowDate = z.ZodDate
+export type ShadowArray<T extends ArrayTypes> = z.ZodArray<T>
+
+// Export inferred types for use throughout the app
+export type InferShadowString = z.infer<ShadowString>
+export type InferShadowBoolean = z.infer<ShadowBoolean>
+export type InferShadowNumber = z.infer<ShadowNumber>
+export type InferShadowDate = z.infer<ShadowDate>
+export type InferShadowArray<T extends ArrayTypes> = z.infer<ShadowArray<T>>
+
 type BaseSchemaDescription = {
   type: AllowedBaseTypes
   optional?: boolean
@@ -33,24 +47,24 @@ export type SchemaDescription = Record<string, BaseSchemaDescription | ArraySche
 
 // Static methods for type definitions
 export class Schema<T extends Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>>> {
-  static string() {
+  static string(): ShadowString {
     return z.string()
   }
 
-  static boolean() {
+  static boolean(): ShadowBoolean {
     return z.boolean()
   }
 
-  static number() {
+  static number(): ShadowNumber {
     return z.number()
   }
 
-  static date() {
+  static date(): ShadowDate {
     return z.date()
   }
 
-  static array<T extends ArrayTypes>(type: T) {
-    return z.array(type)
+  static array<T extends ArrayTypes>(type: T): ShadowArray<T> {
+    return z.array(type) as ShadowArray<T>
   }
 
   /**
@@ -63,7 +77,7 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
 
     for (const [key, field] of Object.entries(description)) {
       const fieldType = field.type
-      let fieldSchema: z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>
+      let fieldSchema: z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>
 
       switch (fieldType) {
       case 'string': {
@@ -106,7 +120,7 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
       case 'date':
         fieldSchema = Schema.date()
         break
-      case 'array':
+      case 'array': {
         const arrayField = field as ArraySchemaDescription
         switch (arrayField.items.type) {
         case 'string':
@@ -125,6 +139,7 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
           throw new Error(`Unsupported array item type: ${arrayField.items.type}`)
         }
         break
+      }
       default:
         throw new Error(`Unsupported type: ${fieldType}`)
       }
@@ -147,15 +162,9 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
    * @returns A boolean indicating whether the data is valid
    */
   validate(data: unknown): boolean {
-    let result = false
-    try {
-      this.schema.parse(data)
-      result = true
-    } catch (error) {
-      result = false
-    }
+    const result = this.schema.safeParse(data)
 
-    return result
+    return result.success
   }
 
   /**
