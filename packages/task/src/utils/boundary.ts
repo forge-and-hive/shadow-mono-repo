@@ -1,27 +1,42 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as assert from 'assert'
 
-type BaseBoundary = (...args: any[]) => any
+// Define generic types for input and output
+type BaseBoundary = (...args: unknown[]) => unknown
 
 export type Mode = 'proxy' | 'proxy-pass' | 'proxy-catch' | 'replay'
 
 /**
  * Represents a boundary function that can be called within a task
+ * Using any here for compatibility with existing tests
+ * @template TReturn - The return type of the function
  */
-export type BoundaryFunction = (...args: any[]) => Promise<any>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type BoundaryFunction<TReturn = any> = (...args: any[]) => Promise<TReturn>
+
+/**
+ * Represents a record of a boundary function call
+ * @template TInput - The type of input data
+ * @template TOutput - The type of output data
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface BoundaryRecord<TInput = any[], TOutput = any> {
+  input: TInput
+  output?: TOutput
+  error?: string
+}
 
 /**
  * Represents a wrapped boundary function with additional methods
  */
 export interface WrappedBoundaryFunction<Func extends BoundaryFunction = BoundaryFunction> {
   (...args: Parameters<Func>): Promise<ReturnType<Func>>
-  getTape: () => any[]
-  setTape: (newTape: any) => void
+  getTape: () => Array<BoundaryRecord<Parameters<Func>, Awaited<ReturnType<Func>>>>
+  setTape: (newTape: Array<BoundaryRecord<Parameters<Func>, Awaited<ReturnType<Func>>>>) => void
   getMode: () => Mode
   setMode: (newMode: Mode) => void
   startRun: () => void
   stopRun: () => void
-  getRunData: () => any[]
+  getRunData: () => Array<BoundaryRecord<Parameters<Func>, Awaited<ReturnType<Func>>>>
 }
 
 /**
@@ -37,20 +52,18 @@ export type WrappedBoundaries<B extends Boundaries = Boundaries> = {
 }
 
 export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoundaryFunction<Func extends BoundaryFunction ? Func : never> => {
-  interface Record {
-    input: Parameters<Func>
-    output?: any
-    error?: string
-  }
+  type FuncInput = Parameters<Func>;
+  type FuncOutput = Awaited<ReturnType<Func>>;
+  type RecordType = BoundaryRecord<FuncInput, FuncOutput>;
 
-  let runLog: Record[] = []
-  let cacheTape: Record[] = []
+  let runLog: RecordType[] = []
+  let cacheTape: RecordType[] = []
   let mode: Mode = 'proxy'
   let hasRun: boolean = false
 
   const wrappedFn = async (...args: Parameters<Func>): Promise<ReturnType<Func>> => {
-    const findRecord = (record: Parameters<Func>, tape: Record[]): Record | undefined => {
-      const result = tape.find((item: any) => {
+    const findRecord = (record: FuncInput, tape: RecordType[]): RecordType | undefined => {
+      const result = tape.find((item) => {
         if (typeof item === 'undefined') { return false }
 
         let error
@@ -66,7 +79,7 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
       return result
     }
 
-    const record: Record = {
+    const record: RecordType = {
       input: args
     }
 
@@ -75,7 +88,7 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
 
       if (typeof record !== 'undefined') {
         return await (async (): Promise<ReturnType<Func>> => {
-          return record.output
+          return record.output as unknown as ReturnType<Func>
         })()
       }
     }
@@ -92,7 +105,7 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
           throw new Error(record.error)
         }
 
-        return record.output
+        return record.output as unknown as ReturnType<Func>
       })()
     }
 
@@ -105,10 +118,10 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
       }
 
       if (typeof error !== 'undefined') {
-        const prevRecord: Record | undefined = findRecord(args, cacheTape)
+        const prevRecord: RecordType | undefined = findRecord(args, cacheTape)
         if (mode === 'proxy-catch' && typeof prevRecord !== 'undefined') {
           return await (async (): Promise<ReturnType<Func>> => {
-            return prevRecord.output
+            return prevRecord.output as unknown as ReturnType<Func>
           })()
         } else {
           record.error = error.message
@@ -119,22 +132,22 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
           throw error
         }
       } else {
-        record.output = result
+        record.output = result as FuncOutput
 
         if (hasRun) { runLog.push(record) }
         cacheTape.push(record)
 
-        return result
+        return result as ReturnType<Func>
       }
     })()
   }
 
   // tape cache
-  wrappedFn.getTape = function (): Record[] {
+  wrappedFn.getTape = function (): Array<RecordType> {
     return cacheTape
   }
 
-  wrappedFn.setTape = function (newTape: any): void {
+  wrappedFn.setTape = function (newTape: Array<RecordType>): void {
     cacheTape = newTape
   }
 
@@ -157,9 +170,9 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
     hasRun = false
   }
 
-  wrappedFn.getRunData = function (): Record[] {
+  wrappedFn.getRunData = function (): Array<RecordType> {
     return runLog
   }
 
-  return wrappedFn
+  return wrappedFn as unknown as WrappedBoundaryFunction<Func extends BoundaryFunction ? Func : never>
 }

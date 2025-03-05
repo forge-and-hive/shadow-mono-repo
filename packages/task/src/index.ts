@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Schema, type SchemaType } from '@shadow/schema'
-import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries } from './utils/boundary'
+import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries, type WrappedBoundaryFunction } from './utils/boundary'
 
 export interface Task {
   id: string;
@@ -8,6 +7,7 @@ export interface Task {
   completed: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type BaseFunction = (...args: any[]) => any
 
 // Re-export the boundary types for external use
@@ -17,13 +17,13 @@ export interface TaskConfig<B extends Boundaries = Boundaries> {
   validate?: Schema<Record<string, SchemaType>>
   mode?: Mode
   boundaries?: B
-  boundariesData?: Record<string, any>
+  boundariesData?: Record<string, unknown>
 }
 
 /**
  * Represents the record passed to task listeners
  */
-export interface TaskRecord<InputType = any, OutputType = any> {
+export interface TaskRecord<InputType = unknown, OutputType = unknown> {
   /** The input arguments passed to the task */
   input: InputType;
   /** The output returned by the task (if successful) */
@@ -31,7 +31,7 @@ export interface TaskRecord<InputType = any, OutputType = any> {
   /** The error message if the task failed */
   error?: string;
   /** Boundary execution data */
-  boundaries?: Record<string, any>;
+  boundaries?: Record<string, unknown>;
 }
 
 export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B extends Boundaries = Boundaries> {
@@ -41,8 +41,8 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   getSchema: () => Schema<Record<string, SchemaType>> | undefined
 
   // Validation methos
-  validate: (argv?: any) => any | undefined
-  isValid: (argv?: any) => boolean
+  validate: <T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T) => ReturnType<Schema<Record<string, SchemaType>>['safeParse']> | undefined
+  isValid: <T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T) => boolean
 
   // Listener methods
   addListener: <I = Parameters<Func>[0], O = ReturnType<Func>>(fn: (record: TaskRecord<I, O>) => void) => void
@@ -52,9 +52,9 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   // Boundary methods
   asBoundary: () => (args: Parameters<Func>[0]) => Promise<ReturnType<Func>>
   getBoundaries: () => WrappedBoundaries<B>
-  setBoundariesData: (boundariesData: Record<string, any>) => void
-  getBondariesData: () => Record<string, any>
-  getBondariesRunLog: () => Record<string, any>
+  setBoundariesData: (boundariesData: Record<string, unknown>) => void
+  getBondariesData: () => Record<string, unknown>
+  getBondariesRunLog: () => Record<string, unknown>
   startRunLog: () => void
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
 }
@@ -66,10 +66,10 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
 
   _boundariesDefinition: B
   _boundaries: WrappedBoundaries<B> | null
-  _boundariesData: Record<string, any> | null
+  _boundariesData: Record<string, unknown> | null
 
   _schema: Schema<Record<string, SchemaType>> | undefined
-  _listener?: ((record: TaskRecord<any, any>) => void) | undefined
+  _listener?: ((record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void) | undefined
 
   constructor (fn: Func, conf: TaskConfig<B> = {
     validate: undefined,
@@ -92,7 +92,7 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
     this._coolDown = 1000
 
     // Review this assignment
-    this._boundariesData = conf.boundariesData ?? {}
+    this._boundariesData = conf.boundariesData ?? null
     this._boundaries = this._createBounderies({
       definition: this._boundariesDefinition,
       baseData: this._boundariesData,
@@ -122,7 +122,7 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
     return this._schema
   }
 
-  validate (argv?: any): any | undefined {
+  validate<T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T): ReturnType<Schema<Record<string, SchemaType>>['safeParse']> | undefined {
     if (typeof this._schema === 'undefined') {
       return undefined
     }
@@ -132,7 +132,7 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
     return result
   }
 
-  isValid (argv?: any): boolean {
+  isValid<T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T): boolean {
     if (typeof this._schema === 'undefined') {
       return true
     }
@@ -169,7 +169,7 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
     return this._boundaries as WrappedBoundaries<B>
   }
 
-  setBoundariesData (boundariesData: Record<string, any>): void {
+  setBoundariesData (boundariesData: Record<string, unknown>): void {
     for (const name in this._boundaries) {
       const boundary = this._boundaries[name]
 
@@ -179,14 +179,15 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
       }
 
       if (typeof boundary !== 'undefined' && typeof tape !== 'undefined') {
-        boundary.setTape(tape)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        boundary.setTape(tape as any)
       }
     }
   }
 
-  getBondariesData (): Record<string, any> {
+  getBondariesData (): Record<string, unknown> {
     const boundaries = this._boundaries
-    const boundariesData: Record<string, any> = {}
+    const boundariesData: Record<string, unknown> = {}
 
     for (const name in boundaries) {
       const boundary = boundaries[name]
@@ -201,16 +202,21 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
     definition,
     baseData,
     mode = 'proxy'
-  }: any): WrappedBoundaries<B> {
-    const boundariesFns: Record<string, any> = {}
+  }: {
+    definition: B;
+    baseData: Record<string, unknown> | null;
+    mode?: Mode;
+  }): WrappedBoundaries<B> {
+    const boundariesFns: Record<string, WrappedBoundaryFunction> = {}
 
     for (const name in definition) {
       const boundary = createBoundary(definition[name])
 
-      if (typeof baseData !== 'undefined' && typeof baseData[name] !== 'undefined') {
+      if (baseData !== null && typeof baseData[name] !== 'undefined') {
         const tape = baseData[name]
 
-        boundary.setTape(tape)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        boundary.setTape(tape as any)
       }
       boundary.setMode(mode as Mode)
 
@@ -220,9 +226,9 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
     return boundariesFns as WrappedBoundaries<B>
   }
 
-  getBondariesRunLog (): Record<string, any> {
+  getBondariesRunLog (): Record<string, unknown> {
     const boundaries = this._boundaries
-    const boundariesRunLog: Record<string, any> = {}
+    const boundariesRunLog: Record<string, unknown> = {}
 
     for (const name in boundaries) {
       const boundary = boundaries[name]
