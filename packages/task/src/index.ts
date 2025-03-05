@@ -222,11 +222,8 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     }
   }
 
-  // ToDo: Define Types from asBoundary function
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  asBoundary () {
-    return async (args: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  asBoundary (): (args: Parameters<Func>[0]) => Promise<ReturnType<Func>> {
+    return async (args: Parameters<Func>[0]) => {
       return await this.run(args)
     }
   }
