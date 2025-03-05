@@ -43,7 +43,7 @@ describe('Listener tests', () => {
   it('Should record validation error', async () => {
     const tape: TaskRecord<{ value: number | null }, { value: number }>[] = []
     const schema = new Schema({
-      value: Schema.number()
+      value: Schema.number().min(5)
     })
 
     const task = new Task(function (_argv: InferSchema<typeof schema>) {
@@ -57,13 +57,13 @@ describe('Listener tests', () => {
     })
 
     try {
-      await task.run({ value: null } as any)
+      await task.run({ value: 3 })
     } catch (e) {
       // Error is expected
     }
 
     expect(tape.length).toBe(1)
-    expect(tape[0].input).toEqual({ value: null })
+    expect(tape[0].input).toEqual({ value: 3 })
     expect(tape[0].error).toBe('Invalid input')
   })
 

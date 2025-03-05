@@ -9,7 +9,7 @@ describe('Validation tests', () => {
       value: Schema.number()
     })
 
-    const task = new Task(function (argv: InferSchema<typeof schema>) {
+    task = new Task(function (argv: InferSchema<typeof schema>) {
       return argv
     }, {
       validate: schema

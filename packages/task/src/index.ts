@@ -10,11 +10,42 @@ export interface Task {
 
 export type BaseFunction = (...args: any[]) => any
 
-export interface TaskConfig {
-  validate?: any
+/**
+ * Represents a boundary function that can be called within a task
+ */
+export type BoundaryFunction = (...args: any[]) => Promise<any>
+
+/**
+ * Represents a wrapped boundary function with additional methods
+ */
+export interface WrappedBoundaryFunction<Func extends BoundaryFunction = BoundaryFunction> {
+  (...args: Parameters<Func>): Promise<ReturnType<Func>>
+  getTape: () => any[]
+  setTape: (newTape: any) => void
+  getMode: () => Mode
+  setMode: (newMode: Mode) => void
+  startRun: () => void
+  stopRun: () => void
+  getRunData: () => any[]
+}
+
+/**
+ * Represents a collection of boundary functions
+ */
+export type Boundaries = Record<string, BoundaryFunction>
+
+/**
+ * Represents a collection of wrapped boundary functions
+ */
+export type WrappedBoundaries<B extends Boundaries = Boundaries> = {
+  [K in keyof B]: WrappedBoundaryFunction<B[K]>
+}
+
+export interface TaskConfig<B extends Boundaries = Boundaries> {
+  validate?: Schema<Record<string, SchemaType>>
   mode?: Mode
-  boundaries?: any
-  boundariesData?: any
+  boundaries?: B
+  boundariesData?: Record<string, any>
 }
 
 /**
@@ -31,7 +62,7 @@ export interface TaskRecord<InputType = any, OutputType = any> {
   boundaries?: Record<string, any>;
 }
 
-export interface TaskInstanceType<Func extends BaseFunction = BaseFunction> {
+export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B extends Boundaries = Boundaries> {
   getMode: () => Mode
   setMode: (mode: Mode) => void
   setSchema: (base: Schema<Record<string, SchemaType>>) => void
@@ -48,27 +79,27 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction> {
 
   // Boundary methods
   asBoundary: () => (args: Parameters<Func>[0]) => Promise<ReturnType<Func>>
-  getBoundaries: () => any
+  getBoundaries: () => WrappedBoundaries<B>
   setBoundariesData: (boundariesData: Record<string, any>) => void
-  getBondariesData: () => any
-  getBondariesRunLog: () => any
+  getBondariesData: () => Record<string, any>
+  getBondariesRunLog: () => Record<string, any>
   startRunLog: () => void
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
 }
 
-export const Task = class Task<Func extends BaseFunction> implements TaskInstanceType<Func> {
+export const Task = class Task<Func extends BaseFunction, B extends Boundaries = Boundaries> implements TaskInstanceType<Func, B> {
   _fn: Func
   _mode: Mode
   _coolDown: number
 
-  _boundariesDefinition: any
-  _boundaries: any | null
-  _boundariesData: any | null
+  _boundariesDefinition: B
+  _boundaries: WrappedBoundaries<B> | null
+  _boundariesData: Record<string, any> | null
 
   _schema: Schema<Record<string, SchemaType>> | undefined
   _listener?: ((record: TaskRecord<any, any>) => void) | undefined
 
-  constructor (fn: Func, conf: TaskConfig = {
+  constructor (fn: Func, conf: TaskConfig<B> = {
     validate: undefined,
     mode: 'proxy',
     boundaries: undefined,
@@ -81,7 +112,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     }
 
     this._mode = conf.mode ?? 'proxy'
-    this._boundariesDefinition = conf.boundaries ?? {}
+    this._boundariesDefinition = conf.boundaries ?? {} as B
 
     this._listener = undefined
 
@@ -162,8 +193,8 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     this._listener(event)
   }
 
-  getBoundaries (): any {
-    return this._boundaries
+  getBoundaries (): WrappedBoundaries<B> {
+    return this._boundaries as WrappedBoundaries<B>
   }
 
   setBoundariesData (boundariesData: Record<string, any>): void {
@@ -198,7 +229,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     definition,
     baseData,
     mode = 'proxy'
-  }: any): Record<string, any> {
+  }: any): WrappedBoundaries<B> {
     const boundariesFns: Record<string, any> = {}
 
     for (const name in definition) {
@@ -214,7 +245,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
       boundariesFns[name] = boundary
     }
 
-    return boundariesFns
+    return boundariesFns as WrappedBoundaries<B>
   }
 
   getBondariesRunLog (): Record<string, any> {
