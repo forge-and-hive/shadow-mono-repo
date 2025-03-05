@@ -33,7 +33,7 @@ export type InferShadowDate = z.infer<ShadowDate>
 export type InferShadowArray<T extends ArrayTypes> = z.infer<ShadowArray<T>>
 
 // Export a type utility for inferring schema types
-export type InferSchema<S extends Schema<Record<string, z.ZodTypeAny>>> = z.infer<S['schema']>
+export type InferSchema<S extends Schema<Record<string, SchemaType>>> = z.infer<S['schema']>
 
 type BaseSchemaDescription = {
   type: AllowedBaseTypes
