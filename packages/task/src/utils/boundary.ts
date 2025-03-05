@@ -7,12 +7,16 @@ export type Mode = 'proxy' | 'proxy-pass' | 'proxy-catch' | 'replay'
 
 /**
  * Represents a boundary function that can be called within a task
+ * Using any here for compatibility with existing tests
+ * @template TReturn - The return type of the function
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type BoundaryFunction = (...args: any[]) => Promise<any>
+export type BoundaryFunction<TReturn = any> = (...args: any[]) => Promise<TReturn>
 
 /**
  * Represents a record of a boundary function call
+ * @template TInput - The type of input data
+ * @template TOutput - The type of output data
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface BoundaryRecord<TInput = any[], TOutput = any> {
