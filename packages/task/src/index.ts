@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Schema } from '@shadow/schema'
+import { Schema, type SchemaType } from '@shadow/schema'
 import { createBoundary, type Mode } from './utils/boundary'
 
 export interface Task {
@@ -20,9 +20,10 @@ export interface TaskConfig {
 export interface TaskInstanceType {
   getMode: () => Mode
   setMode: (mode: Mode) => void
-  setSchema: (base: any) => void
-  getSchema: () => any
+  setSchema: (base: Schema<Record<string, SchemaType>>) => void
+  getSchema: () => Schema<Record<string, SchemaType>> | undefined
   validate: (argv: any) => any | undefined
+  isValid: (argv: any) => boolean
   // eslint-disable-next-line @typescript-eslint/ban-types
   addListener: (fn: Function) => void
   removeListener: () => void
@@ -44,7 +45,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
   _boundaries: any | null
   _boundariesData: any | null
 
-  _schema: any | undefined
+  _schema: Schema<Record<string, SchemaType>> | undefined
   // eslint-disable-next-line @typescript-eslint/ban-types
   _listener: Function | undefined
 
@@ -57,7 +58,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     this._fn = fn
     this._schema = undefined
     if (typeof conf.validate !== 'undefined') {
-      this._schema = new Schema(conf.validate)
+      this._schema = conf.validate
     }
 
     this._mode = conf.mode ?? 'proxy'
@@ -91,11 +92,11 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     this._mode = mode
   }
 
-  setSchema (base: any): void {
-    this._schema = new Schema(base)
+  setSchema (schema: Schema<Record<string, SchemaType>>): void {
+    this._schema = schema
   }
 
-  getSchema (): any {
+  getSchema (): Schema<Record<string, SchemaType>> | undefined {
     return this._schema
   }
 
@@ -104,7 +105,18 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
       return undefined
     }
 
-    return this._schema.validate(argv)
+    const result = this._schema.safeParse(argv)
+
+    return result
+  }
+
+  isValid (argv: any): boolean {
+    if (typeof this._schema === 'undefined') {
+      return true
+    }
+
+    const result = this._schema.safeParse(argv)
+    return result.success ?? false
   }
 
   // Listen and emit to make it easy to have hooks
@@ -225,15 +237,15 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     const boundaries = this._boundaries
 
     const q = new Promise<ReturnType<Func>>((resolve, reject) => {
-      const error = this.validate(argv)
+      const isValid = this.isValid(argv)
 
-      if (typeof error !== 'undefined') {
+      if (!isValid) {
         this.emit({
           input: argv,
-          error: error.message
+          error: 'Invalid input'
         })
 
-        throw error
+        throw new Error('Invalid input')
       }
 
       (async (): Promise<ReturnType<Func>> => {

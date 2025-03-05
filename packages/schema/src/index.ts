@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+// Export a type alias for Schema fields
+export type SchemaType = z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>;
+
 type AllowedBaseTypes = 'string' | 'boolean' | 'number' | 'date'
 type ArrayTypes = z.ZodString | z.ZodBoolean | z.ZodNumber | z.ZodDate
 
@@ -29,6 +32,9 @@ export type InferShadowNumber = z.infer<ShadowNumber>
 export type InferShadowDate = z.infer<ShadowDate>
 export type InferShadowArray<T extends ArrayTypes> = z.infer<ShadowArray<T>>
 
+// Export a type utility for inferring schema types
+export type InferSchema<S extends Schema<Record<string, z.ZodTypeAny>>> = z.infer<S['schema']>
+
 type BaseSchemaDescription = {
   type: AllowedBaseTypes
   optional?: boolean
@@ -47,6 +53,12 @@ export type SchemaDescription = Record<string, BaseSchemaDescription | ArraySche
 
 // Static methods for type definitions
 export class Schema<T extends Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>>> {
+  readonly schema: z.ZodObject<T>
+
+  constructor(fields: T) {
+    this.schema = z.object(fields)
+  }
+
   static string(): ShadowString {
     return z.string()
   }
@@ -65,6 +77,16 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
 
   static array<T extends ArrayTypes>(type: T): ShadowArray<T> {
     return z.array(type) as ShadowArray<T>
+  }
+
+  /**
+   * Infers the TypeScript type from a Schema instance
+   * @template S The Schema type
+   * @returns The inferred TypeScript type
+   */
+  static infer<S extends Schema<Record<string, z.ZodTypeAny>>>(_schema: S): z.infer<S['schema']> {
+    // This is a type-level utility, the implementation is not used at runtime
+    return {} as z.infer<S['schema']>
   }
 
   /**
@@ -150,12 +172,6 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
     return new Schema(fields)
   }
 
-  private readonly schema: z.ZodObject<T>
-
-  constructor(fields: T) {
-    this.schema = z.object(fields)
-  }
-
   /**
    * Validates the provided data against the schema
    * @param data The data to validate
@@ -175,6 +191,15 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
    */
   parse(data: unknown): z.infer<z.ZodObject<T>> {
     return this.schema.parse(data)
+  }
+
+  /**
+   * Safely parses and validates the provided data against the schema
+   * @param data The data to parse and validate
+   * @returns An object containing either the successfully parsed data or error information
+   */
+  safeParse(data: unknown): z.SafeParseReturnType<z.infer<z.ZodObject<T>>, z.infer<z.ZodObject<T>>> {
+    return this.schema.safeParse(data)
   }
 
   /**
