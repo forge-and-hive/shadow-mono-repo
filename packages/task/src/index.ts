@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Schema, type SchemaType } from '@shadow/schema'
-import { createBoundary, type Mode } from './utils/boundary'
+import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries } from './utils/boundary'
 
 export interface Task {
   id: string;
@@ -10,36 +10,8 @@ export interface Task {
 
 export type BaseFunction = (...args: any[]) => any
 
-/**
- * Represents a boundary function that can be called within a task
- */
-export type BoundaryFunction = (...args: any[]) => Promise<any>
-
-/**
- * Represents a wrapped boundary function with additional methods
- */
-export interface WrappedBoundaryFunction<Func extends BoundaryFunction = BoundaryFunction> {
-  (...args: Parameters<Func>): Promise<ReturnType<Func>>
-  getTape: () => any[]
-  setTape: (newTape: any) => void
-  getMode: () => Mode
-  setMode: (newMode: Mode) => void
-  startRun: () => void
-  stopRun: () => void
-  getRunData: () => any[]
-}
-
-/**
- * Represents a collection of boundary functions
- */
-export type Boundaries = Record<string, BoundaryFunction>
-
-/**
- * Represents a collection of wrapped boundary functions
- */
-export type WrappedBoundaries<B extends Boundaries = Boundaries> = {
-  [K in keyof B]: WrappedBoundaryFunction<B[K]>
-}
+// Re-export the boundary types for external use
+export type { BoundaryFunction, WrappedBoundaryFunction, Boundaries, WrappedBoundaries, Mode } from './utils/boundary'
 
 export interface TaskConfig<B extends Boundaries = Boundaries> {
   validate?: Schema<Record<string, SchemaType>>

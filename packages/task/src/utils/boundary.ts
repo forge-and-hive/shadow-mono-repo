@@ -5,7 +5,15 @@ type BaseBoundary = (...args: any[]) => any
 
 export type Mode = 'proxy' | 'proxy-pass' | 'proxy-catch' | 'replay'
 
-export const createBoundary = <Func extends BaseBoundary>(fn: Func): {
+/**
+ * Represents a boundary function that can be called within a task
+ */
+export type BoundaryFunction = (...args: any[]) => Promise<any>
+
+/**
+ * Represents a wrapped boundary function with additional methods
+ */
+export interface WrappedBoundaryFunction<Func extends BoundaryFunction = BoundaryFunction> {
   (...args: Parameters<Func>): Promise<ReturnType<Func>>
   getTape: () => any[]
   setTape: (newTape: any) => void
@@ -14,7 +22,21 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): {
   startRun: () => void
   stopRun: () => void
   getRunData: () => any[]
-} => {
+}
+
+/**
+ * Represents a collection of boundary functions
+ */
+export type Boundaries = Record<string, BoundaryFunction>
+
+/**
+ * Represents a collection of wrapped boundary functions
+ */
+export type WrappedBoundaries<B extends Boundaries = Boundaries> = {
+  [K in keyof B]: WrappedBoundaryFunction<B[K]>
+}
+
+export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoundaryFunction<Func extends BoundaryFunction ? Func : never> => {
   interface Record {
     input: Parameters<Func>
     output?: any
