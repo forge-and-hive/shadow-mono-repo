@@ -225,7 +225,7 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
             } else if (check.kind === 'max') {
               validations.maxLength = check.value
             } else if (check.kind === 'regex') {
-              validations.regex = check.regex.toString().replace(/^\/|\/$/g, '')
+              validations.regex = check.regex.toString().replace(/^\/|\/$/g, '').replace(/\\\//g, '/')
             }
           }
         }
