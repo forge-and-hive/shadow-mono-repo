@@ -1,14 +1,14 @@
-import { Task } from '../index'
+import { Task, type TaskRecord } from '../index'
 import { Schema, type InferSchema } from '@shadow/schema'
 
 describe('Listener tests', () => {
   it('Should record one item', async () => {
-    const tape: any[] = []
-    const task = new Task(function (_argv) {
+    const tape: TaskRecord<{ value: number }, { value: number }>[] = []
+    const task = new Task(function (_argv: { value: number }) {
       return _argv
     })
 
-    task.addListener((record: any) => {
+    task.addListener((record) => {
       tape.push(record)
     })
 
@@ -20,12 +20,12 @@ describe('Listener tests', () => {
   })
 
   it('Should record execution error', async () => {
-    const tape: any[] = []
-    const task = new Task(function (_argv) {
+    const tape: TaskRecord<{ value: number }, never>[] = []
+    const task = new Task(function (_argv: { value: number }) {
       throw new Error('This should happen')
     })
 
-    task.addListener((record: any) => {
+    task.addListener((record) => {
       tape.push(record)
     })
 
@@ -41,7 +41,7 @@ describe('Listener tests', () => {
   })
 
   it('Should record validation error', async () => {
-    const tape: any[] = []
+    const tape: TaskRecord<{ value: number | null }, { value: number }>[] = []
     const schema = new Schema({
       value: Schema.number()
     })
@@ -52,13 +52,12 @@ describe('Listener tests', () => {
       validate: schema
     })
 
-    task.addListener((record: any) => {
+    task.addListener<{ value: number | null }, { value: number }>((record) => {
       tape.push(record)
     })
 
     try {
-      // @ts-expect-error - We're intentionally passing null to test validation error
-      await task.run({ value: null })
+      await task.run({ value: null } as any)
     } catch (e) {
       // Error is expected
     }
@@ -69,12 +68,12 @@ describe('Listener tests', () => {
   })
 
   it('Should record multiple records', async () => {
-    const tape: any[] = []
-    const task = new Task(function (_argv) {
+    const tape: TaskRecord<{ value: number }, { value: number }>[] = []
+    const task = new Task(function (_argv: { value: number }) {
       return _argv
     })
 
-    task.addListener((record: any) => {
+    task.addListener((record) => {
       tape.push(record)
     })
 
@@ -90,12 +89,12 @@ describe('Listener tests', () => {
   })
 
   it('Should stop recording', async () => {
-    const tape: any[] = []
-    const task = new Task(function (_argv) {
+    const tape: TaskRecord<{ value: number }, { value: number }>[] = []
+    const task = new Task(function (_argv: { value: number }) {
       return _argv
     })
 
-    task.addListener((record: any) => {
+    task.addListener((record) => {
       tape.push(record)
     })
 
@@ -108,5 +107,4 @@ describe('Listener tests', () => {
     expect(tape[0].input).toEqual({ value: 5 })
     expect(tape[0].output).toEqual({ value: 5 })
   })
-}) 
-
+})

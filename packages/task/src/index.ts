@@ -17,6 +17,20 @@ export interface TaskConfig {
   boundariesData?: any
 }
 
+/**
+ * Represents the record passed to task listeners
+ */
+export interface TaskRecord<InputType = any, OutputType = any> {
+  /** The input arguments passed to the task */
+  input: InputType;
+  /** The output returned by the task (if successful) */
+  output?: OutputType;
+  /** The error message if the task failed */
+  error?: string;
+  /** Boundary execution data */
+  boundaries?: Record<string, any>;
+}
+
 export interface TaskInstanceType<Func extends BaseFunction = BaseFunction> {
   getMode: () => Mode
   setMode: (mode: Mode) => void
@@ -27,10 +41,12 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction> {
   validate: (argv?: any) => any | undefined
   isValid: (argv?: any) => boolean
 
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  addListener: (fn: Function) => void
+  // Listener methods
+  addListener: <I = Parameters<Func>[0], O = ReturnType<Func>>(fn: (record: TaskRecord<I, O>) => void) => void
   removeListener: () => void
-  emit: (data: any) => void
+  emit: (data: Partial<TaskRecord>) => void
+
+  // Boundary methods
   asBoundary: () => (args: Parameters<Func>[0]) => Promise<ReturnType<Func>>
   getBoundaries: () => any
   setBoundariesData: (boundariesData: Record<string, any>) => void
@@ -50,8 +66,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
   _boundariesData: any | null
 
   _schema: Schema<Record<string, SchemaType>> | undefined
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  _listener: Function | undefined
+  _listener?: ((record: TaskRecord<any, any>) => void) | undefined
 
   constructor (fn: Func, conf: TaskConfig = {
     validate: undefined,
@@ -123,11 +138,9 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     return result.success ?? false
   }
 
-  // Listen and emit to make it easy to have hooks
   // Posible improvement to handle multiple listeners, but so far its not needed
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  addListener (fn: Function): void {
-    this._listener = fn
+  addListener<I = Parameters<Func>[0], O = ReturnType<Func>>(fn: (record: TaskRecord<I, O>) => void): void {
+    this._listener = fn as (record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void
   }
 
   removeListener (): void {
@@ -138,12 +151,13 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     The listener get the input/outout of the call
     Plus all the boundary data
   */
-  emit (data: any): void {
+  emit (data: Partial<TaskRecord>): void {
     if (typeof this._listener === 'undefined') { return }
 
     const event = {
-      ...data, boundaries: this.getBondariesRunLog()
-    }
+      ...data,
+      boundaries: this.getBondariesRunLog()
+    } as TaskRecord<Parameters<Func>[0], ReturnType<Func>>
 
     this._listener(event)
   }
