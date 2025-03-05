@@ -33,15 +33,6 @@ importers:
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^7.0.1
-        version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)
-      '@typescript-eslint/parser':
-        specifier: ^7.0.1
-        version: 7.18.0(eslint@8.57.1)(typescript@5.8.2)
-      eslint:
-        specifier: ^8.56.0
-        version: 8.57.1
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.17.23)
@@ -61,9 +52,6 @@ importers:
       '@types/node':
         specifier: ^20.11.19
         version: 20.17.23
-      eslint:
-        specifier: ^8.56.0
-        version: 8.57.1
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.17.23)
