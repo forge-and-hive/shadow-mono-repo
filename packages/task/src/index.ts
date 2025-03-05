@@ -17,7 +17,7 @@ export interface TaskConfig {
   boundariesData?: any
 }
 
-export interface TaskInstanceType {
+export interface TaskInstanceType<Func extends BaseFunction = BaseFunction> {
   getMode: () => Mode
   setMode: (mode: Mode) => void
   setSchema: (base: Schema<Record<string, SchemaType>>) => void
@@ -28,15 +28,16 @@ export interface TaskInstanceType {
   addListener: (fn: Function) => void
   removeListener: () => void
   emit: (data: any) => void
+  asBoundary: () => (args: Parameters<Func>[0]) => Promise<ReturnType<Func>>
   getBoundaries: () => any
   setBoundariesData: (boundariesData: Record<string, any>) => void
   getBondariesData: () => any
   getBondariesRunLog: () => any
   startRunLog: () => void
-  run: (argv: any) => Promise<any>
+  run: (argv: Parameters<Func>[0]) => Promise<ReturnType<Func>>
 }
 
-export const Task = class Task<Func extends BaseFunction> implements TaskInstanceType {
+export const Task = class Task<Func extends BaseFunction> implements TaskInstanceType<Func> {
   _fn: Func
   _mode: Mode
   _coolDown: number
