@@ -26,13 +26,22 @@ importers:
 
   packages/schema:
     dependencies:
-      yop:
-        specifier: ^0.0.0
-        version: 0.0.0
+      zod:
+        specifier: ^3.24.2
+        version: 3.24.2
     devDependencies:
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^7.0.1
+        version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)
+      '@typescript-eslint/parser':
+        specifier: ^7.0.1
+        version: 7.18.0(eslint@8.57.1)(typescript@5.8.2)
+      eslint:
+        specifier: ^8.56.0
+        version: 8.57.1
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.17.23)
@@ -3147,8 +3156,8 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  yop@0.0.0:
-    resolution: {integrity: sha512-x2E9BL41rEcKlSmub5vINBbbZG7cVCFWDd9UqxLXA5rQqg/lzP8/LgsilvfcxIqdcuncedEswb2jdUrzi/2rzw==}
+  zod@3.24.2:
+    resolution: {integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==}
 
 snapshots:
 
@@ -6906,4 +6915,4 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  yop@0.0.0: {}
+  zod@3.24.2: {}

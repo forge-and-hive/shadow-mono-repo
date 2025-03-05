@@ -5,8 +5,6 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "lint": "ts-standard",
-    "lint:fix": "ts-standard --fix",
     "test": "jest",
     "test:watch": "jest --watch"
   },
