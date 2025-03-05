@@ -12,8 +12,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@shadow/schema": "workspace:*",
-    "zod": "^3.24.2"
+    "@shadow/schema": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
