@@ -52,7 +52,7 @@ describe('Runner', () => {
     const runner = new Runner()
     runner.load('sample', taskInt)
 
-    const result = await runner.run('sample', { int: 6 })
+    const result = await runner.run<typeof taskInt['_fn'], { int: number }, number>('sample', { int: 6 })
 
     expect(result).toBe(11)
   })
@@ -70,8 +70,8 @@ describe('Runner', () => {
     runner.load('int', taskInt)
     runner.load('string', taskString)
 
-    const int = await runner.run('int', { int: 6 })
-    const str = await runner.run('string', { str: 'hello' })
+    const int = await runner.run<typeof taskInt['_fn'], { int: number }, number>('int', { int: 6 })
+    const str = await runner.run<typeof taskString['_fn'], { str: string }, string>('string', { str: 'hello' })
 
     expect(int).toBe(11)
     expect(str).toBe('hello world')
@@ -89,7 +89,7 @@ describe('Runner', () => {
     const runner = new Runner()
     runner.load('int', taskInt)
 
-    const task = runner.getTask('int')
+    const task = runner.getTask<typeof taskInt['_fn']>('int')
 
     let int = 0
     if (task !== undefined) {

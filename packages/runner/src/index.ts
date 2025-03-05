@@ -1,8 +1,11 @@
 /* eslint-disable no-console */
+import { TaskInstanceType, BaseFunction } from '@shadow/task'
 
-type Tasks = Record<string, {
-  task: any
-}>
+type TaskRecord<T extends TaskInstanceType = TaskInstanceType> = {
+  task: T
+}
+
+type Tasks = Record<string, TaskRecord>
 
 export class Runner {
   public _tasks: Tasks
@@ -19,18 +22,18 @@ export class Runner {
     })
   }
 
-  load(name: string, task: any): void {
+  load<T extends BaseFunction>(name: string, task: TaskInstanceType<T>): void {
     this._tasks[name] = { task }
   }
 
-  getTask(name: string): any | undefined {
+  getTask<T extends BaseFunction = BaseFunction>(name: string): TaskInstanceType<T> | undefined {
     if (this._tasks[name] === undefined) {
       return undefined
     }
 
     const { task } = this._tasks[name]
 
-    return task
+    return task as TaskInstanceType<T>
   }
 
   getTasks(): Tasks {
@@ -41,7 +44,10 @@ export class Runner {
     return Object.keys(this._tasks)
   }
 
-  async run(name: string, args: any): Promise<any> {
+  async run<T extends BaseFunction, P extends Parameters<T>[0], R = ReturnType<T>>(
+    name: string,
+    args: P
+  ): Promise<Awaited<R>> {
     const exists = this._tasks[name]
 
     if (exists === undefined) {
@@ -55,20 +61,20 @@ export class Runner {
     }
 
     const results = await task.run(args)
-    return results
+    return results as Awaited<R>
   }
 
-  parseArguments(data: any): { taskName: string, args: any } {
+  parseArguments<T>(data: { task: string, args: T }): { taskName: string, args: T } {
     return {
       taskName: data.task,
       args: data.args
     }
   }
 
-  async handler(data: any): Promise<any> {
-    const { taskName, args }: { taskName: string, args: any } = this.parseArguments(data)
+  async handler<T, R>(data: { task: string, args: T }): Promise<R> {
+    const { taskName, args } = this.parseArguments(data)
     const res = await this.run(taskName, args)
-    return res
+    return res as R
   }
 }
 
