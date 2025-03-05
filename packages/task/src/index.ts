@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Schema, type SchemaType } from '@shadow/schema'
 import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries } from './utils/boundary'
 
@@ -41,8 +40,8 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   getSchema: () => Schema<Record<string, SchemaType>> | undefined
 
   // Validation methos
-  validate: (argv?: any) => any | undefined
-  isValid: (argv?: any) => boolean
+  validate: <T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T) => ReturnType<Schema<Record<string, SchemaType>>['safeParse']> | undefined
+  isValid: <T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T) => boolean
 
   // Listener methods
   addListener: <I = Parameters<Func>[0], O = ReturnType<Func>>(fn: (record: TaskRecord<I, O>) => void) => void
@@ -122,7 +121,7 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
     return this._schema
   }
 
-  validate (argv?: any): any | undefined {
+  validate<T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T): ReturnType<Schema<Record<string, SchemaType>>['safeParse']> | undefined {
     if (typeof this._schema === 'undefined') {
       return undefined
     }
@@ -132,7 +131,7 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
     return result
   }
 
-  isValid (argv?: any): boolean {
+  isValid<T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T): boolean {
     if (typeof this._schema === 'undefined') {
       return true
     }
