@@ -7,6 +7,6 @@
     "skipLibCheck": true,
     "strict": true
   },
-  "include": ["packages/*/src/**/*.ts", "packages/*/src/**/*.tsx"],
+  "include": ["packages/*/src/**/*.ts", "packages/*/src/**/*.tsx", "apps/*/src/**/*.ts", "apps/*/src/**/*.tsx"],
   "exclude": ["node_modules", "**/node_modules/*", "**/dist/*"]
 } 
