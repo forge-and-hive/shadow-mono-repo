@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Schema, type SchemaType } from '@shadow/schema'
-import { createBoundary, type Mode } from './utils/boundary'
+import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries } from './utils/boundary'
 
 export interface Task {
   id: string;
@@ -10,14 +10,31 @@ export interface Task {
 
 export type BaseFunction = (...args: any[]) => any
 
-export interface TaskConfig {
-  validate?: any
+// Re-export the boundary types for external use
+export type { BoundaryFunction, WrappedBoundaryFunction, Boundaries, WrappedBoundaries, Mode } from './utils/boundary'
+
+export interface TaskConfig<B extends Boundaries = Boundaries> {
+  validate?: Schema<Record<string, SchemaType>>
   mode?: Mode
-  boundaries?: any
-  boundariesData?: any
+  boundaries?: B
+  boundariesData?: Record<string, any>
 }
 
-export interface TaskInstanceType<Func extends BaseFunction = BaseFunction> {
+/**
+ * Represents the record passed to task listeners
+ */
+export interface TaskRecord<InputType = any, OutputType = any> {
+  /** The input arguments passed to the task */
+  input: InputType;
+  /** The output returned by the task (if successful) */
+  output?: OutputType;
+  /** The error message if the task failed */
+  error?: string;
+  /** Boundary execution data */
+  boundaries?: Record<string, any>;
+}
+
+export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B extends Boundaries = Boundaries> {
   getMode: () => Mode
   setMode: (mode: Mode) => void
   setSchema: (base: Schema<Record<string, SchemaType>>) => void
@@ -27,33 +44,34 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction> {
   validate: (argv?: any) => any | undefined
   isValid: (argv?: any) => boolean
 
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  addListener: (fn: Function) => void
+  // Listener methods
+  addListener: <I = Parameters<Func>[0], O = ReturnType<Func>>(fn: (record: TaskRecord<I, O>) => void) => void
   removeListener: () => void
-  emit: (data: any) => void
+  emit: (data: Partial<TaskRecord>) => void
+
+  // Boundary methods
   asBoundary: () => (args: Parameters<Func>[0]) => Promise<ReturnType<Func>>
-  getBoundaries: () => any
+  getBoundaries: () => WrappedBoundaries<B>
   setBoundariesData: (boundariesData: Record<string, any>) => void
-  getBondariesData: () => any
-  getBondariesRunLog: () => any
+  getBondariesData: () => Record<string, any>
+  getBondariesRunLog: () => Record<string, any>
   startRunLog: () => void
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
 }
 
-export const Task = class Task<Func extends BaseFunction> implements TaskInstanceType<Func> {
+export const Task = class Task<Func extends BaseFunction, B extends Boundaries = Boundaries> implements TaskInstanceType<Func, B> {
   _fn: Func
   _mode: Mode
   _coolDown: number
 
-  _boundariesDefinition: any
-  _boundaries: any | null
-  _boundariesData: any | null
+  _boundariesDefinition: B
+  _boundaries: WrappedBoundaries<B> | null
+  _boundariesData: Record<string, any> | null
 
   _schema: Schema<Record<string, SchemaType>> | undefined
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  _listener: Function | undefined
+  _listener?: ((record: TaskRecord<any, any>) => void) | undefined
 
-  constructor (fn: Func, conf: TaskConfig = {
+  constructor (fn: Func, conf: TaskConfig<B> = {
     validate: undefined,
     mode: 'proxy',
     boundaries: undefined,
@@ -66,7 +84,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     }
 
     this._mode = conf.mode ?? 'proxy'
-    this._boundariesDefinition = conf.boundaries ?? {}
+    this._boundariesDefinition = conf.boundaries ?? {} as B
 
     this._listener = undefined
 
@@ -123,11 +141,9 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     return result.success ?? false
   }
 
-  // Listen and emit to make it easy to have hooks
   // Posible improvement to handle multiple listeners, but so far its not needed
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  addListener (fn: Function): void {
-    this._listener = fn
+  addListener<I = Parameters<Func>[0], O = ReturnType<Func>>(fn: (record: TaskRecord<I, O>) => void): void {
+    this._listener = fn as (record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void
   }
 
   removeListener (): void {
@@ -138,18 +154,19 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     The listener get the input/outout of the call
     Plus all the boundary data
   */
-  emit (data: any): void {
+  emit (data: Partial<TaskRecord>): void {
     if (typeof this._listener === 'undefined') { return }
 
     const event = {
-      ...data, boundaries: this.getBondariesRunLog()
-    }
+      ...data,
+      boundaries: this.getBondariesRunLog()
+    } as TaskRecord<Parameters<Func>[0], ReturnType<Func>>
 
     this._listener(event)
   }
 
-  getBoundaries (): any {
-    return this._boundaries
+  getBoundaries (): WrappedBoundaries<B> {
+    return this._boundaries as WrappedBoundaries<B>
   }
 
   setBoundariesData (boundariesData: Record<string, any>): void {
@@ -184,7 +201,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     definition,
     baseData,
     mode = 'proxy'
-  }: any): Record<string, any> {
+  }: any): WrappedBoundaries<B> {
     const boundariesFns: Record<string, any> = {}
 
     for (const name in definition) {
@@ -200,7 +217,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
       boundariesFns[name] = boundary
     }
 
-    return boundariesFns
+    return boundariesFns as WrappedBoundaries<B>
   }
 
   getBondariesRunLog (): Record<string, any> {
