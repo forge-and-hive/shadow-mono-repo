@@ -22,8 +22,11 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction> {
   setMode: (mode: Mode) => void
   setSchema: (base: Schema<Record<string, SchemaType>>) => void
   getSchema: () => Schema<Record<string, SchemaType>> | undefined
-  validate: (argv: any) => any | undefined
-  isValid: (argv: any) => boolean
+
+  // Validation methos
+  validate: (argv?: any) => any | undefined
+  isValid: (argv?: any) => boolean
+
   // eslint-disable-next-line @typescript-eslint/ban-types
   addListener: (fn: Function) => void
   removeListener: () => void
@@ -34,7 +37,7 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction> {
   getBondariesData: () => any
   getBondariesRunLog: () => any
   startRunLog: () => void
-  run: (argv: Parameters<Func>[0]) => Promise<ReturnType<Func>>
+  run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
 }
 
 export const Task = class Task<Func extends BaseFunction> implements TaskInstanceType<Func> {
@@ -101,7 +104,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     return this._schema
   }
 
-  validate (argv: any): any | undefined {
+  validate (argv?: any): any | undefined {
     if (typeof this._schema === 'undefined') {
       return undefined
     }
@@ -111,7 +114,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     return result
   }
 
-  isValid (argv: any): boolean {
+  isValid (argv?: any): boolean {
     if (typeof this._schema === 'undefined') {
       return true
     }
@@ -229,7 +232,7 @@ export const Task = class Task<Func extends BaseFunction> implements TaskInstanc
     }
   }
 
-  async run (argv: Parameters<Func>[0]): Promise<ReturnType<Func>> {
+  async run (argv?: Parameters<Func>[0]): Promise<ReturnType<Func>> {
     // start run log
     this.startRunLog()
     const boundaries = this._boundaries
