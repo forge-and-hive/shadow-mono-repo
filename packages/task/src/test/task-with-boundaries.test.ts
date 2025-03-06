@@ -1,29 +1,27 @@
-import { Task, type Boundaries, type WrappedBoundaries } from '../index'
+import { createTask, Schema } from '../index'
 
 // Need to add proxy cache mode to the boundaries
 describe('Boundaries tasks tests', () => {
   it('Indentity + boundaries test', async () => {
-    interface FetchExternalDataBoundary extends Boundaries {
-      fetchExternalData: () => Promise<{ foo: boolean }>
+    // Create a schema for the task
+    const schema = new Schema({})
+
+    // Define the boundaries
+    const boundaries = {
+      fetchExternalData: async (): Promise<{ foo: boolean }> => {
+        return { foo: false }
+      }
     }
 
-    const indentity = new Task<
-      (argv: Record<string, boolean>, boundaries: WrappedBoundaries<FetchExternalDataBoundary>) => Promise<Record<string, boolean>>,
-      FetchExternalDataBoundary
-        >(
-        async (argv: Record<string, boolean>, boundaries: WrappedBoundaries<FetchExternalDataBoundary>): Promise<Record<string, boolean>> => {
-          const externalData = await boundaries.fetchExternalData()
-
-          return { ...externalData, ...argv }
-        },
-        {
-          boundaries: {
-            fetchExternalData: async (): Promise<{ foo: boolean }> => {
-              return { foo: false }
-            }
-          }
-        }
-        )
+    // Create the task using createTask
+    const indentity = createTask(
+      schema,
+      boundaries,
+      async (argv, boundaries) => {
+        const externalData = await boundaries.fetchExternalData()
+        return { ...externalData, ...argv }
+      }
+    )
 
     const object = await indentity.run({ bar: true })
     const { foo } = await indentity.run({ foo: true })
@@ -33,34 +31,34 @@ describe('Boundaries tasks tests', () => {
   })
 
   it('Indentity test with tape data', async () => {
-    interface FetchExternalDataBoundary extends Boundaries {
-      fetchExternalData: () => Promise<{ foo: boolean }>
+    // Create a schema for the task
+    const schema = new Schema({})
+
+    // Define the boundaries
+    const boundaries = {
+      fetchExternalData: async (): Promise<{ foo: boolean }> => {
+        // Return an empty implementation, the actual data will come from boundariesData
+        return { foo: false }
+      }
     }
 
-    const indentity = new Task<
-      (argv: Record<string, boolean>, boundaries: WrappedBoundaries<FetchExternalDataBoundary>) => Promise<Record<string, boolean>>,
-      FetchExternalDataBoundary
-        >(
-        async (argv: Record<string, boolean>, boundaries: WrappedBoundaries<FetchExternalDataBoundary>): Promise<Record<string, boolean>> => {
-          const externalData = await boundaries.fetchExternalData()
-
-          return { ...externalData, ...argv }
+    // Create the task using createTask with boundariesData
+    const indentity = createTask(
+      schema,
+      boundaries,
+      async (argv, boundaries) => {
+        const externalData = await boundaries.fetchExternalData()
+        return { ...externalData, ...argv }
+      },
+      {
+        boundariesData: {
+          fetchExternalData: [
+            { input: [], output: { foo: false } }
+          ]
         },
-        {
-          boundaries: {
-            fetchExternalData: async (): Promise<{ foo: boolean }> => {
-            // Return an empty implementation, the actual data will come from boundariesData
-              return { foo: false }
-            }
-          },
-          boundariesData: {
-            fetchExternalData: [
-              { input: [], output: { foo: false } }
-            ]
-          },
-          mode: 'proxy-pass'
-        }
-        )
+        mode: 'proxy-pass'
+      }
+    )
 
     const object = await indentity.run({ bar: true })
     const { foo } = await indentity.run({ foo: true })
@@ -70,66 +68,68 @@ describe('Boundaries tasks tests', () => {
   })
 
   it('Add task with boundaries test', async () => {
-    interface FetchExternalDataBoundary extends Boundaries {
-      fetchExternalData: (int: number) => Promise<number>
+    // Create a schema for the task that accepts a number
+    const schema = new Schema({
+      value: Schema.number()
+    })
+
+    // Define the boundaries
+    const boundaries = {
+      fetchExternalData: async (int: number): Promise<number> => {
+        return int * 2
+      }
     }
 
-    const add = new Task<
-      (int: number, boundaries: WrappedBoundaries<FetchExternalDataBoundary>) => Promise<number>,
-      FetchExternalDataBoundary
-        >(
-        async function (int: number, boundaries: WrappedBoundaries<FetchExternalDataBoundary>): Promise<number> {
-          const externalData: number = await boundaries.fetchExternalData(1)
+    // Create the task using createTask
+    const add = createTask(
+      schema,
+      boundaries,
+      async function (argv, boundaries) {
+        const externalData: number = await boundaries.fetchExternalData(1)
+        return argv.value + externalData
+      }
+    )
 
-          return int + externalData
-        },
-        {
-          boundaries: {
-            fetchExternalData: async (int: number): Promise<number> => {
-              return int * 2
-            }
-          }
-        }
-        )
-
-    const six = await add.run(4)
-    const seven = await add.run(5)
+    const six = await add.run({ value: 4 })
+    const seven = await add.run({ value: 5 })
 
     expect(six).toBe(6)
     expect(seven).toBe(7)
   })
 
   it('Add task + boundaries + tape test', async () => {
-    interface FetchExternalDataBoundary extends Boundaries {
-      fetchExternalData: (int: number) => Promise<number>
+    // Create a schema for the task that accepts a number
+    const schema = new Schema({
+      value: Schema.number()
+    })
+
+    // Define the boundaries
+    const boundaries = {
+      fetchExternalData: async (int: number): Promise<number> => {
+        return int * 2
+      }
     }
 
-    const add = new Task<
-      (int: number, boundaries: WrappedBoundaries<FetchExternalDataBoundary>) => Promise<number>,
-      FetchExternalDataBoundary
-        >(
-        async function (int: number, boundaries: WrappedBoundaries<FetchExternalDataBoundary>): Promise<number> {
-          const externalData: number = await boundaries.fetchExternalData(int)
-
-          return int + externalData
+    // Create the task using createTask with boundariesData
+    const add = createTask(
+      schema,
+      boundaries,
+      async function (argv, boundaries) {
+        const externalData: number = await boundaries.fetchExternalData(argv.value)
+        return argv.value + externalData
+      },
+      {
+        boundariesData: {
+          fetchExternalData: [
+            { input: [4], output: 2 }
+          ]
         },
-        {
-          boundaries: {
-            fetchExternalData: async (int: number): Promise<number> => {
-              return int * 2
-            }
-          },
-          boundariesData: {
-            fetchExternalData: [
-              { input: [4], output: 2 }
-            ]
-          },
-          mode: 'proxy-pass'
-        }
-        )
+        mode: 'proxy-pass'
+      }
+    )
 
-    const six = await add.run(4) // From tape data
-    const fifteen = await add.run(5)
+    const six = await add.run({ value: 4 }) // From tape data
+    const fifteen = await add.run({ value: 5 })
 
     expect(six).toBe(6)
     expect(fifteen).toBe(15)

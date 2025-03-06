@@ -1,4 +1,4 @@
-import { Schema, type SchemaType } from '@shadow/schema'
+import { Schema, type SchemaType, type InferSchema } from '@shadow/schema'
 import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries, type WrappedBoundaryFunction } from './utils/boundary'
 
 export interface Task {
@@ -12,6 +12,9 @@ export type BaseFunction = (...args: any[]) => any
 
 // Re-export the boundary types for external use
 export type { BoundaryFunction, WrappedBoundaryFunction, Boundaries, WrappedBoundaries, Mode } from './utils/boundary'
+
+// Re-export Schema for external use
+export { Schema }
 
 export interface TaskConfig<B extends Boundaries = Boundaries> {
   validate?: Schema<Record<string, SchemaType>>
@@ -59,13 +62,23 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
 }
 
-export const Task = class Task<Func extends BaseFunction, B extends Boundaries = Boundaries> implements TaskInstanceType<Func, B> {
+// Helper type to infer schema type
+export type InferSchemaType<S> = S extends Schema<any> ? InferSchema<S> : Record<string, unknown>;
+
+// Helper type for task function with proper typing
+export type TaskFunction<S, B extends Boundaries> =
+  (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<any>;
+
+export const Task = class Task<
+  B extends Boundaries = Boundaries,
+  Func extends BaseFunction = BaseFunction
+> implements TaskInstanceType<Func, B> {
   _fn: Func
   _mode: Mode
   _coolDown: number
 
   _boundariesDefinition: B
-  _boundaries: WrappedBoundaries<B> | null
+  _boundaries: WrappedBoundaries<B>
   _boundariesData: Record<string, unknown> | null
 
   _schema: Schema<Record<string, SchemaType>> | undefined
@@ -166,7 +179,7 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
   }
 
   getBoundaries (): WrappedBoundaries<B> {
-    return this._boundaries as WrappedBoundaries<B>
+    return this._boundaries
   }
 
   setBoundariesData (boundariesData: Record<string, unknown>): void {
@@ -273,9 +286,10 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
       }
 
       (async (): Promise<ReturnType<Func>> => {
-        const outout = await this._fn(argv, boundaries)
+        // Type assertion to handle the case where argv might be undefined
+        const output = await this._fn(argv as any, boundaries as any)
 
-        return outout
+        return output
       })().then((output) => {
         this.emit({
           input: argv,
@@ -297,4 +311,32 @@ export const Task = class Task<Func extends BaseFunction, B extends Boundaries =
 
     return result
   }
+}
+
+/**
+ * Helper function to create a task with proper type inference
+ * @param schema The schema to validate input against
+ * @param boundaries The boundaries to use
+ * @param fn The task function
+ * @param config Additional task configuration
+ * @returns A new Task instance with proper type inference
+ */
+export function createTask<
+  S extends Schema<Record<string, SchemaType>>,
+  B extends Boundaries,
+  R
+>(
+  schema: S,
+  boundaries: B,
+  fn: (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>,
+  config?: Omit<TaskConfig<B>, 'validate' | 'boundaries'>
+): TaskInstanceType {
+  return new Task(
+    fn as any,
+    {
+      validate: schema,
+      boundaries,
+      ...config
+    }
+  )
 }

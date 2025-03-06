@@ -1,30 +1,30 @@
-import { Task, type TaskRecord, type Boundaries } from '../index'
-
-// Define interfaces for the boundary objects
-interface FetchExternalDataBoundary extends Boundaries {
-  fetchExternalData: () => Promise<{ foo: boolean }>
-}
-
-interface CounterBoundaries extends Boundaries {
-  add: (value: number) => Promise<number>
-  subtract: (value: number) => Promise<number>
-}
+import { type TaskRecord, createTask, Schema } from '../index'
 
 describe('Listener with boundaries tests', () => {
   it('Should record one item and its boundaries tape', async () => {
     const tape: TaskRecord<{ value: number }, { value: number, foo: boolean }>[] = []
 
-    const task = new Task<(argv: { value: number }, boundaries: FetchExternalDataBoundary) => Promise<{ value: number, foo: boolean }>, FetchExternalDataBoundary>(async (_argv, boundaries) => {
-      const externalData = await boundaries.fetchExternalData()
-
-      return { ...externalData, ..._argv }
-    }, {
-      boundaries: {
-        fetchExternalData: async (): Promise<{ foo: boolean }> => {
-          return { foo: false }
-        }
-      }
+    // Create a schema for the task
+    const schema = new Schema({
+      value: Schema.number()
     })
+
+    // Define the boundaries
+    const boundaries = {
+      fetchExternalData: async (): Promise<{ foo: boolean }> => {
+        return { foo: false }
+      }
+    }
+
+    // Create the task using createTask
+    const task = createTask(
+      schema,
+      boundaries,
+      async (argv, boundaries) => {
+        const externalData = await boundaries.fetchExternalData()
+        return { ...externalData, ...argv }
+      }
+    )
 
     task.addListener<{ value: number }, { value: number, foo: boolean }>((record) => {
       tape.push(record)
@@ -45,17 +45,27 @@ describe('Listener with boundaries tests', () => {
   it('Should record multiple items and their boundaries tape', async () => {
     const tape: TaskRecord<{ value: number }, { value: number, foo: boolean }>[] = []
 
-    const task = new Task<(argv: { value: number }, boundaries: FetchExternalDataBoundary) => Promise<{ value: number, foo: boolean }>, FetchExternalDataBoundary>(async (_argv, boundaries) => {
-      const externalData = await boundaries.fetchExternalData()
-
-      return { ...externalData, ..._argv }
-    }, {
-      boundaries: {
-        fetchExternalData: async (): Promise<{ foo: boolean }> => {
-          return { foo: false }
-        }
-      }
+    // Create a schema for the task
+    const schema = new Schema({
+      value: Schema.number()
     })
+
+    // Define the boundaries
+    const boundaries = {
+      fetchExternalData: async (): Promise<{ foo: boolean }> => {
+        return { foo: false }
+      }
+    }
+
+    // Create the task using createTask
+    const task = createTask(
+      schema,
+      boundaries,
+      async (argv, boundaries) => {
+        const externalData = await boundaries.fetchExternalData()
+        return { ...externalData, ...argv }
+      }
+    )
 
     task.addListener<{ value: number }, { value: number, foo: boolean }>((record) => {
       tape.push(record)
@@ -86,20 +96,31 @@ describe('Listener with boundaries tests', () => {
   it('Should record error and its boundaries tape', async () => {
     const tape: TaskRecord<Record<string, unknown>, { value: number, foo: boolean }>[] = []
 
-    const task = new Task<(argv: Record<string, unknown>, boundaries: FetchExternalDataBoundary) => Promise<{ value: number, foo: boolean }>, FetchExternalDataBoundary>(async (_argv, boundaries) => {
-      const externalData = await boundaries.fetchExternalData()
-      if (typeof _argv.value === 'undefined') {
-        throw new Error('Value is required')
-      }
-
-      return { ...externalData, ..._argv as { value: number } }
-    }, {
-      boundaries: {
-        fetchExternalData: async (): Promise<{ foo: boolean }> => {
-          return { foo: false }
-        }
-      }
+    // Create a schema for the task
+    const schema = new Schema({
+      value: Schema.number().optional()
     })
+
+    // Define the boundaries
+    const boundaries = {
+      fetchExternalData: async (): Promise<{ foo: boolean }> => {
+        return { foo: false }
+      }
+    }
+
+    // Create the task using createTask
+    const task = createTask(
+      schema,
+      boundaries,
+      async (argv, boundaries) => {
+        const externalData = await boundaries.fetchExternalData()
+        if (typeof argv.value === 'undefined') {
+          throw new Error('Value is required')
+        }
+
+        return { ...externalData, ...argv as { value: number } }
+      }
+    )
 
     task.addListener<Record<string, unknown>, { value: number, foo: boolean }>((record) => {
       tape.push(record)
@@ -124,20 +145,31 @@ describe('Listener with boundaries tests', () => {
   it('Should record error + success and their boundaries tape', async () => {
     const tape: TaskRecord<{ value?: number }, { value: number, foo: boolean }>[] = []
 
-    const task = new Task<(argv: { value?: number }, boundaries: FetchExternalDataBoundary) => Promise<{ value: number, foo: boolean }>, FetchExternalDataBoundary>(async (_argv, boundaries) => {
-      const externalData = await boundaries.fetchExternalData()
-      if (typeof _argv.value === 'undefined') {
-        throw new Error('Value is required')
-      }
-
-      return { ...externalData, ..._argv as { value: number } }
-    }, {
-      boundaries: {
-        fetchExternalData: async (): Promise<{ foo: boolean }> => {
-          return { foo: false }
-        }
-      }
+    // Create a schema for the task
+    const schema = new Schema({
+      value: Schema.number().optional()
     })
+
+    // Define the boundaries
+    const boundaries = {
+      fetchExternalData: async (): Promise<{ foo: boolean }> => {
+        return { foo: false }
+      }
+    }
+
+    // Create the task using createTask
+    const task = createTask(
+      schema,
+      boundaries,
+      async (argv, boundaries) => {
+        const externalData = await boundaries.fetchExternalData()
+        if (typeof argv.value === 'undefined') {
+          throw new Error('Value is required')
+        }
+
+        return { ...externalData, ...argv as { value: number } }
+      }
+    )
 
     task.addListener<{ value?: number }, { value: number, foo: boolean }>((record) => {
       tape.push(record)
@@ -171,18 +203,29 @@ describe('Listener with boundaries tests', () => {
   it('Should record 2 run logs if boundary called twice', async () => {
     const tape: TaskRecord<{ value: number }, { foo: boolean }>[] = []
 
-    const task = new Task<(argv: { value: number }, boundaries: FetchExternalDataBoundary) => Promise<{ foo: boolean }>, FetchExternalDataBoundary>(async (_argv, boundaries) => {
-      await boundaries.fetchExternalData()
-      await boundaries.fetchExternalData()
-
-      return { foo: true }
-    }, {
-      boundaries: {
-        fetchExternalData: async (): Promise<{ foo: boolean }> => {
-          return { foo: false }
-        }
-      }
+    // Create a schema for the task
+    const schema = new Schema({
+      value: Schema.number()
     })
+
+    // Define the boundaries
+    const boundaries = {
+      fetchExternalData: async (): Promise<{ foo: boolean }> => {
+        return { foo: false }
+      }
+    }
+
+    // Create the task using createTask
+    const task = createTask(
+      schema,
+      boundaries,
+      async (argv, boundaries) => {
+        await boundaries.fetchExternalData()
+        await boundaries.fetchExternalData()
+
+        return { foo: true }
+      }
+    )
 
     task.addListener<{ value: number }, { foo: boolean }>((record) => {
       tape.push(record)
@@ -204,24 +247,35 @@ describe('Listener with boundaries tests', () => {
   it('Should record 2 boundary logs', async () => {
     const tape: TaskRecord<{ value: number }, number>[] = []
 
-    const task = new Task<(argv: { value: number }, boundaries: CounterBoundaries) => Promise<number>, CounterBoundaries>(async (_argv, boundaries) => {
-      let counter = _argv.value
-
-      counter = await boundaries.add(counter)
-      counter = await boundaries.subtract(counter)
-      counter = await boundaries.subtract(counter)
-
-      return counter
-    }, {
-      boundaries: {
-        add: async (value: number): Promise<number> => {
-          return value + 1
-        },
-        subtract: async (value: number): Promise<number> => {
-          return value - 1
-        }
-      }
+    // Create a schema for the task
+    const schema = new Schema({
+      value: Schema.number()
     })
+
+    // Define the boundaries
+    const boundaries = {
+      add: async (value: number): Promise<number> => {
+        return value + 1
+      },
+      subtract: async (value: number): Promise<number> => {
+        return value - 1
+      }
+    }
+
+    // Create the task using createTask
+    const task = createTask(
+      schema,
+      boundaries,
+      async (argv, boundaries) => {
+        let counter = argv.value
+
+        counter = await boundaries.add(counter)
+        counter = await boundaries.subtract(counter)
+        counter = await boundaries.subtract(counter)
+
+        return counter
+      }
+    )
 
     task.addListener<{ value: number }, number>((record) => {
       tape.push(record)
