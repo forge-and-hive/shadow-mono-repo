@@ -7,7 +7,7 @@ type TaskRecord<T extends TaskInstanceType = TaskInstanceType> = {
 
 type Tasks = Record<string, TaskRecord>
 
-export class Runner {
+export class Runner<InputType = unknown, OutputType = unknown> {
   public _tasks: Tasks
 
   constructor() {
@@ -64,17 +64,23 @@ export class Runner {
     return results as Awaited<R>
   }
 
-  parseArguments<T>(data: { task: string, args: T }): { taskName: string, args: T } {
-    return {
-      taskName: data.task,
-      args: data.args
+  parseArguments(data: InputType): { taskName: string, args: unknown } {
+    // Check if data is an object and has the expected properties
+    if (data && typeof data === 'object' && 'task' in data && 'args' in data) {
+      return {
+        taskName: String((data as any).task),
+        args: (data as any).args
+      }
     }
+
+    // If data doesn't have the expected structure, throw an error
+    throw new Error('Invalid task data: expected object with task and args properties')
   }
 
-  async handler<T, R>(data: { task: string, args: T }): Promise<R> {
+  async handler(data: InputType): Promise<OutputType> {
     const { taskName, args } = this.parseArguments(data)
     const res = await this.run(taskName, args)
-    return res as R
+    return res as unknown as OutputType
   }
 }
 
