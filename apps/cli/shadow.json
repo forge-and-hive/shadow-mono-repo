@@ -1,0 +1,18 @@
+{
+  "project": {
+    "name": "ChangeMePls"
+  },
+  "paths": {
+    "logs": "logs/",
+    "tasks": "src/tasks/",
+    "runners": "src/runners/",
+    "fixtures": "src/tests/fixtures",
+    "tests": "src/tests/"
+  },
+  "infra": {
+    "region": "us-west-2",
+    "bucket": ""
+  },
+  "tasks": {},
+  "runners": {}
+}
