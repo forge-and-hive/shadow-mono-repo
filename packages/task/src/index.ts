@@ -63,10 +63,12 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
 }
 
 // Helper type to infer schema type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type InferSchemaType<S> = S extends Schema<any> ? InferSchema<S> : Record<string, unknown>;
 
 // Helper type for task function with proper typing
 export type TaskFunction<S, B extends Boundaries> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<any>;
 
 export const Task = class Task<

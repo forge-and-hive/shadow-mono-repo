@@ -12,7 +12,7 @@ describe('Init task', () => {
   let consoleOutput: string[] = []
 
   // Create a properly typed mock for the boundary function
-  const createBoundaryMock = () => {
+  const createBoundaryMock = (): WrappedBoundaryFunction => {
     const mockFn = jest.fn().mockResolvedValue(undefined)
     const boundaryMock = mockFn as unknown as WrappedBoundaryFunction
 
