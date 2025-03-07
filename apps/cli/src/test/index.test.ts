@@ -1,21 +1,15 @@
 import runner from '../runner'
 
-describe('CLI App', () => {
-  test('true should equal true', () => {
-    expect(true).toBe(true)
+describe('CLI App Runner Integration', () => {
+  it('should import runner without errors', () => {
+    // This test will fail if the import fails
+    expect(runner).toBeDefined()
   })
 
-  describe('Runner Integration', () => {
-    test('should import runner without errors', () => {
-      // This test will fail if the import fails
-      expect(runner).toBeDefined()
-    })
-
-    test('should have proper methods', () => {
-      expect(typeof runner.handler).toBe('function')
-      expect(typeof runner.parseArguments).toBe('function')
-      expect(typeof runner.run).toBe('function')
-      expect(typeof runner.load).toBe('function')
-    })
+  it('should have proper methods', () => {
+    expect(typeof runner.handler).toBe('function')
+    expect(typeof runner.parseArguments).toBe('function')
+    expect(typeof runner.run).toBe('function')
+    expect(typeof runner.load).toBe('function')
   })
 })

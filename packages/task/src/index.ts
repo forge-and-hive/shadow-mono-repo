@@ -17,7 +17,7 @@ export type { BoundaryFunction, WrappedBoundaryFunction, Boundaries, WrappedBoun
 export { Schema }
 
 export interface TaskConfig<B extends Boundaries = Boundaries> {
-  validate?: Schema<Record<string, SchemaType>>
+  schema?: Schema<Record<string, SchemaType>>
   mode?: Mode
   boundaries?: B
   boundariesData?: Record<string, unknown>
@@ -85,15 +85,15 @@ export const Task = class Task<
   _listener?: ((record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void) | undefined
 
   constructor (fn: Func, conf: TaskConfig<B> = {
-    validate: undefined,
+    schema: undefined,
     mode: 'proxy',
     boundaries: undefined,
     boundariesData: undefined
   }) {
     this._fn = fn
     this._schema = undefined
-    if (typeof conf.validate !== 'undefined') {
-      this._schema = conf.validate
+    if (typeof conf.schema !== 'undefined') {
+      this._schema = conf.schema
     }
 
     this._mode = conf.mode ?? 'proxy'
@@ -263,7 +263,7 @@ export const Task = class Task<
   }
 
   asBoundary (): (args: Parameters<Func>[0]) => Promise<ReturnType<Func>> {
-    return async (args: Parameters<Func>[0]) => {
+    return async (args: Parameters<Func>[0]): Promise<ReturnType<Func>> => {
       return await this.run(args)
     }
   }
@@ -286,8 +286,8 @@ export const Task = class Task<
       }
 
       (async (): Promise<ReturnType<Func>> => {
-        // Type assertion to handle the case where argv might be undefined
-        const output = await this._fn(argv as any, boundaries as any)
+        // Use proper typing for the function call
+        const output = await this._fn(argv as Parameters<Func>[0], boundaries as unknown as Parameters<Func>[1])
 
         return output
       })().then((output) => {
@@ -329,12 +329,12 @@ export function createTask<
   schema: S,
   boundaries: B,
   fn: (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>,
-  config?: Omit<TaskConfig<B>, 'validate' | 'boundaries'>
-): TaskInstanceType {
+  config?: Omit<TaskConfig<B>, 'schema' | 'boundaries'>
+): TaskInstanceType<(argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>, B> {
   return new Task(
-    fn as any,
+    fn,
     {
-      validate: schema,
+      schema,
       boundaries,
       ...config
     }

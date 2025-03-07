@@ -4,7 +4,7 @@ import { Schema } from '@shadow/schema'
 import Handlebars from 'handlebars'
 import path from 'path'
 import fs from 'fs/promises'
-import camelCase from 'camelcase'
+import { camelCase } from '../../utils/camelCase'
 
 import { load } from '../conf/load'
 import { type TaskName, type ShadowConf } from '../types'
@@ -69,9 +69,7 @@ const boundaries = {
       path: taskPath.toString()
     }
   },
-  loadConf: async (): Promise<ShadowConf> => {
-    return await load.run({})
-  },
+  loadConf: load.asBoundary(),
   persistConf: async (shadow: ShadowConf): Promise<void> => {
     const shadowPath = path.join(process.cwd(), 'shadow.json')
     await fs.writeFile(shadowPath, JSON.stringify(shadow, null, 2))
@@ -108,7 +106,7 @@ export const createTaskCommand = createTask(
   }) {
     const { taskName, fileName, descriptor, dir } = await parseTaskName(descriptorName)
 
-    const shadow = await loadConf()
+    const shadow = await loadConf({})
     let taskPath: string = shadow.paths.tasks
 
     if (dir !== undefined) {
