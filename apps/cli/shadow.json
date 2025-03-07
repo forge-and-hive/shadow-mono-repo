@@ -21,6 +21,10 @@
     "bundle:load": {
       "path": "src/tasks/bundle/load.ts",
       "handler": "load"
+    },
+    "task:run": {
+      "path": "src/tasks/task/run.ts",
+      "handler": "run"
     }
   },
   "runners": {}
