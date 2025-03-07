@@ -9,7 +9,35 @@ import camelCase from 'camelcase'
 import { load } from '../conf/load'
 import { type TaskName, type ShadowConf } from '../types'
 
-const templatePath = path.resolve(__dirname, '../../templates/task.hbs')
+// Define the template content directly in the code
+// This eliminates the need to find and load an external file
+const TASK_TEMPLATE = `// TASK: {{ taskName }}
+// Run this task with:
+// shadow-cli {{ taskDescriptor }}
+
+import { createTask } from '@shadow/task'
+import { Schema } from '@shadow/schema'
+
+const schema = new Schema({
+  // Add your schema definitions here
+  // example: myParam: Schema.string()
+})
+
+const boundaries = {
+  // Add your boundary functions here
+  // example: readFile: async (path: string) => fs.readFile(path, 'utf-8')
+}
+
+export const {{ taskName }} = createTask(
+  schema,
+  boundaries,
+  async function (argv, boundaryFns) {
+    // Your task implementation goes here
+    const status = { status: 'Ok' }
+
+    return status
+  }
+)`
 
 const schema = new Schema({
   descriptorName: Schema.string()
@@ -17,8 +45,7 @@ const schema = new Schema({
 
 const boundaries = {
   loadTemplate: async (): Promise<string> => {
-    const template = await fs.readFile(templatePath, 'utf-8')
-    return template
+    return TASK_TEMPLATE
   },
   persistTask: async (dir: string, fileName: string, content: string): Promise<{ path: string }> => {
     const dirPath = path.resolve(process.cwd(), dir)
