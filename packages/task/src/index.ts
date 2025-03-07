@@ -263,7 +263,7 @@ export const Task = class Task<
   }
 
   asBoundary (): (args: Parameters<Func>[0]) => Promise<ReturnType<Func>> {
-    return async (args: Parameters<Func>[0]) => {
+    return async (args: Parameters<Func>[0]): Promise<ReturnType<Func>> => {
       return await this.run(args)
     }
   }
@@ -286,8 +286,8 @@ export const Task = class Task<
       }
 
       (async (): Promise<ReturnType<Func>> => {
-        // Type assertion to handle the case where argv might be undefined
-        const output = await this._fn(argv as any, boundaries as any)
+        // Use proper typing for the function call
+        const output = await this._fn(argv as Parameters<Func>[0], boundaries as unknown as Parameters<Func>[1])
 
         return output
       })().then((output) => {
@@ -330,9 +330,9 @@ export function createTask<
   boundaries: B,
   fn: (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>,
   config?: Omit<TaskConfig<B>, 'validate' | 'boundaries'>
-): TaskInstanceType {
+): TaskInstanceType<(argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>, B> {
   return new Task(
-    fn as any,
+    fn,
     {
       validate: schema,
       boundaries,

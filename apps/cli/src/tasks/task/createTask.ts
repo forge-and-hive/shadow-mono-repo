@@ -69,9 +69,7 @@ const boundaries = {
       path: taskPath.toString()
     }
   },
-  loadConf: async (): Promise<ShadowConf> => {
-    return await load.run({})
-  },
+  loadConf: load.asBoundary(),
   persistConf: async (shadow: ShadowConf): Promise<void> => {
     const shadowPath = path.join(process.cwd(), 'shadow.json')
     await fs.writeFile(shadowPath, JSON.stringify(shadow, null, 2))
@@ -108,7 +106,7 @@ export const createTaskCommand = createTask(
   }) {
     const { taskName, fileName, descriptor, dir } = await parseTaskName(descriptorName)
 
-    const shadow = await loadConf()
+    const shadow = await loadConf({})
     let taskPath: string = shadow.paths.tasks
 
     if (dir !== undefined) {
