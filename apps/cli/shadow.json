@@ -13,6 +13,11 @@
     "region": "us-west-2",
     "bucket": ""
   },
-  "tasks": {},
+  "tasks": {
+    "bundle:create": {
+      "path": "src/tasks/bundle/create.ts",
+      "handler": "create"
+    }
+  },
   "runners": {}
 }

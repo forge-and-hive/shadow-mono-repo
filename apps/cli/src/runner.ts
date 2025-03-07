@@ -34,7 +34,14 @@ runner.setHandler(async (data: ParsedArgs): Promise<RunnerOutput> => {
   }
 
   try {
-    const result = await task.run(args)
+    let result
+
+    if (taskName === 'task:create') {
+      result = await task.run({ descriptorName: action })
+    } else {
+      result = await task.run(args)
+    }
+
 
     return {
       outcome: 'Success',
