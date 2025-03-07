@@ -1,9 +1,9 @@
 import { z } from 'zod'
 
 // Export a type alias for Schema fields
-export type SchemaType = z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>;
+export type SchemaType = z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[] | Record<string, string | number | boolean>> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[] | Record<string, string | number | boolean>>>;
 
-type AllowedBaseTypes = 'string' | 'boolean' | 'number' | 'date'
+type AllowedBaseTypes = 'string' | 'boolean' | 'number' | 'date' | 'stringRecord' | 'numberRecord' | 'booleanRecord' | 'mixedRecord'
 type ArrayTypes = z.ZodString | z.ZodBoolean | z.ZodNumber | z.ZodDate
 
 type NumberValidations = {
@@ -24,6 +24,10 @@ export type ShadowBoolean = z.ZodBoolean
 export type ShadowNumber = z.ZodNumber
 export type ShadowDate = z.ZodDate
 export type ShadowArray<T extends ArrayTypes> = z.ZodArray<T>
+export type ShadowStringRecord = z.ZodRecord<z.ZodString, z.ZodString>
+export type ShadowNumberRecord = z.ZodRecord<z.ZodString, z.ZodNumber>
+export type ShadowBooleanRecord = z.ZodRecord<z.ZodString, z.ZodBoolean>
+export type ShadowMixedRecord = z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodString, z.ZodNumber, z.ZodBoolean]>>
 
 // Export inferred types for use throughout the app
 export type InferShadowString = z.infer<ShadowString>
@@ -31,6 +35,10 @@ export type InferShadowBoolean = z.infer<ShadowBoolean>
 export type InferShadowNumber = z.infer<ShadowNumber>
 export type InferShadowDate = z.infer<ShadowDate>
 export type InferShadowArray<T extends ArrayTypes> = z.infer<ShadowArray<T>>
+export type InferShadowStringRecord = z.infer<ShadowStringRecord>
+export type InferShadowNumberRecord = z.infer<ShadowNumberRecord>
+export type InferShadowBooleanRecord = z.infer<ShadowBooleanRecord>
+export type InferShadowMixedRecord = z.infer<ShadowMixedRecord>
 
 // Export a type utility for inferring schema types
 export type InferSchema<S extends Schema<Record<string, SchemaType>>> = z.infer<S['schema']>
@@ -52,29 +60,82 @@ type ArraySchemaDescription = {
 export type SchemaDescription = Record<string, BaseSchemaDescription | ArraySchemaDescription>
 
 // Static methods for type definitions
-export class Schema<T extends Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>>> {
+export class Schema<T extends Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[] | Record<string, string | number | boolean>> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[] | Record<string, string | number | boolean>>>>> {
   readonly schema: z.ZodObject<T>
 
   constructor(fields: T) {
     this.schema = z.object(fields)
   }
 
+  /**
+   * Creates a string schema
+   * @returns A string schema
+   */
   static string(): ShadowString {
     return z.string()
   }
 
+  /**
+   * Creates a boolean schema
+   * @returns A boolean schema
+   */
   static boolean(): ShadowBoolean {
     return z.boolean()
   }
 
+  /**
+   * Creates a number schema
+   * @returns A number schema
+   */
   static number(): ShadowNumber {
     return z.number()
   }
 
+  /**
+   * Creates a date schema
+   * @returns A date schema
+   */
   static date(): ShadowDate {
     return z.date()
   }
 
+  /**
+   * Creates a record schema with string keys and string values
+   * @returns A record schema with string values
+   */
+  static stringRecord(): ShadowStringRecord {
+    return z.record(z.string(), z.string())
+  }
+
+  /**
+   * Creates a record schema with string keys and number values
+   * @returns A record schema with number values
+   */
+  static numberRecord(): ShadowNumberRecord {
+    return z.record(z.string(), z.number())
+  }
+
+  /**
+   * Creates a record schema with string keys and boolean values
+   * @returns A record schema with boolean values
+   */
+  static booleanRecord(): ShadowBooleanRecord {
+    return z.record(z.string(), z.boolean())
+  }
+
+  /**
+   * Creates a record schema with string keys and mixed values (string, number, or boolean)
+   * @returns A record schema with mixed values
+   */
+  static mixedRecord(): ShadowMixedRecord {
+    return z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+  }
+
+  /**
+   * Creates an array schema
+   * @param type The type of items in the array
+   * @returns An array schema
+   */
   static array<T extends ArrayTypes>(type: T): ShadowArray<T> {
     return z.array(type) as ShadowArray<T>
   }
@@ -94,12 +155,12 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
    * @param description Object describing the schema structure with type information
    * @returns A new Schema instance
    */
-  static from(description: SchemaDescription): Schema<Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>>> {
-    const fields: Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>>> = {}
+  static from(description: SchemaDescription): Schema<Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[] | Record<string, string | number | boolean>> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[] | Record<string, string | number | boolean>>>>> {
+    const fields: Record<string, z.ZodType<any>> = {}
 
     for (const [key, field] of Object.entries(description)) {
       const fieldType = field.type
-      let fieldSchema: z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[]>
+      let fieldSchema: z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[] | Record<string, string | number | boolean>>
 
       switch (fieldType) {
       case 'string': {
@@ -141,6 +202,18 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
       }
       case 'date':
         fieldSchema = Schema.date()
+        break
+      case 'stringRecord':
+        fieldSchema = Schema.stringRecord()
+        break
+      case 'numberRecord':
+        fieldSchema = Schema.numberRecord()
+        break
+      case 'booleanRecord':
+        fieldSchema = Schema.booleanRecord()
+        break
+      case 'mixedRecord':
+        fieldSchema = Schema.mixedRecord()
         break
       case 'array': {
         const arrayField = field as ArraySchemaDescription
@@ -265,6 +338,18 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
         } else if (element instanceof z.ZodDate) {
           description[key] = { type: 'array', items: { type: 'date' }, ...(isOptional && { optional: true }) }
         }
+      } else if (baseValue instanceof z.ZodRecord) {
+        // Check the value type of the record
+        const valueType = baseValue._def.valueType
+        if (valueType instanceof z.ZodString) {
+          description[key] = { type: 'stringRecord', ...(isOptional && { optional: true }) }
+        } else if (valueType instanceof z.ZodNumber) {
+          description[key] = { type: 'numberRecord', ...(isOptional && { optional: true }) }
+        } else if (valueType instanceof z.ZodBoolean) {
+          description[key] = { type: 'booleanRecord', ...(isOptional && { optional: true }) }
+        } else if (valueType instanceof z.ZodUnion) {
+          description[key] = { type: 'mixedRecord', ...(isOptional && { optional: true }) }
+        }
       }
     }
 
@@ -273,3 +358,4 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
 }
 
 export default Schema
+
