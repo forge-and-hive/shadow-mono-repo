@@ -156,7 +156,7 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
    * @returns A new Schema instance
    */
   static from(description: SchemaDescription): Schema<Record<string, z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[] | Record<string, string | number | boolean>> | z.ZodOptional<z.ZodType<string | boolean | number | Date | string[] | boolean[] | number[] | Date[] | Record<string, string | number | boolean>>>>> {
-    const fields: Record<string, z.ZodType<any>> = {}
+    const fields: Record<string, z.ZodType<string | number | boolean | Date | string[] | number[] | boolean[] | Date[] | Record<string, string | number | boolean>> | z.ZodOptional<z.ZodType<string | number | boolean | Date | string[] | number[] | boolean[] | Date[] | Record<string, string | number | boolean>>>> = {}
 
     for (const [key, field] of Object.entries(description)) {
       const fieldType = field.type
