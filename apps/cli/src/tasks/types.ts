@@ -32,3 +32,10 @@ export interface ShadowConf {
   tasks: Record<string, TaskDescriptor>
   runners: Record<string, RunnerDescriptor>
 }
+
+export interface TaskName {
+  descriptor: string
+  taskName: string
+  fileName: string
+  dir?: string
+}
