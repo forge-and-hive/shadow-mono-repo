@@ -1,14 +1,18 @@
 import { Runner } from '@shadow/runner'
 import { ParsedArgs } from 'minimist'
 
+import { init } from './tasks/init'
+
 interface RunnerOutput {
   outcome: 'Success' | 'Failure'
   taskName: string
   result: unknown
 }
 
-// Wait for the Runner class to be updated with generic type parameters
+
 const runner = new Runner<ParsedArgs, RunnerOutput>()
+
+runner.load('init', init)
 
 runner.parseArguments = function (data): { taskName: string, args: unknown } {
   const { _, ...filteredObj } = data
