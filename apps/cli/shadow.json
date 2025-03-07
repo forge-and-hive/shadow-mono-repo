@@ -17,6 +17,10 @@
     "bundle:create": {
       "path": "src/tasks/bundle/create.ts",
       "handler": "create"
+    },
+    "bundle:load": {
+      "path": "src/tasks/bundle/load.ts",
+      "handler": "load"
     }
   },
   "runners": {}
