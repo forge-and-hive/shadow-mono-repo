@@ -2,6 +2,7 @@ import { Runner } from '@shadow/runner'
 import { ParsedArgs } from 'minimist'
 
 import { init } from './tasks/init'
+import { createTaskCommand } from './tasks/task/createTask'
 
 interface RunnerOutput {
   outcome: 'Success' | 'Failure'
@@ -13,6 +14,7 @@ interface RunnerOutput {
 const runner = new Runner<ParsedArgs, RunnerOutput>()
 
 runner.load('init', init)
+runner.load('task:create', createTaskCommand)
 
 runner.parseArguments = function (data): { taskName: string, args: unknown } {
   const { _, ...filteredObj } = data
