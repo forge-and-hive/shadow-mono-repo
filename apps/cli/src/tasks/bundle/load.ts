@@ -18,9 +18,8 @@ export const load = createTask(
     // Dynamically import the bundle from the specified path
     const bundle = await import(bundlePath)
 
-    console.log(`Bundle loaded successfully from: ${bundlePath}`)
+    console.log(`Bundle loaded successfully from: ${bundlePath}`, bundle)
 
-    // Return the default export from the bundle
-    return bundle.default
+    return bundle
   }
 )

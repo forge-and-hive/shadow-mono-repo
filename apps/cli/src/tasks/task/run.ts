@@ -29,6 +29,7 @@ export const run = createTask(
   schema,
   boundaries,
   async function ({ descriptorName, args }, { loadConf, bundleCreate, bundleLoad }) {
+    console.log('Inside task:run:', descriptorName, args)
     // Load shadow configuration
     const shadow: ShadowConf = await loadConf({})
     const taskDescriptor = shadow.tasks[descriptorName as keyof typeof shadow.tasks]
@@ -51,6 +52,8 @@ export const run = createTask(
     const bundle = await bundleLoad({
       bundlePath: outputFile
     })
+
+    console.log('Bundle:', bundle)
 
     // Get the task handler
     const task = bundle[taskDescriptor.handler]

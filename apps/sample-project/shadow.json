@@ -1,0 +1,23 @@
+{
+  "project": {
+    "name": "Sample project"
+  },
+  "paths": {
+    "logs": "logs/",
+    "tasks": "src/tasks/",
+    "runners": "src/runners/",
+    "fixtures": "src/tests/fixtures",
+    "tests": "src/tests/"
+  },
+  "infra": {
+    "region": "us-west-2",
+    "bucket": "shadow-cli-sample-project-bucket"
+  },
+  "tasks": {
+    "stock:getPrice": {
+      "path": "src/tasks/stock/getPrice.ts",
+      "handler": "getPrice"
+    }
+  },
+  "runners": {}
+}

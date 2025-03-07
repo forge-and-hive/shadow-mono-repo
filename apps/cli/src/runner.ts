@@ -3,6 +3,7 @@ import { ParsedArgs } from 'minimist'
 
 import { init } from './tasks/init'
 import { createTaskCommand } from './tasks/task/createTask'
+import { run as taskRunCommand } from './tasks/task/run'
 
 interface CliParsedArguments extends RunnerParsedArguments {
   action: string;
@@ -21,7 +22,7 @@ const runner = new Runner((data: ParsedArgs): CliParsedArguments => {
 // Load tasks
 runner.load('init', init)
 runner.load('task:create', createTaskCommand)
-
+runner.load('task:run', taskRunCommand)
 // Set handler
 runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   const parsedArgs = runner.parseArguments(data)
@@ -36,8 +37,17 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   try {
     let result
 
-    if (taskName === 'task:create') {
+    const taskWithDescriptor = ['task:create']
+    console.log('taskName:', taskName, taskWithDescriptor.includes(taskName))
+    if (taskWithDescriptor.includes(taskName)) {
+      console.log('Running task with descriptor:', action)
       result = await task.run({ descriptorName: action })
+    } else if (taskName === 'task:run') {
+      console.log('Task run:', action, args)
+      result = await task.run({
+        descriptorName: action,
+        args
+      })
     } else {
       result = await task.run(args)
     }
