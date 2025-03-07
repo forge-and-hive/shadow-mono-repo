@@ -31,13 +31,15 @@ const boundaries = {
 export const {{ taskName }} = createTask(
   schema,
   boundaries,
-  async function (argv, boundaryFns) {
+  async function (argv, boundary) {
+    console.log(argv, boundary)
     // Your task implementation goes here
     const status = { status: 'Ok' }
 
     return status
   }
-)`
+)
+`
 
 const schema = new Schema({
   descriptorName: Schema.string()

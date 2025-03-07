@@ -7,11 +7,56 @@ type TaskRecord<T extends TaskInstanceType = TaskInstanceType> = {
 
 type Tasks = Record<string, TaskRecord>
 
-export class Runner<InputType = unknown, OutputType = unknown> {
-  public _tasks: Tasks
+// Define the base parsed arguments interface
+export interface RunnerParsedArguments {
+  taskName: string;
+  args: unknown;
+}
 
-  constructor() {
+export class Runner<InputType = unknown, ParseResult extends RunnerParsedArguments = RunnerParsedArguments> {
+  public _tasks: Tasks
+  public parseArguments: (data: InputType) => ParseResult
+  public handler: (data: InputType) => Promise<unknown>
+
+  constructor(parseArgumentsFn?: (data: InputType) => ParseResult) {
     this._tasks = {}
+    // Use provided parseArguments function or default implementation
+    this.parseArguments = parseArgumentsFn || ((data: InputType): ParseResult => {
+      // Check if data is an object and has the expected properties
+      if (data && typeof data === 'object' && 'task' in data && 'args' in data) {
+        return {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          taskName: String((data as any).task),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          args: (data as any).args
+        } as unknown as ParseResult
+      }
+
+      // If data doesn't have the expected structure, throw an error
+      throw new Error('Invalid task data: expected object with task and args properties')
+    })
+
+    // Set default handler
+    this.handler = this.defaultHandler.bind(this)
+  }
+
+  /**
+   * Set a custom handler function
+   * @param handlerFn The custom handler function
+   */
+  setHandler(handlerFn: (data: InputType) => Promise<unknown>): void {
+    this.handler = handlerFn
+  }
+
+  /**
+   * Default handler implementation
+   * @param data Input data
+   * @returns Output data
+   */
+  private async defaultHandler(data: InputType): Promise<unknown> {
+    const { taskName, args } = this.parseArguments(data)
+    const res = await this.run(taskName, args)
+    return res
   }
 
   describe(): void {
@@ -62,27 +107,6 @@ export class Runner<InputType = unknown, OutputType = unknown> {
 
     const results = await task.run(args)
     return results as Awaited<R>
-  }
-
-  parseArguments(data: InputType): { taskName: string, args: unknown } {
-    // Check if data is an object and has the expected properties
-    if (data && typeof data === 'object' && 'task' in data && 'args' in data) {
-      return {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        taskName: String((data as any).task),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        args: (data as any).args
-      }
-    }
-
-    // If data doesn't have the expected structure, throw an error
-    throw new Error('Invalid task data: expected object with task and args properties')
-  }
-
-  async handler(data: InputType): Promise<OutputType> {
-    const { taskName, args } = this.parseArguments(data)
-    const res = await this.run(taskName, args)
-    return res as unknown as OutputType
   }
 }
 
