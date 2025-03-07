@@ -13,10 +13,10 @@ export interface RunnerParsedArguments {
   args: unknown;
 }
 
-export class Runner<InputType = unknown, OutputType = unknown, ParseResult extends RunnerParsedArguments = RunnerParsedArguments> {
+export class Runner<InputType = unknown, ParseResult extends RunnerParsedArguments = RunnerParsedArguments> {
   public _tasks: Tasks
   public parseArguments: (data: InputType) => ParseResult
-  public handler: (data: InputType) => Promise<OutputType>
+  public handler: (data: InputType) => Promise<unknown>
 
   constructor(parseArgumentsFn?: (data: InputType) => ParseResult) {
     this._tasks = {}
@@ -41,21 +41,10 @@ export class Runner<InputType = unknown, OutputType = unknown, ParseResult exten
   }
 
   /**
-   * Create a new Runner with type inference from the parseArgumentsFn
-   * @param parseArgumentsFn Function to parse arguments
-   * @returns A new Runner instance
-   */
-  static create<I, P extends RunnerParsedArguments, O = unknown>(
-    parseArgumentsFn: (data: I) => P
-  ): Runner<I, O, P> {
-    return new Runner<I, O, P>(parseArgumentsFn)
-  }
-
-  /**
    * Set a custom handler function
    * @param handlerFn The custom handler function
    */
-  setHandler(handlerFn: (data: InputType) => Promise<OutputType>): void {
+  setHandler(handlerFn: (data: InputType) => Promise<unknown>): void {
     this.handler = handlerFn
   }
 
@@ -64,10 +53,10 @@ export class Runner<InputType = unknown, OutputType = unknown, ParseResult exten
    * @param data Input data
    * @returns Output data
    */
-  private async defaultHandler(data: InputType): Promise<OutputType> {
+  private async defaultHandler(data: InputType): Promise<unknown> {
     const { taskName, args } = this.parseArguments(data)
     const res = await this.run(taskName, args)
-    return res as unknown as OutputType
+    return res
   }
 
   describe(): void {

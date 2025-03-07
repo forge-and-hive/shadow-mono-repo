@@ -4,12 +4,6 @@ import { ParsedArgs } from 'minimist'
 import { init } from './tasks/init'
 import { createTaskCommand } from './tasks/task/createTask'
 
-interface RunnerOutput {
-  outcome: 'Success' | 'Failure'
-  taskName: string
-  result: unknown
-}
-
 interface CliParsedArguments extends RunnerParsedArguments {
   action: string;
 }
@@ -24,8 +18,14 @@ const runner = new Runner((data: ParsedArgs): CliParsedArguments => {
   }
 })
 
-runner.setHandler(async (data: ParsedArgs): Promise<RunnerOutput> => {
-  const { taskName, action, args } = runner.parseArguments(data)
+// Load tasks
+runner.load('init', init)
+runner.load('task:create', createTaskCommand)
+
+// Set handler
+runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
+  const parsedArgs = runner.parseArguments(data)
+  const { taskName, action, args } = parsedArgs
   console.log(taskName, action, args)
 
   const task = runner.getTask(taskName)
@@ -41,7 +41,6 @@ runner.setHandler(async (data: ParsedArgs): Promise<RunnerOutput> => {
     } else {
       result = await task.run(args)
     }
-
 
     return {
       outcome: 'Success',
@@ -61,8 +60,5 @@ runner.setHandler(async (data: ParsedArgs): Promise<RunnerOutput> => {
     }
   }
 })
-
-runner.load('init', init)
-runner.load('task:create', createTaskCommand)
 
 export default runner
