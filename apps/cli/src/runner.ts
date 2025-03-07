@@ -1,4 +1,4 @@
-import { Runner } from '@shadow/runner'
+import { Runner, RunnerParsedArguments } from '@shadow/runner'
 import { ParsedArgs } from 'minimist'
 
 import { init } from './tasks/init'
@@ -10,15 +10,11 @@ interface RunnerOutput {
   result: unknown
 }
 
-// Define our custom parse result interface
-interface ParseArgumentsResult {
-  taskName: string;
+interface CliParsedArguments extends RunnerParsedArguments {
   action: string;
-  args: unknown;
 }
 
-// Create runner with the custom parse function
-const runner = new Runner<ParsedArgs, RunnerOutput>((data: ParsedArgs): ParseArgumentsResult => {
+const runner = new Runner((data: ParsedArgs): CliParsedArguments => {
   const { _, ...filteredObj } = data
 
   return {
@@ -28,14 +24,8 @@ const runner = new Runner<ParsedArgs, RunnerOutput>((data: ParsedArgs): ParseArg
   }
 })
 
-runner.load('init', init)
-runner.load('task:create', createTaskCommand)
-
-// Override the handler to use our custom parse result
-runner.handler = async function(data: ParsedArgs): Promise<RunnerOutput> {
-  // Cast to our custom type to access the action property
-  const parsedArgs = runner.parseArguments(data) as ParseArgumentsResult
-  const { taskName, action, args } = parsedArgs
+runner.setHandler(async (data: ParsedArgs): Promise<RunnerOutput> => {
+  const { taskName, action, args } = runner.parseArguments(data)
   console.log(taskName, action, args)
 
   const task = runner.getTask(taskName)
@@ -63,6 +53,9 @@ runner.handler = async function(data: ParsedArgs): Promise<RunnerOutput> {
       }
     }
   }
-}
+})
+
+runner.load('init', init)
+runner.load('task:create', createTaskCommand)
 
 export default runner
