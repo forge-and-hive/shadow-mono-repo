@@ -23,11 +23,15 @@ const runner = new Runner((data: ParsedArgs): CliParsedArguments => {
 runner.load('init', init)
 runner.load('task:create', createTaskCommand)
 runner.load('task:run', taskRunCommand)
+
 // Set handler
 runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   const parsedArgs = runner.parseArguments(data)
   const { taskName, action, args } = parsedArgs
-  console.log(taskName, action, args)
+
+  console.log('========================================')
+  console.log('Running:', taskName, action, args)
+  console.log('========================================')
 
   const task = runner.getTask(taskName)
   if (!task) {
@@ -38,12 +42,9 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
     let result
 
     const taskWithDescriptor = ['task:create']
-    console.log('taskName:', taskName, taskWithDescriptor.includes(taskName))
     if (taskWithDescriptor.includes(taskName)) {
-      console.log('Running task with descriptor:', action)
       result = await task.run({ descriptorName: action })
     } else if (taskName === 'task:run') {
-      console.log('Task run:', action, args)
       result = await task.run({
         descriptorName: action,
         args

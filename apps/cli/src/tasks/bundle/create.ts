@@ -27,8 +27,6 @@ export const create = createTask(
       sourcemap: true
     })
 
-    console.log(`Bundle created successfully: ${outputFile}`)
-
     return { outputFile }
   }
 )
