@@ -10,7 +10,6 @@ interface RunnerOutput {
   result: unknown
 }
 
-
 const runner = new Runner<ParsedArgs, RunnerOutput>()
 
 runner.load('init', init)

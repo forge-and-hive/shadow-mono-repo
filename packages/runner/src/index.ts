@@ -68,7 +68,9 @@ export class Runner<InputType = unknown, OutputType = unknown> {
     // Check if data is an object and has the expected properties
     if (data && typeof data === 'object' && 'task' in data && 'args' in data) {
       return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         taskName: String((data as any).task),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         args: (data as any).args
       }
     }
