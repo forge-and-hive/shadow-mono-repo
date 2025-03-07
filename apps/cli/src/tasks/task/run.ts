@@ -14,7 +14,8 @@ import { type ShadowConf } from '../types'
 // For now, we'll use a simple schema without the record type
 // TODO: Use Schema.record once it's properly built and available
 const schema = new Schema({
-  descriptorName: Schema.string()
+  descriptorName: Schema.string(),
+  args: Schema.mixedRecord()
   // args will be passed directly without schema validation for now
 })
 
@@ -27,10 +28,7 @@ const boundaries = {
 export const run = createTask(
   schema,
   boundaries,
-  async function ({ descriptorName }, { loadConf, bundleCreate, bundleLoad }) {
-    // Get args from process.argv or other sources as needed
-    const args = {} // This would normally come from CLI arguments
-
+  async function ({ descriptorName, args }, { loadConf, bundleCreate, bundleLoad }) {
     // Load shadow configuration
     const shadow: ShadowConf = await loadConf({})
     const taskDescriptor = shadow.tasks[descriptorName as keyof typeof shadow.tasks]
