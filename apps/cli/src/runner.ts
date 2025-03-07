@@ -10,22 +10,33 @@ interface RunnerOutput {
   result: unknown
 }
 
-const runner = new Runner<ParsedArgs, RunnerOutput>()
+// Define our custom parse result interface
+interface ParseArgumentsResult {
+  taskName: string;
+  action: string;
+  args: unknown;
+}
 
-runner.load('init', init)
-runner.load('task:create', createTaskCommand)
-
-runner.parseArguments = function (data): { taskName: string, args: unknown } {
+// Create runner with the custom parse function
+const runner = new Runner<ParsedArgs, RunnerOutput>((data: ParsedArgs): ParseArgumentsResult => {
   const { _, ...filteredObj } = data
 
   return {
     taskName: String(_[0]),
+    action: String(_[1]),
     args: filteredObj
   }
-}
+})
 
+runner.load('init', init)
+runner.load('task:create', createTaskCommand)
+
+// Override the handler to use our custom parse result
 runner.handler = async function(data: ParsedArgs): Promise<RunnerOutput> {
-  const { taskName, args } = runner.parseArguments(data)
+  // Cast to our custom type to access the action property
+  const parsedArgs = runner.parseArguments(data) as ParseArgumentsResult
+  const { taskName, action, args } = parsedArgs
+  console.log(taskName, action, args)
 
   const task = runner.getTask(taskName)
   if (!task) {

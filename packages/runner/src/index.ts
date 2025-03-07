@@ -7,11 +7,33 @@ type TaskRecord<T extends TaskInstanceType = TaskInstanceType> = {
 
 type Tasks = Record<string, TaskRecord>
 
+// Define the ParseArgumentsResult interface for better typing
+export interface ParseArgumentsResult {
+  taskName: string;
+  args: unknown;
+}
+
 export class Runner<InputType = unknown, OutputType = unknown> {
   public _tasks: Tasks
+  public parseArguments: (data: InputType) => ParseArgumentsResult
 
-  constructor() {
+  constructor(parseArgumentsFn?: (data: InputType) => ParseArgumentsResult) {
     this._tasks = {}
+    // Use provided parseArguments function or default implementation
+    this.parseArguments = parseArgumentsFn || ((data: InputType): ParseArgumentsResult => {
+      // Check if data is an object and has the expected properties
+      if (data && typeof data === 'object' && 'task' in data && 'args' in data) {
+        return {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          taskName: String((data as any).task),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          args: (data as any).args
+        }
+      }
+
+      // If data doesn't have the expected structure, throw an error
+      throw new Error('Invalid task data: expected object with task and args properties')
+    })
   }
 
   describe(): void {
@@ -62,21 +84,6 @@ export class Runner<InputType = unknown, OutputType = unknown> {
 
     const results = await task.run(args)
     return results as Awaited<R>
-  }
-
-  parseArguments(data: InputType): { taskName: string, args: unknown } {
-    // Check if data is an object and has the expected properties
-    if (data && typeof data === 'object' && 'task' in data && 'args' in data) {
-      return {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        taskName: String((data as any).task),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        args: (data as any).args
-      }
-    }
-
-    // If data doesn't have the expected structure, throw an error
-    throw new Error('Invalid task data: expected object with task and args properties')
   }
 
   async handler(data: InputType): Promise<OutputType> {
