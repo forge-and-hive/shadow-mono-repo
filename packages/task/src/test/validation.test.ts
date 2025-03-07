@@ -12,7 +12,7 @@ describe('Validation tests', () => {
     task = new Task(function (argv: InferSchema<typeof schema>) {
       return argv
     }, {
-      validate: schema
+      schema
     })
   })
 
@@ -56,7 +56,7 @@ describe('Validation tests on param', () => {
     task = new Task(function (argv: InferSchema<typeof schema>) {
       return argv
     }, {
-      validate: schema
+      schema
     })
   })
 
@@ -105,7 +105,7 @@ describe('Validation multiple values tests', () => {
     task = new Task(function (argv: InferSchema<typeof schema>) {
       return argv
     }, {
-      validate: schema
+      schema
     })
   })
 
@@ -144,7 +144,7 @@ describe('Get Schema', () => {
     const add2 = new Task(function (int: number) {
       return int + 2
     }, {
-      validate: new Schema({
+      schema: new Schema({
         value: Schema.number()
       })
     })

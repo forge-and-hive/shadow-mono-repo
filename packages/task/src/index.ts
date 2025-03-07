@@ -17,7 +17,7 @@ export type { BoundaryFunction, WrappedBoundaryFunction, Boundaries, WrappedBoun
 export { Schema }
 
 export interface TaskConfig<B extends Boundaries = Boundaries> {
-  validate?: Schema<Record<string, SchemaType>>
+  schema?: Schema<Record<string, SchemaType>>
   mode?: Mode
   boundaries?: B
   boundariesData?: Record<string, unknown>
@@ -85,15 +85,15 @@ export const Task = class Task<
   _listener?: ((record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void) | undefined
 
   constructor (fn: Func, conf: TaskConfig<B> = {
-    validate: undefined,
+    schema: undefined,
     mode: 'proxy',
     boundaries: undefined,
     boundariesData: undefined
   }) {
     this._fn = fn
     this._schema = undefined
-    if (typeof conf.validate !== 'undefined') {
-      this._schema = conf.validate
+    if (typeof conf.schema !== 'undefined') {
+      this._schema = conf.schema
     }
 
     this._mode = conf.mode ?? 'proxy'
@@ -329,12 +329,12 @@ export function createTask<
   schema: S,
   boundaries: B,
   fn: (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>,
-  config?: Omit<TaskConfig<B>, 'validate' | 'boundaries'>
+  config?: Omit<TaskConfig<B>, 'schema' | 'boundaries'>
 ): TaskInstanceType<(argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>, B> {
   return new Task(
     fn,
     {
-      validate: schema,
+      schema,
       boundaries,
       ...config
     }

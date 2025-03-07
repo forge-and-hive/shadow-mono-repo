@@ -4,7 +4,7 @@ import { Schema } from '@shadow/schema'
 import Handlebars from 'handlebars'
 import path from 'path'
 import fs from 'fs/promises'
-import camelCase from 'camelcase'
+import { camelCase } from '../../utils/camelCase'
 
 import { load } from '../conf/load'
 import { type TaskName, type ShadowConf } from '../types'

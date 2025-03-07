@@ -17,7 +17,6 @@
     "@shadow/runner": "workspace:*",
     "@shadow/schema": "workspace:*",
     "@shadow/task": "workspace:*",
-    "camelcase": "^8.0.0",
     "handlebars": "^4.7.8",
     "minimist": "^1.2.8"
   },

@@ -49,7 +49,7 @@ describe('Listener tests', () => {
     const task = new Task(function (_argv: InferSchema<typeof schema>) {
       return _argv
     }, {
-      validate: schema
+      schema
     })
 
     task.addListener<{ value: number | null }, { value: number }>((record) => {
