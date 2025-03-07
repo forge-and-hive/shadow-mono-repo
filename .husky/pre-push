@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "Running build, test, and lint before pushing..."
+
+# Run build
+echo "Running build..."
+pnpm run build || { echo "Build failed"; exit 1; }
+
+# Run tests
+echo "Running tests..."
+pnpm run test || { echo "Tests failed"; exit 1; }
+
+# Run lint
+echo "Running lint..."
+pnpm run lint || { echo "Lint failed"; exit 1; }
+
+echo "All checks passed! Pushing..."
