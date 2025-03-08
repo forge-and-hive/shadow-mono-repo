@@ -1,9 +1,16 @@
 {
   "name": "@forgehive/task",
   "version": "0.1.0",
+  "license": "MIT",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "dependencies": {
+      "@forgehive/schema": "^0.1.0"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
