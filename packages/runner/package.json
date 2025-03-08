@@ -11,8 +11,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@forgehive/task": "workspace:*",
-    "@forgehive/schema": "workspace:*"
+    "@forgehive/schema": "workspace:*",
+    "@forgehive/task": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
@@ -21,4 +21,4 @@
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3"
   }
-} 
+}

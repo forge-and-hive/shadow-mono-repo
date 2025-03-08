@@ -29,13 +29,13 @@ importers:
 
   apps/cli:
     dependencies:
-      '@shadow/runner':
+      '@forgehive/runner':
         specifier: workspace:*
         version: link:../../packages/runner
-      '@shadow/schema':
+      '@forgehive/schema':
         specifier: workspace:*
         version: link:../../packages/schema
-      '@shadow/task':
+      '@forgehive/task':
         specifier: workspace:*
         version: link:../../packages/task
       esbuild:
@@ -72,10 +72,10 @@ importers:
 
   apps/sample-project:
     dependencies:
-      '@shadow/schema':
+      '@forgehive/schema':
         specifier: workspace:*
         version: link:../../packages/schema
-      '@shadow/task':
+      '@forgehive/task':
         specifier: workspace:*
         version: link:../../packages/task
     devDependencies:
@@ -97,10 +97,10 @@ importers:
 
   packages/runner:
     dependencies:
-      '@shadow/schema':
+      '@forgehive/schema':
         specifier: workspace:*
         version: link:../schema
-      '@shadow/task':
+      '@forgehive/task':
         specifier: workspace:*
         version: link:../task
     devDependencies:
@@ -138,7 +138,7 @@ importers:
 
   packages/task:
     dependencies:
-      '@shadow/schema':
+      '@forgehive/schema':
         specifier: workspace:*
         version: link:../schema
     devDependencies:
