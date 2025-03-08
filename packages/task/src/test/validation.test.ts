@@ -1,5 +1,5 @@
 import { Task, type TaskInstanceType } from '../index'
-import { Schema, type InferSchema } from '@shadow/schema'
+import { Schema, type InferSchema } from '@forgehive/schema'
 
 describe('Validation tests', () => {
   let task: TaskInstanceType

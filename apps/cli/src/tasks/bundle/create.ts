@@ -2,8 +2,8 @@
 // Run this task with:
 // shadow-cli bundle:create
 
-import { createTask } from '@shadow/task'
-import { Schema } from '@shadow/schema'
+import { createTask } from '@forgehive/task'
+import { Schema } from '@forgehive/schema'
 import esbuild from 'esbuild'
 
 const schema = new Schema({

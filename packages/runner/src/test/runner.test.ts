@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Runner } from '../index'
-import { Task } from '@shadow/task'
+import { Task } from '@forgehive/task'
 
 describe('Runner', () => {
   it('should create a new Runner instance', () => {

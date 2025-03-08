@@ -3,8 +3,8 @@
 // shadow-cli task:run stock:getPrice --ticker AAPL
 // shadow-cli task:run stock:getPrice --ticker VOO
 
-import { createTask } from '@shadow/task'
-import { Schema } from '@shadow/schema'
+import { createTask } from '@forgehive/task'
+import { Schema } from '@forgehive/schema'
 
 const schema = new Schema({
   ticker: Schema.string()

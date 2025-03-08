@@ -1,4 +1,4 @@
-import { Schema, type SchemaType, type InferSchema } from '@shadow/schema'
+import { Schema, type SchemaType, type InferSchema } from '@forgehive/schema'
 import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries, type WrappedBoundaryFunction } from './utils/boundary'
 
 export interface Task {

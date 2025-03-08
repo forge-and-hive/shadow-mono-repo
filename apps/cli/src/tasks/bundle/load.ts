@@ -2,8 +2,8 @@
 // Run this task with:
 // shadow-cli bundle:load
 
-import { createTask } from '@shadow/task'
-import { Schema } from '@shadow/schema'
+import { createTask } from '@forgehive/task'
+import { Schema } from '@forgehive/schema'
 
 const schema = new Schema({
   bundlePath: Schema.string()
