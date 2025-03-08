@@ -1,7 +1,6 @@
 {
-  "name": "@shadow/task",
-  "version": "0.0.1",
-  "private": true,
+  "name": "@forgehive/task",
+  "version": "0.1.0",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,7 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@shadow/schema": "workspace:*"
+    "@forgehive/schema": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
