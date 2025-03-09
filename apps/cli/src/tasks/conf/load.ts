@@ -1,7 +1,8 @@
 import fs from 'fs/promises'
 import path from 'path'
-import { createTask } from '@shadow/task'
-import { Schema } from '@shadow/schema'
+
+import { createTask } from '@forgehive/task'
+import { Schema } from '@forgehive/schema'
 
 import { type ShadowConf } from '../types'
 
@@ -17,6 +18,7 @@ export const load = createTask(
   schema,
   boundaries,
   async function (_, { readFile }) {
+    console.log('Running on =>', process.cwd())
     const shadowPath = path.join(process.cwd(), 'shadow.json')
 
     const content = await readFile(shadowPath)

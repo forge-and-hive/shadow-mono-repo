@@ -1,4 +1,4 @@
-import { Runner, RunnerParsedArguments } from '@shadow/runner'
+import { Runner, RunnerParsedArguments } from '@forgehive/runner'
 import { ParsedArgs } from 'minimist'
 
 import { init } from './tasks/init'
@@ -32,6 +32,9 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   console.log('========================================')
   console.log('Running:', taskName, action, args)
   console.log('========================================')
+
+  const tasks = runner.getTasks()
+  console.log('Tasks:', tasks)
 
   const task = runner.getTask(taskName)
   if (!task) {

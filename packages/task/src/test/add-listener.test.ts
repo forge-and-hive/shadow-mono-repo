@@ -1,5 +1,5 @@
 import { Task, type TaskRecord } from '../index'
-import { Schema, type InferSchema } from '@shadow/schema'
+import { Schema, type InferSchema } from '@forgehive/schema'
 
 describe('Listener tests', () => {
   it('Should record one item', async () => {

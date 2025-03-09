@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { TaskInstanceType, BaseFunction } from '@shadow/task'
+import { TaskInstanceType, BaseFunction } from '@forgehive/task'
 
 type TaskRecord<T extends TaskInstanceType = TaskInstanceType> = {
   task: T

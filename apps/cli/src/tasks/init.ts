@@ -1,7 +1,8 @@
-import { createTask } from '@shadow/task'
-import { Schema } from '@shadow/schema'
 import path from 'path'
 import fs from 'fs/promises'
+
+import { createTask } from '@forgehive/task'
+import { Schema } from '@forgehive/schema'
 
 import { type ShadowConf } from './types'
 

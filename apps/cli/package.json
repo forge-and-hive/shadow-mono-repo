@@ -1,10 +1,22 @@
 {
-  "name": "@shadow/cli",
-  "version": "0.1.0",
+  "name": "@forgehive/forge-cli",
+  "version": "0.1.2",
   "description": "TypeScript CLI application",
+  "license": "MIT",
   "main": "dist/index.js",
   "bin": {
-    "shadow-cli": "./dist/index.js"
+    "forge": "./dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public",
+    "dependencies": {
+      "@forgehive/runner": "^0.1.1",
+      "@forgehive/schema": "^0.1.0",
+      "@forgehive/task": "^0.1.1",
+      "esbuild": "^0.25.0",
+      "handlebars": "^4.7.8",
+      "minimist": "^1.2.8"
+    }
   },
   "scripts": {
     "build": "tsc",
@@ -14,9 +26,9 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@shadow/runner": "workspace:*",
-    "@shadow/schema": "workspace:*",
-    "@shadow/task": "workspace:*",
+    "@forgehive/runner": "workspace:*",
+    "@forgehive/schema": "workspace:*",
+    "@forgehive/task": "workspace:*",
     "esbuild": "^0.25.0",
     "handlebars": "^4.7.8",
     "minimist": "^1.2.8"

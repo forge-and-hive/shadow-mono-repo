@@ -1,10 +1,16 @@
 {
-  "name": "@shadow/task",
-  "version": "0.0.1",
-  "private": true,
+  "name": "@forgehive/task",
+  "version": "0.1.1",
+  "license": "MIT",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "dependencies": {
+      "@forgehive/schema": "^0.1.0"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -12,7 +18,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@shadow/schema": "workspace:*"
+    "@forgehive/schema": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
@@ -21,4 +27,4 @@
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3"
   }
-} 
+}

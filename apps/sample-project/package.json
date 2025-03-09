@@ -1,6 +1,6 @@
 {
-  "name": "@shadow/sample-project",
-  "version": "0.1.0",
+  "name": "@forgehive/sample-project",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "build": "tsc",
@@ -10,8 +10,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@shadow/schema": "workspace:*",
-    "@shadow/task": "workspace:*"
+    "@forgehive/schema": "workspace:*",
+    "@forgehive/task": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
@@ -20,4 +20,4 @@
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3"
   }
-} 
+}

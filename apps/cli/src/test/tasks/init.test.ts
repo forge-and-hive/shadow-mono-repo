@@ -1,5 +1,5 @@
 import { init } from '../../tasks/init'
-import { type WrappedBoundaryFunction } from '@shadow/task'
+import { type WrappedBoundaryFunction } from '@forgehive/task'
 
 // Mock fs/promises
 jest.mock('fs/promises', () => ({
