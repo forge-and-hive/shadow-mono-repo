@@ -21,8 +21,6 @@ export const init = createTask(
   schema,
   boundaries,
   async function (argv, { saveFile }) {
-    console.log('argv =>', argv)
-
     // Handle the dryRun flag
     const isDryRun = Boolean(argv.dryRun)
 

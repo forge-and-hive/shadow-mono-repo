@@ -33,9 +33,6 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   console.log('Running:', taskName, action, args)
   console.log('========================================')
 
-  const tasks = runner.getTasks()
-  console.log('Tasks:', tasks)
-
   const task = runner.getTask(taskName)
   if (!task) {
     throw new Error(`Task "${taskName}" not found`)

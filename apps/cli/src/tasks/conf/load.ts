@@ -18,7 +18,6 @@ export const load = createTask(
   schema,
   boundaries,
   async function (_, { readFile }) {
-    console.log('Running on =>', process.cwd())
     const shadowPath = path.join(process.cwd(), 'shadow.json')
 
     const content = await readFile(shadowPath)
