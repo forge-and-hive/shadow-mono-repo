@@ -13,10 +13,10 @@ import { type TaskName, type ShadowConf } from '../types'
 // This eliminates the need to find and load an external file
 const TASK_TEMPLATE = `// TASK: {{ taskName }}
 // Run this task with:
-// shadow-cli {{ taskDescriptor }}
+// forge task:run {{ taskDescriptor }}
 
-import { createTask } from '@shadow/task'
-import { Schema } from '@shadow/schema'
+import { createTask } from '@forgehive/task'
+import { Schema } from '@forgehive/schema'
 
 const schema = new Schema({
   // Add your schema definitions here
@@ -31,8 +31,9 @@ const boundaries = {
 export const {{ taskName }} = createTask(
   schema,
   boundaries,
-  async function (argv, boundary) {
-    console.log(argv, boundary)
+  async function (argv, boundaries) {
+    console.log('input:', argv)
+    console.log('boundaries:', boundaries)
     // Your task implementation goes here
     const status = { status: 'Ok' }
 

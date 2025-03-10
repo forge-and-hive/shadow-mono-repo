@@ -31,7 +31,6 @@ export const run = createTask(
   async function ({ descriptorName, args }, { loadConf, bundleCreate, bundleLoad }) {
     // Load shadow configuration
     const shadow: ShadowConf = await loadConf({})
-    console.log('ShadowConf =>', shadow)
     const taskDescriptor = shadow.tasks[descriptorName as keyof typeof shadow.tasks]
 
     if (taskDescriptor === undefined) {
