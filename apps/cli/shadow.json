@@ -25,6 +25,10 @@
     "task:run": {
       "path": "src/tasks/task/run.ts",
       "handler": "run"
+    },
+    "task:remove": {
+      "path": "src/tasks/task/remove.ts",
+      "handler": "remove"
     }
   },
   "runners": {}
