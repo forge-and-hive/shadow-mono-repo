@@ -38,9 +38,11 @@ interface Config<TInput = unknown[], TOutput = unknown> {
   boundaries?: Record<string, unknown>
 }
 
+export type Mode = 'record' | 'replay'
+
 export class RecordTape<TInput = unknown[], TOutput = unknown> {
   private _path: fs.PathLike | undefined
-  private _mode: string
+  private _mode: Mode
   private _boundaries: Record<string, unknown>
   private _log: LogRecord<TInput, TOutput>[]
 
@@ -56,11 +58,11 @@ export class RecordTape<TInput = unknown[], TOutput = unknown> {
     return this._log
   }
 
-  getMode(): string {
+  getMode(): Mode {
     return this._mode
   }
 
-  setMode(mode: string): void {
+  setMode(mode: Mode): void {
     this._mode = mode
   }
 
