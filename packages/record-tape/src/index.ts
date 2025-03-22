@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from 'fs'
 import path from 'path'
 
@@ -156,6 +157,10 @@ export class RecordTape {
     }
 
     if (typeof err !== 'undefined') {
+      return
+    }
+
+    if (typeof content === 'undefined') {
       return
     }
 
