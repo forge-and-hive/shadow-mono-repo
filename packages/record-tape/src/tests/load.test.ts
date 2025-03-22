@@ -47,9 +47,9 @@ describe('Load async', () => {
 
     try {
       await fs.promises.unlink(tapeFilePath + '.log')
-    } catch (e) {
+    } catch (_e) {
       // eslint-disable-next-line no-console
-      console.warn('Didnt found a file to unlink')
+      // console.warn('Didnt found a file to unlink')
     }
 
     const tape = new RecordTape({
@@ -91,9 +91,9 @@ describe('Load sync', () => {
 
     try {
       fs.unlinkSync(tapeFilePath + '.log')
-    } catch (e) {
+    } catch (_e) {
       // eslint-disable-next-line no-console
-      console.warn('Didnt found a file to unlink')
+      // console.warn('Didnt found a file to unlink')
     }
 
     const tape = new RecordTape({

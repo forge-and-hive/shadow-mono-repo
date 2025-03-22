@@ -1,7 +1,7 @@
 import { Task, createTask, Schema } from '@forgehive/task'
 import { RecordTape, LogItem } from '../index'
 
-describe.only('Task listener', () => {
+describe('Task listener', () => {
   it('Should listen to task events', async () => {
     type InputType = Record<string, unknown>
     type OutputType = { value: number, foo: boolean }

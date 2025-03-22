@@ -12,9 +12,9 @@ describe('Save to file async', () => {
     const tapeFilePath = path.resolve(__dirname, './fixtures/save')
     try {
       await fs.promises.writeFile(tapeFilePath + '.log', logFileData)
-    } catch (e) {
+    } catch (_e) {
       // eslint-disable-next-line no-console
-      console.warn('Didnt found a file to unlink')
+      // console.warn('Didnt found a file to unlink')
     }
 
     const tape = new RecordTape<InputType, OutputType>({ path: tapeFilePath })
@@ -48,12 +48,11 @@ describe('Save to file async', () => {
     type OutputType = boolean
 
     const tapeFilePath = path.resolve(__dirname, './fixtures/nop')
-
     try {
       await fs.promises.unlink(tapeFilePath + '.log')
-    } catch (e) {
+    } catch (_e) {
       // eslint-disable-next-line no-console
-      console.warn('Didnt found a file to unlink')
+      // console.warn('Didnt found a file to unlink')
     }
 
     const tape = new RecordTape<InputType, OutputType>({ path: tapeFilePath })
@@ -75,9 +74,9 @@ describe('Save to file sync', () => {
     const tapeFilePath = path.resolve(__dirname, './fixtures/save')
     try {
       fs.unlinkSync(tapeFilePath + '.log')
-    } catch (e) {
+    } catch (_e) {
       // eslint-disable-next-line no-console
-      console.warn('didnt found a file to unlink')
+      // console.warn('didnt found a file to unlink')
     }
 
     const tape = new RecordTape<InputType, OutputType>({ path: tapeFilePath })
@@ -111,9 +110,9 @@ describe('Save to file sync', () => {
 
     try {
       fs.unlinkSync(tapeFilePath + '.log')
-    } catch (e) {
+    } catch (_e) {
       // eslint-disable-next-line no-console
-      console.warn('Didnt found a file to unlink')
+      // console.warn('Didnt found a file to unlink')
     }
 
     const tape = new RecordTape<InputType, OutputType>({ path: tapeFilePath })
