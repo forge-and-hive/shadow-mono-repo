@@ -36,6 +36,9 @@ importers:
 
   apps/cli:
     dependencies:
+      '@forgehive/record-tape':
+        specifier: workspace:*
+        version: link:../../packages/record-tape
       '@forgehive/runner':
         specifier: workspace:*
         version: link:../../packages/runner

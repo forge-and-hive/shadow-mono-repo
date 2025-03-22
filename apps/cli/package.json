@@ -10,6 +10,7 @@
   "publishConfig": {
     "access": "public",
     "dependencies": {
+      "@forgehive/record-tape": "^0.1.0",
       "@forgehive/runner": "^0.1.1",
       "@forgehive/schema": "^0.1.0",
       "@forgehive/task": "^0.1.1",
@@ -26,6 +27,7 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
+    "@forgehive/record-tape": "workspace:*",
     "@forgehive/runner": "workspace:*",
     "@forgehive/schema": "workspace:*",
     "@forgehive/task": "workspace:*",
