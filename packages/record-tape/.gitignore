@@ -1,0 +1,3 @@
+## Test logs for files that dont exist
+src/tests/fixtures/save.log
+src/tests/fixtures/nop.log
