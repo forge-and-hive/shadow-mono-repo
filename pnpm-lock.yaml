@@ -96,6 +96,13 @@ importers:
         version: 5.8.2
 
   packages/record-tape:
+    dependencies:
+      '@forgehive/schema':
+        specifier: ^0.1.3
+        version: 0.1.3
+      '@forgehive/task':
+        specifier: ^0.1.3
+        version: 0.1.3
     devDependencies:
       '@types/jest':
         specifier: ^29.5.14
@@ -523,6 +530,12 @@ packages:
   '@eslint/js@8.57.1':
     resolution: {integrity: sha512-d9zaMRSTIKDLhctzH12MtXvJKSSUhaHcjV+2Z+GK+EEY7XKpP5yR4x+N3TAcHTcu963nIr+TMcCb4DBCYX1z6Q==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+
+  '@forgehive/schema@0.1.3':
+    resolution: {integrity: sha512-PwDIOUdbvFRzt4UgDQnk/CcMGRPHJP2VUHyW4x+xsiVG7b+8O6eyNVwVSTZv2BmEUPDCMSPB3HX9SfVZse/YoQ==}
+
+  '@forgehive/task@0.1.3':
+    resolution: {integrity: sha512-mhEYgMK9oLAlXxgxZtwJNc3ouIt2wET7ZR/6Y+qW8IodDlYDXqVJumodUdmcGLiwfzp8/5LsxpleFL2Fs+p8Jg==}
 
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -3783,6 +3796,14 @@ snapshots:
       - supports-color
 
   '@eslint/js@8.57.1': {}
+
+  '@forgehive/schema@0.1.3':
+    dependencies:
+      zod: 3.24.2
+
+  '@forgehive/task@0.1.3':
+    dependencies:
+      '@forgehive/schema': 0.1.3
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
