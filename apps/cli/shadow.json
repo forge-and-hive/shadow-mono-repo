@@ -29,6 +29,10 @@
     "task:remove": {
       "path": "src/tasks/task/remove.ts",
       "handler": "remove"
+    },
+    "conf:info": {
+      "path": "src/tasks/conf/info.ts",
+      "handler": "info"
     }
   },
   "runners": {}
