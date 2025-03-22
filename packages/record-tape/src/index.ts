@@ -123,7 +123,7 @@ export class RecordTape<TInput = unknown[], TOutput = unknown> {
 
   recordFrom(name: string, task: { _listener?: unknown; setBoundariesData: (data: Record<string, unknown>) => void }): void {
     // Add listner
-    task._listener = async (logItem: LogItem<TInput, TOutput>, _boundaries: Record<string, unknown>) => {
+    task._listener = async (logItem: LogItem<TInput, TOutput>, _boundaries: Record<string, unknown>): Promise<void> => {
       // Only update if mode is record
       if (this.getMode() === 'record') {
         this.addLogItem(name, logItem)
