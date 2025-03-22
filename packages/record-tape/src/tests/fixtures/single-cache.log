@@ -1,0 +1,2 @@
+{"name":"test","type":"success","input":{"type":"doc"},"output":{"filePath":"readme.md"},"boundaries":{"getFilePath":[{"input":["doc"],"output":"readme.md"}]}}
+{"name":"test","type":"success","input":{"type":"package"},"output":{"filePath":"package.json"},"boundaries":{"getFilePath":[{"input":["package"],"output":"package.json"}]}}

@@ -1,0 +1,2 @@
+{"name":"name","type":"success","input":[true],"output":true,"boundaries":{}}
+{"name":"name","type":"error","input":[true],"error":"invalid data","boundaries":{}}
