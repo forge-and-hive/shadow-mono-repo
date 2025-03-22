@@ -2,6 +2,8 @@ import { Runner, RunnerParsedArguments } from '@forgehive/runner'
 import { ParsedArgs } from 'minimist'
 
 import { init } from './tasks/init'
+import { info } from './tasks/conf/info'
+
 import { createTaskCommand } from './tasks/task/createTask'
 import { run as taskRunCommand } from './tasks/task/run'
 import { remove as taskRemoveCommand } from './tasks/task/remove'
@@ -20,8 +22,11 @@ const runner = new Runner((data: ParsedArgs): CliParsedArguments => {
   }
 })
 
-// Load tasks
+// Config commands
 runner.load('init', init)
+runner.load('info', info)
+
+// Task commands
 runner.load('task:create', createTaskCommand)
 runner.load('task:run', taskRunCommand)
 runner.load('task:remove', taskRemoveCommand)
