@@ -29,7 +29,7 @@
     "no-console": "warn",
     "curly": "error"
   },
-  "ignorePatterns": ["**/node_modules/**", "**/dist/**", "**/*.js"],
+  "ignorePatterns": ["**/node_modules/**", "**/dist/**", "**/*.js", "**/*.mjs"],
   "overrides": [
     {
       "files": ["apps/cli/**/*.ts"],
