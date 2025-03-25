@@ -3,7 +3,7 @@ main = "dist/_worker.js"
 compatibility_date = "2025-01-01"
 
 # Enable the workers.dev domain for testing
-workers_dev = true
+workers_dev = false
 
 # Set the custom domains
 routes = [

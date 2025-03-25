@@ -11,8 +11,13 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.3.0",
+    "@astrojs/react": "^4.2.1",
     "@tailwindcss/vite": "^4.0.15",
-    "astro": "^5.5.4"
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
+    "astro": "^5.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@astrojs/tailwind": "^6.0.1",
