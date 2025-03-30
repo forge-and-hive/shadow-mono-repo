@@ -4,7 +4,7 @@ import fs from 'fs/promises'
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 
-import { type ShadowConf } from './types'
+import { type ForgeConf } from './types'
 
 const schema = new Schema({
   dryRun: Schema.boolean().optional()
@@ -24,8 +24,9 @@ export const init = createTask(
     // Handle the dryRun flag
     const isDryRun = Boolean(argv.dryRun)
 
-    const shadowPath = path.join(process.cwd(), 'shadow.json')
-    const config: ShadowConf = {
+    const forgePath = path.join(process.cwd(), 'forge.json')
+
+    const config: ForgeConf = {
       project: {
         name: 'ChangeMePls'
       },
@@ -47,10 +48,10 @@ export const init = createTask(
     const content = JSON.stringify(config, null, 2)
 
     if (!isDryRun) {
-      await saveFile(shadowPath, content)
-      console.log(`Created shadow.json at ${shadowPath}`)
+      await saveFile(forgePath, content)
+      console.log(`Created forge.json at ${forgePath}`)
     } else {
-      console.log('Dry run, not creating shadow.json')
+      console.log('Dry run, not creating forge.json')
       console.log(content)
     }
 
