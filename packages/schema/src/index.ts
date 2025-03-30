@@ -355,6 +355,14 @@ export class Schema<T extends Record<string, z.ZodType<string | boolean | number
 
     return description
   }
+
+  /**
+   * Returns the underlying Zod schema object
+   * @returns The Zod schema object
+   */
+  asZod(): z.ZodObject<T> {
+    return this.schema
+  }
 }
 
 export default Schema

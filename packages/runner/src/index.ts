@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import { TaskInstanceType, BaseFunction } from '@forgehive/task'
+import { type SchemaDescription } from '@forgehive/schema'
 
 type TaskRecord<T extends TaskInstanceType = TaskInstanceType> = {
   task: T
@@ -59,12 +60,19 @@ export class Runner<InputType = unknown, ParseResult extends RunnerParsedArgumen
     return res
   }
 
-  describe(): void {
-    const listItems: string[] = this.getTaskList()
-    console.log('Available tasks:')
-    listItems.forEach(taskName => {
-      console.log(`- ${taskName}`)
-    })
+  describe(): Record<string, { name: string; description?: string; schema?: SchemaDescription }> {
+    const tasks = this._tasks
+    const result: Record<string, { name: string; description?: string; schema?: SchemaDescription }> = {}
+
+    for (const [name, { task }] of Object.entries(tasks)) {
+      result[name] = {
+        name,
+        description: task.getDescription(),
+        schema: task.describe()
+      }
+    }
+
+    return result
   }
 
   load<T extends BaseFunction>(name: string, task: TaskInstanceType<T>): void {
