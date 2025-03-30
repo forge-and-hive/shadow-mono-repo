@@ -1,16 +1,16 @@
-# @shadow/task
+# @forgehive/task
 
 A powerful task management library for creating type-safe, boundary-separated tasks with validation.
 
 ## Installation
 
 ```bash
-npm install @shadow/task
+npm install @forgehive/task
 ```
 
 ## Overview
 
-The `@shadow/task` package provides a way to create strongly-typed tasks with:
+The `@forgehive/task` package provides a way to create strongly-typed tasks with:
 
 - Input validation using schemas
 - Boundary separation for better testability
@@ -22,7 +22,7 @@ The `@shadow/task` package provides a way to create strongly-typed tasks with:
 Here's a simple example of creating a task:
 
 ```typescript
-import { createTask, Schema } from '@shadow/task';
+import { createTask, Schema } from '@forgehive/task';
 
 // Define a schema for task input validation
 const schema = new Schema({
@@ -126,8 +126,8 @@ registerUser.setBoundariesData({
 Here's an example of a task used in a CLI application:
 
 ```typescript
-import { createTask } from '@shadow/task';
-import { Schema } from '@shadow/schema';
+import { createTask } from '@forgehive/task';
+import { Schema } from '@forgehive/schema';
 import path from 'path';
 import fs from 'fs/promises';
 
