@@ -1,4 +1,4 @@
-import { Schema, type SchemaType, type InferSchema } from '@forgehive/schema'
+import { Schema, type SchemaType, type InferSchema, type SchemaDescription } from '@forgehive/schema'
 import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries, type WrappedBoundaryFunction } from './utils/boundary'
 
 export interface Task {
@@ -42,6 +42,9 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   setMode: (mode: Mode) => void
   setSchema: (base: Schema<Record<string, SchemaType>>) => void
   getSchema: () => Schema<Record<string, SchemaType>> | undefined
+  setDescription: (description: string) => void
+  getDescription: () => string | undefined
+  describe: () => SchemaDescription
 
   // Validation methos
   validate: <T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T) => ReturnType<Schema<Record<string, SchemaType>>['safeParse']> | undefined
@@ -78,6 +81,7 @@ export const Task = class Task<
   _fn: Func
   _mode: Mode
   _coolDown: number
+  _description?: string
 
   _boundariesDefinition: B
   _boundaries: WrappedBoundaries<B>
@@ -135,6 +139,18 @@ export const Task = class Task<
 
   getSchema (): Schema<Record<string, SchemaType>> | undefined {
     return this._schema
+  }
+
+  setDescription(description: string): void {
+    this._description = description
+  }
+
+  getDescription(): string | undefined {
+    return this._description
+  }
+
+  describe(): SchemaDescription {
+    return this._schema?.describe() ?? {}
   }
 
   validate<T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T): ReturnType<Schema<Record<string, SchemaType>>['safeParse']> | undefined {
