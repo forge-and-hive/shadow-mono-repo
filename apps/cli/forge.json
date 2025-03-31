@@ -1,6 +1,6 @@
 {
   "project": {
-    "name": "ChangeMePls"
+    "name": "forge-cli"
   },
   "paths": {
     "logs": "logs/",

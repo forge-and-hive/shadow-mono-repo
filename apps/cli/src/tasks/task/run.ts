@@ -12,7 +12,7 @@ import { RecordTape } from '@forgehive/record-tape'
 import { create as bundleCreate } from '../bundle/create'
 import { load as bundleLoad } from '../bundle/load'
 import { load as loadConf } from '../conf/load'
-import { type ShadowConf } from '../types'
+import { type ForgeConf } from '../types'
 
 // For now, we'll use a simple schema without the record type
 // TODO: Use Schema.record once it's properly built and available
@@ -42,16 +42,16 @@ export const run = createTask(
   schema,
   boundaries,
   async function ({ descriptorName, args }, { loadConf, bundleCreate, bundleLoad, verifyLogFolder }) {
-    // Load shadow configuration
-    const shadow: ShadowConf = await loadConf({})
-    const taskDescriptor = shadow.tasks[descriptorName as keyof typeof shadow.tasks]
+    // Load forge configuration
+    const forge: ForgeConf = await loadConf({})
+    const taskDescriptor = forge.tasks[descriptorName as keyof typeof forge.tasks]
 
     if (taskDescriptor === undefined) {
-      throw new Error('Task is not defined on shadow.json')
+      throw new Error('Task is not defined on forge.json')
     }
 
     // Verify if log folder exists
-    const logFolderPath = path.join(process.cwd(), shadow.paths.logs)
+    const logFolderPath = path.join(process.cwd(), forge.paths.logs)
     const logFolderExists = await verifyLogFolder(logFolderPath)
     if (!logFolderExists) {
       throw new Error(`Log folder "${logFolderPath}" does not exist`)

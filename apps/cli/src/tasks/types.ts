@@ -17,7 +17,7 @@ export interface Infra {
   bucket: string
 }
 
-export interface ShadowConf {
+export interface ForgeConf {
   project: {
     name: string
   }

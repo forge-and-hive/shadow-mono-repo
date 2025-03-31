@@ -8,7 +8,7 @@ import { Schema } from '@forgehive/schema'
 import path from 'path'
 import fs from 'fs/promises'
 import { load } from '../conf/load'
-import { type ShadowConf } from '../types'
+import { type ForgeConf } from '../types'
 
 const schema = new Schema({
   descriptorName: Schema.string()
@@ -16,9 +16,9 @@ const schema = new Schema({
 
 const boundaries = {
   loadConf: load.asBoundary(),
-  persistConf: async (shadow: ShadowConf): Promise<void> => {
-    const shadowPath = path.join(process.cwd(), 'shadow.json')
-    await fs.writeFile(shadowPath, JSON.stringify(shadow, null, 2))
+  persistConf: async (forge: ForgeConf): Promise<void> => {
+    const forgePath = path.join(process.cwd(), 'forge.json')
+    await fs.writeFile(forgePath, JSON.stringify(forge, null, 2))
   },
   deleteFile: async (filePath: string): Promise<void> => {
     await fs.unlink(filePath)
@@ -30,15 +30,15 @@ export const remove = createTask(
   boundaries,
   async function ({ descriptorName }, { loadConf, persistConf, deleteFile }) {
     // Load shadow configuration
-    const shadow: ShadowConf = await loadConf({})
+    const forge: ForgeConf = await loadConf({})
 
     // Check if the task exists in shadow.json
-    if (!shadow.tasks[descriptorName]) {
-      throw new Error(`Task '${descriptorName}' not found in shadow.json`)
+    if (!forge.tasks[descriptorName]) {
+      throw new Error(`Task '${descriptorName}' not found in forge.json`)
     }
 
     // Get the task file path
-    const taskFilePath = path.join(process.cwd(), shadow.tasks[descriptorName].path)
+    const taskFilePath = path.join(process.cwd(), forge.tasks[descriptorName].path)
 
     console.log(`
     ==================================================
@@ -51,10 +51,10 @@ export const remove = createTask(
     await deleteFile(taskFilePath)
 
     // Remove the task from shadow.json
-    delete shadow.tasks[descriptorName]
+    delete forge.tasks[descriptorName]
 
     // Save the updated shadow.json
-    await persistConf(shadow)
+    await persistConf(forge)
 
     return {
       status: 'Ok',

@@ -4,7 +4,7 @@ import path from 'path'
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 
-import { type ShadowConf } from '../types'
+import { type ForgeConf } from '../types'
 
 const schema = new Schema({})
 
@@ -18,9 +18,9 @@ export const load = createTask(
   schema,
   boundaries,
   async function (_, { readFile }) {
-    const shadowPath = path.join(process.cwd(), 'shadow.json')
+    const forgePath = path.join(process.cwd(), 'forge.json')
 
-    const content = await readFile(shadowPath)
-    return JSON.parse(content) as ShadowConf
+    const content = await readFile(forgePath)
+    return JSON.parse(content) as ForgeConf
   }
 )

@@ -7,7 +7,7 @@ import fs from 'fs/promises'
 import { camelCase } from '../../utils/camelCase'
 
 import { load } from '../conf/load'
-import { type TaskName, type ShadowConf } from '../types'
+import { type TaskName, type ForgeConf } from '../types'
 
 // Define the template content directly in the code
 // This eliminates the need to find and load an external file
@@ -47,11 +47,36 @@ const schema = new Schema({
 })
 
 const boundaries = {
+  // Load boundaries
+  loadConf: load.asBoundary(),
   loadTemplate: async (): Promise<string> => {
     return TASK_TEMPLATE
   },
-  persistTask: async (dir: string, fileName: string, content: string): Promise<{ path: string }> => {
-    const dirPath = path.resolve(process.cwd(), dir)
+  getCwd: async (): Promise<string> => {
+    return process.cwd()
+  },
+  parseTaskName: async (taskDescriptor: string): Promise<TaskName> => {
+    const res: string[] = taskDescriptor.split(':')
+
+    if (res.length === 1) {
+      return {
+        descriptor: `${camelCase(res[0])}`,
+        taskName: `${camelCase(res[0])}`,
+        fileName: `${camelCase(res[0])}.ts`
+      }
+    }
+
+    return {
+      dir: res[0],
+      descriptor: `${res[0]}:${camelCase(res[1])}`,
+      taskName: `${camelCase(res[1])}`,
+      fileName: `${camelCase(res[1])}.ts`
+    }
+  },
+
+  // Persist boundaries
+  persistTask: async (dir: string, fileName: string, content: string, cwd: string): Promise<{ path: string }> => {
+    const dirPath = path.resolve(cwd, dir)
     const taskPath = path.resolve(dirPath, fileName)
 
     let err
@@ -72,28 +97,9 @@ const boundaries = {
       path: taskPath.toString()
     }
   },
-  loadConf: load.asBoundary(),
-  persistConf: async (shadow: ShadowConf): Promise<void> => {
-    const shadowPath = path.join(process.cwd(), 'shadow.json')
-    await fs.writeFile(shadowPath, JSON.stringify(shadow, null, 2))
-  },
-  parseTaskName: async (taskDescriptor: string): Promise<TaskName> => {
-    const res: string[] = taskDescriptor.split(':')
-
-    if (res.length === 1) {
-      return {
-        descriptor: `${camelCase(res[0])}`,
-        taskName: `${camelCase(res[0])}`,
-        fileName: `${camelCase(res[0])}.ts`
-      }
-    }
-
-    return {
-      dir: res[0],
-      descriptor: `${res[0]}:${camelCase(res[1])}`,
-      taskName: `${camelCase(res[1])}`,
-      fileName: `${camelCase(res[1])}.ts`
-    }
+  persistConf: async (forge: ForgeConf, cwd: string): Promise<void> => {
+    const forgePath = path.join(cwd, 'forge.json')
+    await fs.writeFile(forgePath, JSON.stringify(forge, null, 2))
   }
 }
 
@@ -105,12 +111,14 @@ export const createTaskCommand = createTask(
     persistTask,
     loadConf,
     persistConf,
-    parseTaskName
+    parseTaskName,
+    getCwd
   }) {
     const { taskName, fileName, descriptor, dir } = await parseTaskName(descriptorName)
+    const cwd = await getCwd()
 
-    const shadow = await loadConf({})
-    let taskPath: string = shadow.paths.tasks
+    const forge = await loadConf({})
+    let taskPath: string = forge.paths.tasks
 
     if (dir !== undefined) {
       taskPath = path.join(taskPath, dir)
@@ -132,18 +140,18 @@ export const createTaskCommand = createTask(
       taskDescriptor: descriptor
     })
 
-    await persistTask(taskPath, fileName, content)
+    await persistTask(taskPath, fileName, content, cwd)
 
-    if (shadow.tasks === undefined) {
-      shadow.tasks = {}
+    if (forge.tasks === undefined) {
+      forge.tasks = {}
     }
 
-    shadow.tasks[descriptor] = {
+    forge.tasks[descriptor] = {
       path: `${taskPath}/${fileName}`,
       handler: taskName
     }
 
-    await persistConf(shadow)
+    await persistConf(forge, cwd)
 
     return { taskPath, fileName }
   }

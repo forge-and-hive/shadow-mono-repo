@@ -1,118 +1,90 @@
 import { init } from '../../tasks/init'
-import { type WrappedBoundaryFunction } from '@forgehive/task'
-
-// Mock fs/promises
-jest.mock('fs/promises', () => ({
-  writeFile: jest.fn().mockResolvedValue(undefined)
-}))
+import { createFsFromVolume, Volume } from 'memfs'
+import path from 'path'
+import { createBoundaryMock } from '../utils'
 
 describe('Init task', () => {
-  // Save original console.log
-  const originalConsoleLog = console.log
-  let consoleOutput: string[] = []
+  let volume: InstanceType<typeof Volume>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let fs: any
+  let rootDir: string
 
-  // Create a properly typed mock for the boundary function
-  const createBoundaryMock = (): WrappedBoundaryFunction => {
-    const mockFn = jest.fn().mockResolvedValue(undefined)
-    const boundaryMock = mockFn as unknown as WrappedBoundaryFunction
-
-    // Add required methods to satisfy the interface
-    boundaryMock.getTape = jest.fn().mockReturnValue([])
-    boundaryMock.setTape = jest.fn()
-    boundaryMock.getMode = jest.fn().mockReturnValue('proxy')
-    boundaryMock.setMode = jest.fn()
-    boundaryMock.startRun = jest.fn()
-    boundaryMock.stopRun = jest.fn()
-    boundaryMock.getRunData = jest.fn().mockReturnValue([])
-
-    return boundaryMock
-  }
-
-  // Mock console.log before each test
   beforeEach(() => {
-    consoleOutput = []
-    console.log = jest.fn((...args) => {
-      consoleOutput.push(args.join(' '))
-    })
+    // Create a new in-memory filesystem for each test
+    volume = new Volume()
+    fs = createFsFromVolume(volume)
+    rootDir = '/'
   })
 
-  // Restore console.log after each test
   afterEach(() => {
-    console.log = originalConsoleLog
     jest.clearAllMocks()
   })
 
-  it('should create a config file when dryRun is false', async () => {
-    // Create a properly typed mock for the saveFile boundary
+  it('should create forge.json with correct content in the filesystem', async () => {
+    // Create properly typed mocks for the boundaries
     const saveFileMock = createBoundaryMock()
+    const getCwdMock = createBoundaryMock()
+    const saveFileFn = saveFileMock as unknown as jest.Mock
+    const getCwdFn = getCwdMock as unknown as jest.Mock
+
+    // Override the saveFile implementation to use our in-memory fs
+    saveFileFn.mockImplementation(async (filePath: string, content: string) => {
+      const fullPath = path.join(rootDir, filePath)
+      await (fs as { promises: { writeFile: (path: string, content: string) => Promise<void> } }).promises.writeFile(fullPath, content)
+    })
+
+    // Override the getCwd implementation to return our root directory
+    getCwdFn.mockResolvedValue(rootDir)
 
     // Override the boundaries
     init.getBoundaries().saveFile = saveFileMock
+    init.getBoundaries().getCwd = getCwdMock
 
     // Run the task
-    const result = await init.run({ dryRun: false })
-
-    // Verify the boundary was called with the correct path and content
-    expect(saveFileMock).toHaveBeenCalledTimes(1)
-    // Access the calls directly from the jest mock function
-    const mockFn = saveFileMock as unknown as jest.Mock
-    expect(mockFn.mock.calls[0][0]).toContain('shadow.json')
-
-    // Verify the config structure
-    expect(result).toHaveProperty('project.name', 'ChangeMePls')
-    expect(result).toHaveProperty('paths.logs', 'logs/')
-    expect(result).toHaveProperty('paths.tasks', 'src/tasks/')
-    expect(result).toHaveProperty('infra.region', 'us-west-2')
-
-    // Verify console output
-    expect(consoleOutput.some(msg => msg.includes('Created shadow.json'))).toBe(true)
-  })
-
-  it('should not create a file when dryRun is true', async () => {
-    // Create a properly typed mock for the saveFile boundary
-    const saveFileMock = createBoundaryMock()
-
-    // Override the boundaries
-    init.getBoundaries().saveFile = saveFileMock
-
-    // Run the task
-    const result = await init.run({ dryRun: true })
-
-    // Verify the boundary was not called
-    expect(saveFileMock).not.toHaveBeenCalled()
-
-    // Verify the config structure is still returned
-    expect(result).toHaveProperty('project.name', 'ChangeMePls')
-    expect(result).toHaveProperty('paths.logs', 'logs/')
-    expect(result).toHaveProperty('paths.tasks', 'src/tasks/')
-    expect(result).toHaveProperty('infra.region', 'us-west-2')
-
-    // Verify console output
-    expect(consoleOutput.some(msg => msg.includes('Dry run, not creating shadow.json'))).toBe(true)
-  })
-
-  it('should handle both undefined and false dryRun values as non-dry runs', async () => {
-    // Create a properly typed mock for the saveFile boundary
-    const saveFileMock = createBoundaryMock()
-
-    // Override the boundaries
-    init.getBoundaries().saveFile = saveFileMock
-
-    // Run the task with undefined dryRun (should create file)
     await init.run({})
 
-    // Verify the boundary was called
-    expect(saveFileMock).toHaveBeenCalledTimes(1)
+    // Read the created file
+    const fileContent = await fs.promises.readFile(path.join(rootDir, 'forge.json'), 'utf-8')
+    const config = JSON.parse(fileContent)
 
-    // Reset mock
-    jest.clearAllMocks()
-    const newSaveFileMock = createBoundaryMock()
-    init.getBoundaries().saveFile = newSaveFileMock
+    // Verify the file content
+    expect(config).toHaveProperty('project.name', 'ChangeMePls')
+    expect(config).toHaveProperty('paths.logs', 'logs/')
+    expect(config).toHaveProperty('paths.tasks', 'src/tasks/')
+    expect(config).toHaveProperty('infra.region', 'us-west-2')
+    expect(config).toHaveProperty('tasks')
+    expect(config).toHaveProperty('runners')
+  })
 
-    // Run the task with false dryRun (should create file)
-    await init.run({ dryRun: false })
+  it('should not create forge.json when dryRun is true', async () => {
+    // Create properly typed mocks for the boundaries
+    const saveFileMock = createBoundaryMock()
+    const getCwdMock = createBoundaryMock()
+    const saveFileFn = saveFileMock as unknown as jest.Mock
+    const getCwdFn = getCwdMock as unknown as jest.Mock
 
-    // Verify the boundary was called
-    expect(newSaveFileMock).toHaveBeenCalledTimes(1)
+    // Override the getCwd implementation to return our root directory
+    getCwdFn.mockResolvedValue(rootDir)
+
+    // Override the boundaries
+    init.getBoundaries().saveFile = saveFileMock
+    init.getBoundaries().getCwd = getCwdMock
+
+    // Run the task with dryRun flag
+    const result = await init.run({ dryRun: true })
+
+    // Verify saveFile was not called
+    expect(saveFileFn).not.toHaveBeenCalled()
+
+    // Verify the returned config has the correct structure
+    expect(result).toHaveProperty('project.name', 'ChangeMePls')
+    expect(result).toHaveProperty('paths.logs', 'logs/')
+    expect(result).toHaveProperty('paths.tasks', 'src/tasks/')
+    expect(result).toHaveProperty('infra.region', 'us-west-2')
+    expect(result).toHaveProperty('tasks')
+    expect(result).toHaveProperty('runners')
+
+    // Verify no file was created
+    await expect(fs.promises.readFile(path.join(rootDir, 'forge.json'), 'utf-8')).rejects.toThrow()
   })
 })
