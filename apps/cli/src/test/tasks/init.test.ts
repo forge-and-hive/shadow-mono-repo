@@ -55,4 +55,36 @@ describe('Init task', () => {
     expect(config).toHaveProperty('tasks')
     expect(config).toHaveProperty('runners')
   })
+
+  it('should not create forge.json when dryRun is true', async () => {
+    // Create properly typed mocks for the boundaries
+    const saveFileMock = createBoundaryMock()
+    const getCwdMock = createBoundaryMock()
+    const saveFileFn = saveFileMock as unknown as jest.Mock
+    const getCwdFn = getCwdMock as unknown as jest.Mock
+
+    // Override the getCwd implementation to return our root directory
+    getCwdFn.mockResolvedValue(rootDir)
+
+    // Override the boundaries
+    init.getBoundaries().saveFile = saveFileMock
+    init.getBoundaries().getCwd = getCwdMock
+
+    // Run the task with dryRun flag
+    const result = await init.run({ dryRun: true })
+
+    // Verify saveFile was not called
+    expect(saveFileFn).not.toHaveBeenCalled()
+
+    // Verify the returned config has the correct structure
+    expect(result).toHaveProperty('project.name', 'ChangeMePls')
+    expect(result).toHaveProperty('paths.logs', 'logs/')
+    expect(result).toHaveProperty('paths.tasks', 'src/tasks/')
+    expect(result).toHaveProperty('infra.region', 'us-west-2')
+    expect(result).toHaveProperty('tasks')
+    expect(result).toHaveProperty('runners')
+
+    // Verify no file was created
+    await expect(fs.promises.readFile(path.join(rootDir, 'forge.json'), 'utf-8')).rejects.toThrow()
+  })
 })
