@@ -13,6 +13,9 @@ const schema = new Schema({
 const boundaries = {
   saveFile: async (path: string, content: string): Promise<void> => {
     await fs.writeFile(path, content)
+  },
+  getCwd: async (): Promise<string> => {
+    return process.cwd()
   }
 }
 
@@ -20,11 +23,12 @@ const boundaries = {
 export const init = createTask(
   schema,
   boundaries,
-  async function (argv, { saveFile }) {
+  async function (argv, { saveFile, getCwd }) {
     // Handle the dryRun flag
     const isDryRun = Boolean(argv.dryRun)
 
-    const forgePath = path.join(process.cwd(), 'forge.json')
+    const cwd = await getCwd()
+    const forgePath = path.join(cwd, 'forge.json')
 
     const config: ForgeConf = {
       project: {
@@ -49,7 +53,6 @@ export const init = createTask(
 
     if (!isDryRun) {
       await saveFile(forgePath, content)
-      console.log(`Created forge.json at ${forgePath}`)
     } else {
       console.log('Dry run, not creating forge.json')
       console.log(content)
