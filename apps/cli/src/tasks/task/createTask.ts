@@ -47,11 +47,36 @@ const schema = new Schema({
 })
 
 const boundaries = {
+  // Load boundaries
+  loadConf: load.asBoundary(),
   loadTemplate: async (): Promise<string> => {
     return TASK_TEMPLATE
   },
-  persistTask: async (dir: string, fileName: string, content: string): Promise<{ path: string }> => {
-    const dirPath = path.resolve(process.cwd(), dir)
+  getCwd: async (): Promise<string> => {
+    return process.cwd()
+  },
+  parseTaskName: async (taskDescriptor: string): Promise<TaskName> => {
+    const res: string[] = taskDescriptor.split(':')
+
+    if (res.length === 1) {
+      return {
+        descriptor: `${camelCase(res[0])}`,
+        taskName: `${camelCase(res[0])}`,
+        fileName: `${camelCase(res[0])}.ts`
+      }
+    }
+
+    return {
+      dir: res[0],
+      descriptor: `${res[0]}:${camelCase(res[1])}`,
+      taskName: `${camelCase(res[1])}`,
+      fileName: `${camelCase(res[1])}.ts`
+    }
+  },
+
+  // Persist boundaries
+  persistTask: async (dir: string, fileName: string, content: string, cwd: string): Promise<{ path: string }> => {
+    const dirPath = path.resolve(cwd, dir)
     const taskPath = path.resolve(dirPath, fileName)
 
     let err
@@ -72,28 +97,9 @@ const boundaries = {
       path: taskPath.toString()
     }
   },
-  loadConf: load.asBoundary(),
-  persistConf: async (forge: ForgeConf): Promise<void> => {
-    const forgePath = path.join(process.cwd(), 'forge.json')
+  persistConf: async (forge: ForgeConf, cwd: string): Promise<void> => {
+    const forgePath = path.join(cwd, 'forge.json')
     await fs.writeFile(forgePath, JSON.stringify(forge, null, 2))
-  },
-  parseTaskName: async (taskDescriptor: string): Promise<TaskName> => {
-    const res: string[] = taskDescriptor.split(':')
-
-    if (res.length === 1) {
-      return {
-        descriptor: `${camelCase(res[0])}`,
-        taskName: `${camelCase(res[0])}`,
-        fileName: `${camelCase(res[0])}.ts`
-      }
-    }
-
-    return {
-      dir: res[0],
-      descriptor: `${res[0]}:${camelCase(res[1])}`,
-      taskName: `${camelCase(res[1])}`,
-      fileName: `${camelCase(res[1])}.ts`
-    }
   }
 }
 
@@ -105,9 +111,11 @@ export const createTaskCommand = createTask(
     persistTask,
     loadConf,
     persistConf,
-    parseTaskName
+    parseTaskName,
+    getCwd
   }) {
     const { taskName, fileName, descriptor, dir } = await parseTaskName(descriptorName)
+    const cwd = await getCwd()
 
     const forge = await loadConf({})
     let taskPath: string = forge.paths.tasks
@@ -132,7 +140,7 @@ export const createTaskCommand = createTask(
       taskDescriptor: descriptor
     })
 
-    await persistTask(taskPath, fileName, content)
+    await persistTask(taskPath, fileName, content, cwd)
 
     if (forge.tasks === undefined) {
       forge.tasks = {}
@@ -143,7 +151,7 @@ export const createTaskCommand = createTask(
       handler: taskName
     }
 
-    await persistConf(forge)
+    await persistConf(forge, cwd)
 
     return { taskPath, fileName }
   }
