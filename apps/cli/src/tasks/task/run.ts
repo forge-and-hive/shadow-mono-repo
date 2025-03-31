@@ -4,6 +4,7 @@
 
 import path from 'path'
 import fs from 'fs/promises'
+import os from 'os'
 
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
@@ -35,13 +36,23 @@ const boundaries = {
     }
 
     return true
+  },
+  ensureBuildsFolder: async (): Promise<string> => {
+    const buildsPath = path.join(os.homedir(), '.forge', 'builds')
+    try {
+      await fs.access(buildsPath)
+    } catch {
+      await fs.mkdir(buildsPath, { recursive: true })
+    }
+
+    return buildsPath
   }
 }
 
 export const run = createTask(
   schema,
   boundaries,
-  async function ({ descriptorName, args }, { loadConf, bundleCreate, bundleLoad, verifyLogFolder }) {
+  async function ({ descriptorName, args }, { loadConf, bundleCreate, bundleLoad, verifyLogFolder, ensureBuildsFolder }) {
     // Load forge configuration
     const forge: ForgeConf = await loadConf({})
     const taskDescriptor = forge.tasks[descriptorName as keyof typeof forge.tasks]
@@ -60,7 +71,8 @@ export const run = createTask(
     // Prepare paths
     const logsPath = path.join(logFolderPath, descriptorName)
     const entryPoint = path.join(process.cwd(), taskDescriptor.path)
-    const outputFile = path.resolve(__dirname, '../.builds', `${descriptorName}.js`)
+    const buildsPath = await ensureBuildsFolder()
+    const outputFile = path.join(buildsPath, `${descriptorName}.js`)
 
     // Bundle the task
     await bundleCreate({
