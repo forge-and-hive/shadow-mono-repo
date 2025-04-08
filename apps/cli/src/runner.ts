@@ -39,6 +39,7 @@ runner.load('task:remove', taskRemoveCommand)
 runner.load('runner:create', createRunner)
 runner.load('runner:remove', removeRunner)
 runner.load('runner:bundle', bundleRunner)
+
 // Set handler
 runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   const parsedArgs = runner.parseArguments(data)
@@ -55,8 +56,6 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
 
   try {
     let result
-
-    console.log('taskName =>', taskName, action,args, ':', parsedArgs)
 
     const commandsWithDescriptor = ['task:create', 'task:remove']
     const commandsWithRunner = ['runner:create', 'runner:remove']
