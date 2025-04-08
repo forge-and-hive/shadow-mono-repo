@@ -33,6 +33,18 @@
     "conf:info": {
       "path": "src/tasks/conf/info.ts",
       "handler": "info"
+    },
+    "runner:create": {
+      "path": "src/tasks/runner/create.ts",
+      "handler": "create"
+    },
+    "runner:remove": {
+      "path": "src/tasks/runner/remove.ts",
+      "handler": "remove"
+    },
+    "runner:bundle": {
+      "path": "src/tasks/runner/bundle.ts",
+      "handler": "bundle"
     }
   },
   "runners": {}

@@ -8,6 +8,10 @@ import { createTaskCommand } from './tasks/task/createTask'
 import { run as taskRunCommand } from './tasks/task/run'
 import { remove as taskRemoveCommand } from './tasks/task/remove'
 
+import { create as createRunner } from './tasks/runner/create'
+import { remove as removeRunner } from './tasks/runner/remove'
+import { bundle as bundleRunner } from './tasks/runner/bundle'
+
 interface CliParsedArguments extends RunnerParsedArguments {
   action: string;
 }
@@ -31,6 +35,11 @@ runner.load('task:create', createTaskCommand)
 runner.load('task:run', taskRunCommand)
 runner.load('task:remove', taskRemoveCommand)
 
+// Runner commands
+runner.load('runner:create', createRunner)
+runner.load('runner:remove', removeRunner)
+runner.load('runner:bundle', bundleRunner)
+
 // Set handler
 runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   const parsedArgs = runner.parseArguments(data)
@@ -48,9 +57,22 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   try {
     let result
 
-    const taskWithDescriptor = ['task:create', 'task:remove']
-    if (taskWithDescriptor.includes(taskName)) {
+    const commandsWithDescriptor = ['task:create', 'task:remove']
+    const commandsWithRunner = ['runner:create', 'runner:remove']
+
+    if (commandsWithDescriptor.includes(taskName)) {
       result = await task.run({ descriptorName: action })
+    } else if (commandsWithRunner.includes(taskName)) {
+      result = await task.run({
+        runnerName: action
+      })
+    } else if (taskName === 'runner:bundle') {
+      const paths = args as { targetPath: string }
+
+      result = await task.run({
+        runnerName: action,
+        targetPath: paths.targetPath
+      })
     } else if (taskName === 'task:run') {
       result = await task.run({
         descriptorName: action,
