@@ -12,6 +12,7 @@ import { create as createRunner } from './tasks/runner/create'
 import { remove as removeRunner } from './tasks/runner/remove'
 import { bundle as bundleRunner } from './tasks/runner/bundle'
 import { publish as publishTask } from './tasks/task/publish'
+import { download as downloadTask } from './tasks/task/download'
 
 interface CliParsedArguments extends RunnerParsedArguments {
   action: string;
@@ -36,6 +37,7 @@ runner.load('task:create', createTaskCommand)
 runner.load('task:run', taskRunCommand)
 runner.load('task:remove', taskRemoveCommand)
 runner.load('task:publish', publishTask)
+runner.load('task:download', downloadTask)
 
 // Runner commands
 runner.load('runner:create', createRunner)
@@ -75,6 +77,13 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
       result = await task.run({
         runnerName: action,
         targetPath: paths.targetPath
+      })
+    } else if (taskName === 'task:download') {
+      const { uuid } = args as { uuid: string }
+
+      result = await task.run({
+        descriptorName: action,
+        uuid
       })
     } else if (taskName === 'task:run') {
       result = await task.run({

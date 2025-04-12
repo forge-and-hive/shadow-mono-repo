@@ -14,12 +14,11 @@ import { load as loadConf } from '../conf/load'
 import { create as bundleCreate } from '../bundle/create'
 import { load as bundleLoad } from '../bundle/load'
 
-// TODO: Read from .forge/co
+// TODO: Read from .forge/config.json
 const API_KEY = 'b4b5a766fcd7dc2d059e8f96a57c8edd'
 const API_SECRET = '2900246cb8bebcbeaadbe6348477592f42d62788d13fd4067588438bc11bf116'
 
 const baseHiveUrl = 'http://localhost:4000'
-// const baseHiveUrl = 'https://5r92r59wuf.execute-api.us-west-2.amazonaws.com/Prod/'
 
 const schema = new Schema({
   descriptorName: Schema.string()
@@ -68,10 +67,20 @@ const boundaries = {
 export const publish = createTask(
   schema,
   boundaries,
-  async function ({ descriptorName }, { getCwd, ensureBuildsFolder, loadConf, bundleCreate, bundleLoad, readFileUtf8, readFileBinary, publishTask }) {
+  async function ({ descriptorName }, {
+    getCwd,
+    ensureBuildsFolder,
+    loadConf,
+    bundleCreate,
+    bundleLoad,
+    readFileUtf8,
+    readFileBinary,
+    publishTask
+  }) {
     const cwd = await getCwd()
     const forgeJson = await loadConf({})
     const taskDescriptor = forgeJson.tasks[descriptorName as keyof typeof forgeJson.tasks]
+    const projectName = forgeJson.project.name
 
     if (taskDescriptor === undefined) {
       throw new Error('Task is not defined on forge.json')
@@ -109,6 +118,7 @@ export const publish = createTask(
     const data = {
       ...taskDescriptor,
       taskName: descriptorName,
+      projectName,
       description,
       schemaDescriptor: JSON.stringify(schemaDescriptor),
       sourceCode,
@@ -119,6 +129,6 @@ export const publish = createTask(
     const response = await publishTask(data)
 
     console.log('Publish response:', response)
-    return { descriptor: data, publishResponse: response }
+    return { descriptor: taskDescriptor, publishResponse: response }
   }
 )

@@ -49,6 +49,10 @@
     "task:publish": {
       "path": "src/tasks/task/publish.ts",
       "handler": "publish"
+    },
+    "task:download": {
+      "path": "src/tasks/task/download.ts",
+      "handler": "download"
     }
   },
   "runners": {}
