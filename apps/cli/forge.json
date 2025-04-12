@@ -45,6 +45,10 @@
     "runner:bundle": {
       "path": "src/tasks/runner/bundle.ts",
       "handler": "bundle"
+    },
+    "task:publish": {
+      "path": "src/tasks/task/publish.ts",
+      "handler": "publish"
     }
   },
   "runners": {}

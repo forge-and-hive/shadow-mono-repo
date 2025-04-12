@@ -11,6 +11,7 @@ import { remove as taskRemoveCommand } from './tasks/task/remove'
 import { create as createRunner } from './tasks/runner/create'
 import { remove as removeRunner } from './tasks/runner/remove'
 import { bundle as bundleRunner } from './tasks/runner/bundle'
+import { publish as publishTask } from './tasks/task/publish'
 
 interface CliParsedArguments extends RunnerParsedArguments {
   action: string;
@@ -34,6 +35,7 @@ runner.load('info', info)
 runner.load('task:create', createTaskCommand)
 runner.load('task:run', taskRunCommand)
 runner.load('task:remove', taskRemoveCommand)
+runner.load('task:publish', publishTask)
 
 // Runner commands
 runner.load('runner:create', createRunner)
@@ -57,10 +59,11 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   try {
     let result
 
-    const commandsWithDescriptor = ['task:create', 'task:remove']
+    const commandsWithDescriptor = ['task:create', 'task:remove', 'task:publish']
     const commandsWithRunner = ['runner:create', 'runner:remove']
 
     if (commandsWithDescriptor.includes(taskName)) {
+      console.log('Running:', taskName, action)
       result = await task.run({ descriptorName: action })
     } else if (commandsWithRunner.includes(taskName)) {
       result = await task.run({
