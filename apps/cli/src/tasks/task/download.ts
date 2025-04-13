@@ -19,6 +19,7 @@ const schema = new Schema({
 
 const boundaries = {
   loadCurrentProfile: loadCurrentProfile.asBoundary(),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   downloadTask: async (uuid: string, profile: Profile): Promise<any> => {
     const downloadUrl = `${profile.url}/api/tasks/download`
 
