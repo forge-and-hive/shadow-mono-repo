@@ -65,6 +65,14 @@
     "auth:loadCurrent": {
       "path": "src/tasks/auth/loadCurrent.ts",
       "handler": "loadCurrent"
+    },
+    "auth:switch": {
+      "path": "src/tasks/auth/switch.ts",
+      "handler": "switchProfile"
+    },
+    "auth:list": {
+      "path": "src/tasks/auth/list.ts",
+      "handler": "list"
     }
   },
   "runners": {}

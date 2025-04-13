@@ -15,6 +15,8 @@ import { publish as publishTask } from './tasks/task/publish'
 import { download as downloadTask } from './tasks/task/download'
 
 import { add as addProfile } from './tasks/auth/add'
+import { switchProfile } from './tasks/auth/switch'
+import { list as listProfiles } from './tasks/auth/list'
 
 interface CliParsedArguments extends RunnerParsedArguments {
   action: string;
@@ -48,7 +50,8 @@ runner.load('runner:bundle', bundleRunner)
 
 // Auth commands
 runner.load('auth:add', addProfile)
-
+runner.load('auth:switch', switchProfile)
+runner.load('auth:list', listProfiles)
 // Set handler
 runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   const parsedArgs = runner.parseArguments(data)
@@ -103,6 +106,10 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
         apiKey,
         apiSecret,
         url
+      })
+    } else if (taskName === 'auth:switch') {
+      result = await task.run({
+        profileName: action
       })
     } else {
       result = await task.run(args)

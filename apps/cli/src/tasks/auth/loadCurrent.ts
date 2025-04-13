@@ -8,9 +8,7 @@ import { Schema } from '@forgehive/schema'
 import { load as loadProfiles } from './load'
 import { type Profile } from '../types'
 
-const schema = new Schema({
-  // No input parameters needed
-})
+const schema = new Schema({})
 
 const boundaries = {
   loadProfiles: loadProfiles.asBoundary()
