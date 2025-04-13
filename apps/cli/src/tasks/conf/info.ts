@@ -7,26 +7,34 @@ import { Schema } from '@forgehive/schema'
 import * as fs from 'fs'
 import * as path from 'path'
 
-const schema = new Schema({
-  // No parameters needed for this task
-})
+import { loadCurrent as loadCurrentProfile } from '../auth/loadCurrent'
+
+const schema = new Schema({})
 
 const boundaries = {
-  readFile: async (filePath: string): Promise<string> => fs.promises.readFile(filePath, 'utf-8')
+  readFile: async (filePath: string): Promise<string> => fs.promises.readFile(filePath, 'utf-8'),
+  loadCurrentProfile: loadCurrentProfile.asBoundary()
 }
 
 export const info = createTask(
   schema,
   boundaries,
-  async function (_argv, boundaries) {
+  async function (_argv, { loadCurrentProfile, readFile }) {
     const packageJsonPath = path.join(__dirname, '../../../package.json')
-    console.log('packageJsonPath', packageJsonPath)
 
-    const packageJsonContent = await boundaries.readFile(packageJsonPath)
+
+    const packageJsonContent = await readFile(packageJsonPath)
     const packageJson = JSON.parse(packageJsonContent)
 
+    const profile = await loadCurrentProfile({})
+
     return {
-      version: packageJson.version
+      version: packageJson.version,
+      profile: {
+        name: profile.name,
+        url: profile.url,
+        apiKey: profile.apiKey
+      }
     }
   }
 )

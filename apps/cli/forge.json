@@ -53,6 +53,18 @@
     "task:download": {
       "path": "src/tasks/task/download.ts",
       "handler": "download"
+    },
+    "auth:add": {
+      "path": "src/tasks/auth/add.ts",
+      "handler": "add"
+    },
+    "auth:load": {
+      "path": "src/tasks/auth/load.ts",
+      "handler": "load"
+    },
+    "auth:loadCurrent": {
+      "path": "src/tasks/auth/loadCurrent.ts",
+      "handler": "loadCurrent"
     }
   },
   "runners": {}

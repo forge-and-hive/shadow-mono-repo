@@ -14,6 +14,8 @@ import { bundle as bundleRunner } from './tasks/runner/bundle'
 import { publish as publishTask } from './tasks/task/publish'
 import { download as downloadTask } from './tasks/task/download'
 
+import { add as addProfile } from './tasks/auth/add'
+
 interface CliParsedArguments extends RunnerParsedArguments {
   action: string;
 }
@@ -43,6 +45,9 @@ runner.load('task:download', downloadTask)
 runner.load('runner:create', createRunner)
 runner.load('runner:remove', removeRunner)
 runner.load('runner:bundle', bundleRunner)
+
+// Auth commands
+runner.load('auth:add', addProfile)
 
 // Set handler
 runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
@@ -89,6 +94,15 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
       result = await task.run({
         descriptorName: action,
         args
+      })
+    } else if (taskName === 'auth:add') {
+      const { apiKey, apiSecret, url } = args as { name: string, apiKey: string, apiSecret: string, url: string }
+
+      result = await task.run({
+        name: action,
+        apiKey,
+        apiSecret,
+        url
       })
     } else {
       result = await task.run(args)

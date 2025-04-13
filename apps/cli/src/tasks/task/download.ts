@@ -9,13 +9,8 @@ import path from 'path'
 import fs from 'fs/promises'
 import { camelCase } from '../../utils/camelCase'
 import { load as loadConf } from '../conf/load'
-import { type ForgeConf } from '../types'
-
-// TODO: Read from .forge/config.json
-const API_KEY = 'b4b5a766fcd7dc2d059e8f96a57c8edd'
-const API_SECRET = '2900246cb8bebcbeaadbe6348477592f42d62788d13fd4067588438bc11bf116'
-
-const baseHiveUrl = 'http://localhost:4000'
+import { loadCurrent as loadCurrentProfile } from '../auth/loadCurrent'
+import { Profile, type ForgeConf } from '../types'
 
 const schema = new Schema({
   descriptorName: Schema.string(),
@@ -23,12 +18,13 @@ const schema = new Schema({
 })
 
 const boundaries = {
-  downloadTask: async (uuid: string): Promise<any> => {
-    const downloadUrl = `${baseHiveUrl}/download`
+  loadCurrentProfile: loadCurrentProfile.asBoundary(),
+  downloadTask: async (uuid: string, profile: Profile): Promise<any> => {
+    const downloadUrl = `${profile.url}/api/tasks/download`
 
     console.log(`Downloading task from ${downloadUrl}...`)
 
-    const authToken = `${API_KEY}:${API_SECRET}`
+    const authToken = `${profile.apiKey}:${profile.apiSecret}`
     const response = await axios.post(downloadUrl, { uuid }, {
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -103,12 +99,14 @@ export const download = createTask(
     persistTask,
     loadConf,
     persistConf,
-    checkTaskExists
+    checkTaskExists,
+    loadCurrentProfile
   }) {
     console.log(`Attempting to download task with descriptor: ${descriptorName} and uuid: ${uuid}`)
 
     // Parse descriptor name to get task details
     const { taskName, fileName, descriptor, dir } = await parseTaskName(descriptorName)
+    const profile = await loadCurrentProfile({})
     const cwd = await getCwd()
     const forge = await loadConf({})
 
@@ -130,9 +128,7 @@ export const download = createTask(
     }
 
     // Download from hive api server
-    const response = await downloadTask(uuid)
-
-    console.log('Download response:', response)
+    const response = await downloadTask(uuid, profile)
 
     console.log(`
     ==================================================

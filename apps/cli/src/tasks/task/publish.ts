@@ -13,12 +13,8 @@ import os from 'os'
 import { load as loadConf } from '../conf/load'
 import { create as bundleCreate } from '../bundle/create'
 import { load as bundleLoad } from '../bundle/load'
-
-// TODO: Read from .forge/config.json
-const API_KEY = 'b4b5a766fcd7dc2d059e8f96a57c8edd'
-const API_SECRET = '2900246cb8bebcbeaadbe6348477592f42d62788d13fd4067588438bc11bf116'
-
-const baseHiveUrl = 'http://localhost:4000'
+import { loadCurrent as loadCurrentProfile } from '../auth/loadCurrent'
+import { Profile } from '../types'
 
 const schema = new Schema({
   descriptorName: Schema.string()
@@ -29,6 +25,7 @@ const boundaries = {
     return process.cwd()
   },
   loadConf: loadConf.asBoundary(),
+  loadCurrentProfile: loadCurrentProfile.asBoundary(),
   bundleCreate: bundleCreate.asBoundary(),
   bundleLoad: bundleLoad.asBoundary(),
   readFileUtf8: async (filePath: string): Promise<string> => {
@@ -37,11 +34,12 @@ const boundaries = {
   readFileBinary: async (filePath: string): Promise<Buffer> => {
     return fs.readFile(filePath)
   },
-  publishTask: async (data: any): Promise<any> => {
-    const publishUrl = `${baseHiveUrl}/publish`
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  publishTask: async (data: any, profile: Profile): Promise<any> => {
+    const publishUrl = `${profile.url}/api/tasks/publish`
 
     console.log(`Publishing task to ${publishUrl}...`)
-    const authToken = `${API_KEY}:${API_SECRET}`
+    const authToken = `${profile.apiKey}:${profile.apiSecret}`
     const response = await axios.post(publishUrl, data, {
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -75,10 +73,13 @@ export const publish = createTask(
     bundleLoad,
     readFileUtf8,
     readFileBinary,
-    publishTask
+    publishTask,
+    loadCurrentProfile
   }) {
     const cwd = await getCwd()
     const forgeJson = await loadConf({})
+    const profile = await loadCurrentProfile({})
+
     const taskDescriptor = forgeJson.tasks[descriptorName as keyof typeof forgeJson.tasks]
     const projectName = forgeJson.project.name
 
@@ -126,7 +127,7 @@ export const publish = createTask(
     }
 
     // Publish to hive api server
-    const response = await publishTask(data)
+    const response = await publishTask(data, profile)
 
     console.log('Publish response:', response)
     return { descriptor: taskDescriptor, publishResponse: response }
