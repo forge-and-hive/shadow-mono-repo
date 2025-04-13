@@ -73,6 +73,10 @@
     "auth:list": {
       "path": "src/tasks/auth/list.ts",
       "handler": "list"
+    },
+    "auth:remove": {
+      "path": "src/tasks/auth/remove.ts",
+      "handler": "remove"
     }
   },
   "runners": {}
