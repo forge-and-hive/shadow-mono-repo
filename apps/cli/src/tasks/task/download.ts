@@ -62,8 +62,8 @@ const boundaries = {
       fileName: `${camelCase(res[1])}.ts`
     }
   },
-  persistTask: async (dir: string, fileName: string, content: string): Promise<{ path: string }> => {
-    const dirPath = path.resolve(dir)
+  persistTask: async (dir: string, fileName: string, content: string, cwd: string): Promise<{ path: string }> => {
+    const dirPath = path.resolve(cwd, dir)
     const taskPath = path.resolve(dirPath, fileName)
 
     await fs.mkdir(dirPath, { recursive: true })
@@ -111,7 +111,7 @@ export const download = createTask(
     const cwd = await getCwd()
     const forge = await loadConf({})
 
-    let taskPath: string = path.join(cwd, forge.paths.tasks)
+    let taskPath: string = forge.paths.tasks
 
     if (dir !== undefined) {
       taskPath = path.join(taskPath, dir)
@@ -129,7 +129,28 @@ export const download = createTask(
     }
 
     // Download from hive api server
-    const response = await downloadTask(uuid, profile)
+    let response
+    try {
+      response = await downloadTask(uuid, profile)
+    } catch (e: unknown) {
+      const error = e as { status: number, message: string }
+      console.error('Error downloading task:', error.message, error.status)
+
+      if (error.status === 404) {
+        return {
+          error: 'Task not found',
+          taskPath: `${taskPath}/${fileName}`,
+          descriptor
+        }
+      }
+
+      return {
+        error: 'Failed to download task',
+        message: error.message,
+        taskPath: `${taskPath}/${fileName}`,
+        descriptor
+      }
+    }
 
     console.log(`
     ==================================================
@@ -141,8 +162,11 @@ export const download = createTask(
     `)
 
     console.log('Writing task file:', taskPath, fileName)
+    console.log('Handler:', response.handler)
     console.log('Source code:', response.sourceCode)
-    await persistTask(taskPath, fileName, response.sourceCode)
+
+    // Persist task with cwd
+    await persistTask(taskPath, fileName, response.sourceCode, cwd)
 
     // Update forge.json with the new task
     if (forge.tasks === undefined) {
