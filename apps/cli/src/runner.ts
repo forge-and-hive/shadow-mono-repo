@@ -11,6 +11,13 @@ import { remove as taskRemoveCommand } from './tasks/task/remove'
 import { create as createRunner } from './tasks/runner/create'
 import { remove as removeRunner } from './tasks/runner/remove'
 import { bundle as bundleRunner } from './tasks/runner/bundle'
+import { publish as publishTask } from './tasks/task/publish'
+import { download as downloadTask } from './tasks/task/download'
+
+import { add as addProfile } from './tasks/auth/add'
+import { switchProfile } from './tasks/auth/switch'
+import { list as listProfiles } from './tasks/auth/list'
+import { remove as removeProfile } from './tasks/auth/remove'
 
 interface CliParsedArguments extends RunnerParsedArguments {
   action: string;
@@ -34,11 +41,19 @@ runner.load('info', info)
 runner.load('task:create', createTaskCommand)
 runner.load('task:run', taskRunCommand)
 runner.load('task:remove', taskRemoveCommand)
+runner.load('task:publish', publishTask)
+runner.load('task:download', downloadTask)
 
 // Runner commands
 runner.load('runner:create', createRunner)
 runner.load('runner:remove', removeRunner)
 runner.load('runner:bundle', bundleRunner)
+
+// Auth commands
+runner.load('auth:add', addProfile)
+runner.load('auth:switch', switchProfile)
+runner.load('auth:list', listProfiles)
+runner.load('auth:remove', removeProfile)
 
 // Set handler
 runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
@@ -57,10 +72,11 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   try {
     let result
 
-    const commandsWithDescriptor = ['task:create', 'task:remove']
+    const commandsWithDescriptor = ['task:create', 'task:remove', 'task:publish']
     const commandsWithRunner = ['runner:create', 'runner:remove']
 
     if (commandsWithDescriptor.includes(taskName)) {
+      console.log('Running:', taskName, action)
       result = await task.run({ descriptorName: action })
     } else if (commandsWithRunner.includes(taskName)) {
       result = await task.run({
@@ -73,10 +89,30 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
         runnerName: action,
         targetPath: paths.targetPath
       })
+    } else if (taskName === 'task:download') {
+      const { uuid } = args as { uuid: string }
+
+      result = await task.run({
+        descriptorName: action,
+        uuid
+      })
     } else if (taskName === 'task:run') {
       result = await task.run({
         descriptorName: action,
         args
+      })
+    } else if (taskName === 'auth:add') {
+      const { apiKey, apiSecret, url } = args as { name: string, apiKey: string, apiSecret: string, url: string }
+
+      result = await task.run({
+        name: action,
+        apiKey,
+        apiSecret,
+        url
+      })
+    } else if (taskName === 'auth:switch' || taskName === 'auth:remove') {
+      result = await task.run({
+        profileName: action
       })
     } else {
       result = await task.run(args)

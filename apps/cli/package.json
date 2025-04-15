@@ -1,6 +1,6 @@
 {
   "name": "@forgehive/forge-cli",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "TypeScript CLI application",
   "license": "MIT",
   "main": "dist/index.js",
@@ -31,6 +31,7 @@
     "@forgehive/runner": "workspace:*",
     "@forgehive/schema": "workspace:*",
     "@forgehive/task": "workspace:*",
+    "axios": "^1.8.4",
     "esbuild": "^0.25.0",
     "handlebars": "^4.7.8",
     "minimist": "^1.2.8"

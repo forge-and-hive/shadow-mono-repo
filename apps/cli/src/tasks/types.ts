@@ -39,3 +39,15 @@ export interface TaskName {
   fileName: string
   dir?: string
 }
+
+export interface Profile {
+  name: string
+  apiKey: string
+  apiSecret: string
+  url: string
+}
+
+export interface Profiles {
+  default: string
+  profiles: Profile[]
+}

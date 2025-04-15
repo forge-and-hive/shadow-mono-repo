@@ -45,6 +45,38 @@
     "runner:bundle": {
       "path": "src/tasks/runner/bundle.ts",
       "handler": "bundle"
+    },
+    "task:publish": {
+      "path": "src/tasks/task/publish.ts",
+      "handler": "publish"
+    },
+    "task:download": {
+      "path": "src/tasks/task/download.ts",
+      "handler": "download"
+    },
+    "auth:add": {
+      "path": "src/tasks/auth/add.ts",
+      "handler": "add"
+    },
+    "auth:load": {
+      "path": "src/tasks/auth/load.ts",
+      "handler": "load"
+    },
+    "auth:loadCurrent": {
+      "path": "src/tasks/auth/loadCurrent.ts",
+      "handler": "loadCurrent"
+    },
+    "auth:switch": {
+      "path": "src/tasks/auth/switch.ts",
+      "handler": "switchProfile"
+    },
+    "auth:list": {
+      "path": "src/tasks/auth/list.ts",
+      "handler": "list"
+    },
+    "auth:remove": {
+      "path": "src/tasks/auth/remove.ts",
+      "handler": "remove"
     }
   },
   "runners": {}

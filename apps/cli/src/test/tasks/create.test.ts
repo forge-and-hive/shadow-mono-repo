@@ -12,6 +12,8 @@ const expectedContent = `// TASK: newTask
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 
+const description = 'Add task description here'
+
 const schema = new Schema({
   // Add your schema definitions here
   // example: myParam: Schema.string()
@@ -34,6 +36,8 @@ export const newTask = createTask(
     return status
   }
 )
+
+newTask.setDescription(description)
 `
 
 describe('Create task', () => {
