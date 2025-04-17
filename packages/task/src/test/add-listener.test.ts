@@ -64,7 +64,9 @@ describe('Listener tests', () => {
 
     expect(tape.length).toBe(1)
     expect(tape[0].input).toEqual({ value: 3 })
-    expect(tape[0].error).toBe('Invalid input')
+    expect(tape[0].error).toContain('Invalid input on:')
+    expect(tape[0].error).toContain('value:')
+    expect(tape[0].error).toContain('Number must be greater than or equal to 5')
   })
 
   it('Should record multiple records', async () => {

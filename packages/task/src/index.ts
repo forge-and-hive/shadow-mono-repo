@@ -292,15 +292,25 @@ export const Task = class Task<
     const boundaries = this._boundaries
 
     const q = new Promise<ReturnType<Func>>((resolve, reject) => {
-      const isValid = this.isValid(argv)
+      if (this._schema) {
+        const validation = this._schema.safeParse(argv)
 
-      if (!isValid) {
-        this.emit({
-          input: argv,
-          error: 'Invalid input'
-        })
+        if (!validation.success) {
+          const errorDetails = validation.error?.errors.map(err =>
+            `${err.path.join('.')}: ${err.message}`
+          ).join(', ')
 
-        throw new Error('Invalid input')
+          const errorMessage = errorDetails
+            ? `Invalid input on: ${errorDetails}`
+            : 'Invalid input'
+
+          this.emit({
+            input: argv,
+            error: errorMessage
+          })
+
+          throw new Error(errorMessage)
+        }
       }
 
       (async (): Promise<ReturnType<Func>> => {
