@@ -134,6 +134,10 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
         stack: err.stack
       }
     }
+  } finally {
+    setTimeout(() => {
+      process.exit(0)
+    }, 500)
   }
 })
 
