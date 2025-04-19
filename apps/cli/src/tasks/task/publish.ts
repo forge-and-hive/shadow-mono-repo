@@ -38,7 +38,6 @@ const boundaries = {
   publishTask: async (data: any, profile: Profile): Promise<any> => {
     const publishUrl = `${profile.url}/api/tasks/publish`
 
-    console.log(`Publishing task to ${publishUrl}...`)
     const authToken = `${profile.apiKey}:${profile.apiSecret}`
     const response = await axios.post(publishUrl, data, {
       headers: {
@@ -48,6 +47,15 @@ const boundaries = {
     })
 
     return response.data
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  uploadBundleWithPresignedUrl: async (presignedUrl: string, bundleContent: Buffer): Promise<any> => {
+    const response = await axios.put(presignedUrl, bundleContent, {
+      headers: {
+        'Content-Type': 'application/octet-stream'
+      }
+    })
+    return response.status === 200
   },
 
   ensureBuildsFolder: async (): Promise<string> => {
@@ -74,7 +82,8 @@ export const publish = createTask(
     readFileUtf8,
     readFileBinary,
     publishTask,
-    loadCurrentProfile
+    loadCurrentProfile,
+    uploadBundleWithPresignedUrl
   }) {
     const cwd = await getCwd()
     const forgeJson = await loadConf({})
@@ -91,15 +100,13 @@ export const publish = createTask(
     const buildsPath = await ensureBuildsFolder()
     const outputFile = path.join(buildsPath, `${descriptorName}.js`)
 
-    console.log('entryPoint:', entryPoint)
-    console.log('buildsPath:', buildsPath)
-    console.log('outputFile:', outputFile)
-
     // Bundle the task
     await bundleCreate({
       entryPoint,
       outputFile
     })
+
+    console.log('Bundle created...')
 
     // Load the bundled task
     const bundle = await bundleLoad({
@@ -112,24 +119,38 @@ export const publish = createTask(
     const schema = task.getSchema() || new Schema({})
     const schemaDescriptor = schema.describe()
 
-    // Read the task file content and bundle
+    // Read the task file content
     const sourceCode = await readFileUtf8(entryPoint)
     const bundleContent = await readFileBinary(outputFile)
 
+    // First, publish task metadata and get presigned URL for bundle upload
     const data = {
       ...taskDescriptor,
       taskName: descriptorName,
       projectName,
       description,
       schemaDescriptor: JSON.stringify(schemaDescriptor),
-      sourceCode,
-      bundle: bundleContent.toString('base64')
+      sourceCode
     }
 
-    // Publish to hive api server
-    const response = await publishTask(data, profile)
+    // Publish metadata to hive api server
+    console.log(`Publishing metadata and source code to ${profile.url}...`)
+    const publishResponse = await publishTask(data, profile)
 
-    console.log('Publish response:', response)
-    return { descriptor: taskDescriptor, publishResponse: response }
+    // Upload bundle using the presigned URL
+    if (publishResponse.bundleUploadUrl) {
+      console.log('Uploading bundle...')
+      await uploadBundleWithPresignedUrl(
+        publishResponse.bundleUploadUrl,
+        bundleContent
+      )
+
+      return {
+        descriptor: taskDescriptor,
+        publish: true
+      }
+    } else {
+      throw new Error('Bundle upload failed')
+    }
   }
 )
