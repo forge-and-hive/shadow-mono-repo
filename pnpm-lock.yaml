@@ -56,6 +56,9 @@ importers:
       axios:
         specifier: ^1.8.4
         version: 1.8.4
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.5.0
       esbuild:
         specifier: ^0.25.0
         version: 0.25.0
@@ -159,11 +162,11 @@ importers:
   packages/record-tape:
     dependencies:
       '@forgehive/schema':
-        specifier: ^0.1.3
-        version: 0.1.3
+        specifier: ^0.1.4
+        version: 0.1.4
       '@forgehive/task':
-        specifier: ^0.1.3
-        version: 0.1.3
+        specifier: ^0.1.5
+        version: 0.1.5
     devDependencies:
       '@types/jest':
         specifier: ^29.5.14
@@ -698,11 +701,11 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
-  '@forgehive/schema@0.1.3':
-    resolution: {integrity: sha512-PwDIOUdbvFRzt4UgDQnk/CcMGRPHJP2VUHyW4x+xsiVG7b+8O6eyNVwVSTZv2BmEUPDCMSPB3HX9SfVZse/YoQ==}
+  '@forgehive/schema@0.1.4':
+    resolution: {integrity: sha512-EXCvzA4SNH4cY1g3tdlGpC6yZ9KWRki5F1MYuXSfzKjD7Zmq/lJ7+FWKdkuIZnvtOtiF9SAt0NHZFdvBFh8p4A==}
 
-  '@forgehive/task@0.1.3':
-    resolution: {integrity: sha512-mhEYgMK9oLAlXxgxZtwJNc3ouIt2wET7ZR/6Y+qW8IodDlYDXqVJumodUdmcGLiwfzp8/5LsxpleFL2Fs+p8Jg==}
+  '@forgehive/task@0.1.5':
+    resolution: {integrity: sha512-EvTlSgBHeCqczTJhQp2q4mLAKzzB75m5PE7otmsLLR+j/JeKSSHB1ir7f83ep0SWYgbyahsc8/GMNMwHcLGNTA==}
 
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -2190,6 +2193,10 @@ packages:
 
   dotenv@16.4.7:
     resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
+    engines: {node: '>=12'}
+
+  dotenv@16.5.0:
+    resolution: {integrity: sha512-m/C+AwOAr9/W1UOIZUo232ejMNnJAJtYQjUbHoNTBNTJSvqzzDh7vnrei3o3r3m9blf6ZoDkvcw0VmozNRFJxg==}
     engines: {node: '>=12'}
 
   dset@3.1.4:
@@ -5504,13 +5511,13 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
-  '@forgehive/schema@0.1.3':
+  '@forgehive/schema@0.1.4':
     dependencies:
       zod: 3.24.2
 
-  '@forgehive/task@0.1.3':
+  '@forgehive/task@0.1.5':
     dependencies:
-      '@forgehive/schema': 0.1.3
+      '@forgehive/schema': 0.1.4
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
@@ -7275,6 +7282,8 @@ snapshots:
       dotenv: 16.4.7
 
   dotenv@16.4.7: {}
+
+  dotenv@16.5.0: {}
 
   dset@3.1.4: {}
 
