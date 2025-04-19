@@ -37,16 +37,24 @@ const boundaries = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   publishTask: async (data: any, profile: Profile): Promise<any> => {
     const publishUrl = `${profile.url}/api/tasks/publish`
-
     const authToken = `${profile.apiKey}:${profile.apiSecret}`
-    const response = await axios.post(publishUrl, data, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      }
-    })
 
-    return response.data
+    try {
+      const response = await axios.post(publishUrl, data, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      return response.data
+    } catch (error: any) {
+      if (error.response?.data?.error.includes("Bundle size")) {
+        throw new Error('Bundle size exceeds the maximum allowed size of 25MB')
+      }
+
+      throw new Error('Failed to publish task source code and metadata')
+    }
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   uploadBundleWithPresignedUrl: async (presignedUrl: string, bundleContent: Buffer): Promise<any> => {
@@ -123,6 +131,9 @@ export const publish = createTask(
     const sourceCode = await readFileUtf8(entryPoint)
     const bundleContent = await readFileBinary(outputFile)
 
+    // Get bundle size
+    const bundleSize = bundleContent.length
+
     // First, publish task metadata and get presigned URL for bundle upload
     const data = {
       ...taskDescriptor,
@@ -130,7 +141,8 @@ export const publish = createTask(
       projectName,
       description,
       schemaDescriptor: JSON.stringify(schemaDescriptor),
-      sourceCode
+      sourceCode,
+      bundleSize
     }
 
     // Publish metadata to hive api server
