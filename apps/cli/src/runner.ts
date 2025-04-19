@@ -1,5 +1,10 @@
 import { Runner, RunnerParsedArguments } from '@forgehive/runner'
 import { ParsedArgs } from 'minimist'
+import dotenv from 'dotenv'
+
+// Load environment variables from .env file and .env.local file
+dotenv.config()
+dotenv.config({ path: '.env.local' })
 
 import { init } from './tasks/init'
 import { info } from './tasks/conf/info'
