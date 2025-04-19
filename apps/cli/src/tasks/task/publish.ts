@@ -48,8 +48,9 @@ const boundaries = {
       })
 
       return response.data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      if (error.response?.data?.error.includes("Bundle size")) {
+      if (error.response?.data?.error.includes('Bundle size')) {
         throw new Error('Bundle size exceeds the maximum allowed size of 25MB')
       }
 

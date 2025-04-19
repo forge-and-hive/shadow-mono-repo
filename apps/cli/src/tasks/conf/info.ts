@@ -29,7 +29,8 @@ export const info = createTask(
       version: packageJson.version,
       profile: {}
     }
-    let profile;
+
+    let profile
     try {
       profile = await loadCurrentProfile({})
 
