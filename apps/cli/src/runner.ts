@@ -33,7 +33,7 @@ const runner = new Runner((data: ParsedArgs): CliParsedArguments => {
 
   return {
     taskName: String(_[0]),
-    action: String(_[1]),
+    action: _[1] ?? '',
     args: filteredObj
   }
 })
@@ -66,7 +66,7 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   const { taskName, action, args } = parsedArgs
 
   console.log('========================================')
-  console.log('Running:', taskName, action, args)
+  console.log(`Running: ${taskName} ${action ? action : ''} ${JSON.stringify(args)}`)
   console.log('========================================')
 
   const task = runner.getTask(taskName)

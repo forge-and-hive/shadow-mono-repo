@@ -22,19 +22,26 @@ export const info = createTask(
   async function (_argv, { loadCurrentProfile, readFile }) {
     const packageJsonPath = path.join(__dirname, '../../../package.json')
 
-
     const packageJsonContent = await readFile(packageJsonPath)
     const packageJson = JSON.parse(packageJsonContent)
 
-    const profile = await loadCurrentProfile({})
-
-    return {
+    const info = {
       version: packageJson.version,
-      profile: {
+      profile: {}
+    }
+    let profile;
+    try {
+      profile = await loadCurrentProfile({})
+
+      info.profile = {
         name: profile.name,
         url: profile.url,
         apiKey: profile.apiKey
       }
+    } catch (error) {
+      console.log('No default profile set. Please run forge task:run auth:add to create a profile.')
     }
+
+    return info
   }
 )
