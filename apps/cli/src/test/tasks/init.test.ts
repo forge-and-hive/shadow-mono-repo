@@ -48,7 +48,7 @@ describe('Init task', () => {
     const config = JSON.parse(fileContent)
 
     // Verify the file content
-    expect(config).toHaveProperty('project.name', 'ChangeMePls')
+    expect(config).toHaveProperty('project.name', 'BaseProject')
     expect(config).toHaveProperty('paths.logs', 'logs/')
     expect(config).toHaveProperty('paths.tasks', 'src/tasks/')
     expect(config).toHaveProperty('infra.region', 'us-west-2')
@@ -77,7 +77,7 @@ describe('Init task', () => {
     expect(saveFileFn).not.toHaveBeenCalled()
 
     // Verify the returned config has the correct structure
-    expect(result).toHaveProperty('project.name', 'ChangeMePls')
+    expect(result).toHaveProperty('project.name', 'BaseProject')
     expect(result).toHaveProperty('paths.logs', 'logs/')
     expect(result).toHaveProperty('paths.tasks', 'src/tasks/')
     expect(result).toHaveProperty('infra.region', 'us-west-2')
