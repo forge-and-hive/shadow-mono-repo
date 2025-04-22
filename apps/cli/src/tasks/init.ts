@@ -32,7 +32,7 @@ export const init = createTask(
 
     const config: ForgeConf = {
       project: {
-        name: 'ChangeMePls'
+        name: 'BaseProject'
       },
       paths: {
         logs: 'logs/',
