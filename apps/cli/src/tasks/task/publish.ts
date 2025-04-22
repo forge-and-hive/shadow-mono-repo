@@ -126,6 +126,7 @@ export const publish = createTask(
     const task = bundle[taskDescriptor.handler]
     const description = task.getDescription() ?? ''
     const schema = task.getSchema() || new Schema({})
+    const boundaries = Object.keys(task.getBoundaries()) || []
     const schemaDescriptor = schema.describe()
 
     // Read the task file content
@@ -142,6 +143,7 @@ export const publish = createTask(
       projectName,
       description,
       schemaDescriptor: JSON.stringify(schemaDescriptor),
+      boundaries,
       sourceCode,
       bundleSize
     }
