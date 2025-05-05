@@ -261,6 +261,33 @@ export const Task = class Task<
   }
 
   async run (argv?: Parameters<Func>[0]): Promise<ReturnType<Func>> {
+    // Handle schema validation separately
+    if (this._schema) {
+      try {
+        const validation = this._schema.safeParse(argv)
+        if (!validation.success) {
+          const errorDetails = validation.error?.errors.map(err =>
+            `${err.path.join('.')}: ${err.message}`
+          ).join(', ')
+
+          const errorMessage = errorDetails
+            ? `Invalid input on: ${errorDetails}`
+            : 'Invalid input'
+
+          // Emit the validation error
+          this.emit({
+            input: argv,
+            error: errorMessage
+          })
+
+          throw new Error(errorMessage)
+        }
+      } catch (error) {
+        // We only throw validation errors here, so just re-throw
+        throw error
+      }
+    }
+
     // Create fresh boundaries for this execution
     const executionBoundaries = this._createBounderies({
       definition: this._boundariesDefinition,
@@ -274,87 +301,81 @@ export const Task = class Task<
       boundary.startRun()
     }
 
-    const q = new Promise<ReturnType<Func>>((resolve, reject) => {
-      if (this._schema) {
-        const validation = this._schema.safeParse(argv)
+    try {
+      // Execute the task function
+      const output = await this._fn(
+        argv as Parameters<Func>[0],
+        executionBoundaries as unknown as Parameters<Func>[1]
+      )
 
-        if (!validation.success) {
-          const errorDetails = validation.error?.errors.map(err =>
-            `${err.path.join('.')}: ${err.message}`
-          ).join(', ')
+      // Process boundary data after successful execution
+      const boundariesRunLog: Record<string, unknown> = {}
 
-          const errorMessage = errorDetails
-            ? `Invalid input on: ${errorDetails}`
-            : 'Invalid input'
+      for (const name in executionBoundaries) {
+        const boundary = executionBoundaries[name]
+        const runData = boundary.getRunData()
 
-          reject(new Error(errorMessage))
-          return
+        // Add to the run log
+        boundariesRunLog[name] = runData
+
+        // Accumulate in the task's total boundaries data
+        if (!this._accumulatedBoundariesData[name]) {
+          this._accumulatedBoundariesData[name] = []
+        }
+
+        // Get the current accumulated data for this boundary
+        const currentData = this._accumulatedBoundariesData[name]
+
+        // Add the new run data
+        if (Array.isArray(runData) && runData.length > 0) {
+          // Cast the run data to the correct type
+          this._accumulatedBoundariesData[name] = [...currentData, ...(runData as BoundaryData)]
         }
       }
 
-      // Store these variables in the closure scope
-      let taskOutput: ReturnType<Func> | undefined = undefined
-      let taskError: Error | undefined
-
-      (async (): Promise<ReturnType<Func>> => {
-        // Use proper typing for the function call and pass the execution-specific boundaries
-        const output = await this._fn(argv as Parameters<Func>[0], executionBoundaries as unknown as Parameters<Func>[1])
-        return output
-      })().then((output: ReturnType<Func>) => {
-        taskOutput = output
-        resolve(output)
-      }).catch((error: Error) => {
-        taskError = error
-        reject(error)
-      }).finally(() => {
-        // Process and accumulate boundary data
-        const boundariesRunLog: Record<string, unknown> = {}
-
-        for (const name in executionBoundaries) {
-          const boundary = executionBoundaries[name]
-          const runData = boundary.getRunData()
-
-          // Add to the run log
-          boundariesRunLog[name] = runData
-
-          // Also accumulate in the task's total boundaries data
-          if (!this._accumulatedBoundariesData[name]) {
-            this._accumulatedBoundariesData[name] = []
-          }
-
-          // Get the current accumulated data for this boundary
-          const currentData = this._accumulatedBoundariesData[name]
-
-          // Add the new run data
-          if (Array.isArray(runData) && runData.length > 0) {
-            // Cast the run data to the correct type
-            this._accumulatedBoundariesData[name] = [...currentData, ...(runData as BoundaryData)]
-          }
-        }
-
-        // Don't use emit directly from here to avoid the undefined issue
-        // Instead, manually check for listener existence and call if it exists
-        if (this._listener) {
-          if (taskError) {
-            this._listener({
-              input: argv,
-              error: taskError.message,
-              boundaries: boundariesRunLog
-            } as TaskRecord<Parameters<Func>[0], ReturnType<Func>>)
-          } else if (taskOutput !== undefined) {
-            this._listener({
-              input: argv,
-              output: taskOutput,
-              boundaries: boundariesRunLog
-            } as TaskRecord<Parameters<Func>[0], ReturnType<Func>>)
-          }
-        }
+      // Emit the success event with boundary data
+      this.emit({
+        input: argv,
+        output,
+        boundaries: boundariesRunLog
       })
-    })
 
-    const result = await q
+      return output
+    } catch (error) {
+      // Process boundary data after error
+      const boundariesRunLog: Record<string, unknown> = {}
 
-    return result
+      for (const name in executionBoundaries) {
+        const boundary = executionBoundaries[name]
+        const runData = boundary.getRunData()
+
+        // Add to the run log
+        boundariesRunLog[name] = runData
+
+        // Accumulate in the task's total boundaries data
+        if (!this._accumulatedBoundariesData[name]) {
+          this._accumulatedBoundariesData[name] = []
+        }
+
+        // Get the current accumulated data for this boundary
+        const currentData = this._accumulatedBoundariesData[name]
+
+        // Add the new run data
+        if (Array.isArray(runData) && runData.length > 0) {
+          // Cast the run data to the correct type
+          this._accumulatedBoundariesData[name] = [...currentData, ...(runData as BoundaryData)]
+        }
+      }
+
+      // Emit the error event with boundary data
+      this.emit({
+        input: argv,
+        error: error instanceof Error ? error.message : String(error),
+        boundaries: boundariesRunLog
+      })
+
+      throw error
+    }
   }
 }
 
