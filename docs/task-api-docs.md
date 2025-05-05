@@ -53,14 +53,14 @@ const registerUser = createTask(
   async ({ name, age }, { saveToDatabase, sendEmail }) => {
     // Input parameters are directly available through destructuring
     console.log(`Registering user: ${name}`);
-    
+
     // Boundaries are also directly available through destructuring
     await saveToDatabase({ name, age });
     const emailSent = await sendEmail(
       'admin@example.com',
       `New user registered: ${name}`
     );
-    
+
     return {
       success: true,
       emailSent,
@@ -123,7 +123,7 @@ const createUser = createTask(
     // Boundaries are typed based on the boundaries object
     const userId = await saveToDatabase({ name, email });
     const emailSent = await sendEmail(email, 'Welcome!');
-    
+
     // Return type is inferred
     return { userId, emailSent };
   }
@@ -154,6 +154,42 @@ registerUser.addListener((record) => {
 });
 ```
 
+### Using safeRun for Error Handling
+
+The `safeRun` method provides a more graceful way to handle errors and access boundary data:
+
+```typescript
+// Using safeRun to get error, result, and boundary data
+const [error, result, boundariesData] = await registerUser.safeRun({
+  name: 'John Doe',
+  email: 'john@example.com'
+});
+
+if (error) {
+  console.error('Task failed:', error.message);
+  // Handle error gracefully
+} else {
+  console.log('Task succeeded:', result);
+  // Process the result
+}
+
+// Access boundary execution data
+if (boundariesData) {
+  console.log('Boundary data:', boundariesData);
+  // Analyze boundary execution data
+}
+```
+
+Unlike `run` which throws errors, `safeRun` returns a tuple containing:
+1. The error object (or null if successful)
+2. The result (or null if there was an error)
+3. Boundary execution logs (or null if validation failed)
+
+This is particularly useful for:
+- API handlers where you want to gracefully handle errors
+- Processing boundary data for analytics or debugging
+- Scenarios where you need to continue execution even after a task error
+
 ### Changing Execution Mode
 
 ```typescript
@@ -175,6 +211,36 @@ registerUser.setBoundariesData({
   ]
 });
 ```
+
+### Mocking Boundaries for Testing
+
+The `mockBoundary` method allows you to replace a specific boundary with a mock function for testing:
+
+```typescript
+import { createMockBoundary } from './testUtils';
+
+// Create a mock boundary
+const saveDbMock = createMockBoundary(
+  jest.fn().mockResolvedValue('user-123')
+);
+
+// Mock the boundary
+registerUser.mockBoundary('saveToDatabase', saveDbMock);
+
+// Run the task
+const result = await registerUser.run({ name: 'Test User', age: 25 });
+
+// Verify the mock was called with correct arguments
+expect(saveDbMock).toHaveBeenCalledWith({ name: 'Test User', age: 25 });
+
+// Reset a specific mock
+registerUser.resetMock('saveToDatabase');
+
+// Or reset all mocks
+registerUser.resetMocks();
+```
+
+This approach is more maintainable than directly overriding boundary functions and ensures proper cleanup between tests.
 
 ### Validation Without Execution
 
@@ -280,21 +346,21 @@ export const createUserTask = createTask(
   boundaries,
   async ({ name, email, role }, { db, notifications, logger }) => {
     logger.info(`Creating user: ${email}`);
-    
+
     // Check if user exists
     const existingUser = await db.findUserByEmail(email);
     if (existingUser) {
       throw new Error('User already exists');
     }
-    
+
     // Create user
     const userId = await db.createUser({ name, email, role });
-    
+
     // Send welcome email
     await notifications.sendWelcomeEmail(email, name);
-    
+
     logger.info(`User created: ${userId}`);
-    
+
     return { userId };
   }
 );
@@ -312,41 +378,122 @@ app.post('/api/users', async (req, res) => {
 
 ## Testing Tasks
 
-The boundary separation makes tasks easy to test:
+The boundary separation makes tasks easy to test. The `mockBoundary` method provides a clean way to mock boundaries for testing:
 
 ```typescript
 import { init } from './tasks/init';
+import { createMockBoundary } from './testUtils';
 
 describe('Init task', () => {
+  // Reset all mocks after each test
+  afterEach(() => {
+    init.resetMocks();
+  });
+
   it('should create a config file when dryRun is false', async () => {
-    // Mock the saveFile boundary
-    const saveFileMock = jest.fn();
-    
-    // Override the boundaries
-    init.getBoundaries().saveFile = saveFileMock;
-    
+    // Create a mock for the saveFile boundary
+    const saveFileMock = createMockBoundary(
+      jest.fn().mockResolvedValue(undefined)
+    );
+
+    // Mock the boundary
+    init.mockBoundary('saveFile', saveFileMock);
+
     // Run the task
     await init.run({ dryRun: false });
-    
+
     // Verify the boundary was called
     expect(saveFileMock).toHaveBeenCalled();
   });
-  
+
   it('should not create a file when dryRun is true', async () => {
-    // Mock the saveFile boundary
-    const saveFileMock = jest.fn();
-    
-    // Override the boundaries
-    init.getBoundaries().saveFile = saveFileMock;
-    
+    // Create a mock for the saveFile boundary
+    const saveFileMock = createMockBoundary(
+      jest.fn().mockResolvedValue(undefined)
+    );
+
+    // Mock the boundary
+    init.mockBoundary('saveFile', saveFileMock);
+
     // Run the task
     await init.run({ dryRun: true });
-    
+
     // Verify the boundary was not called
     expect(saveFileMock).not.toHaveBeenCalled();
   });
+
+  it('should handle errors using safeRun', async () => {
+    // Create a mock that throws an error
+    const saveFileMock = createMockBoundary(
+      jest.fn().mockRejectedValue(new Error('Failed to save file'))
+    );
+
+    // Mock the boundary
+    init.mockBoundary('saveFile', saveFileMock);
+
+    // Use safeRun to get error, result, and boundary data
+    const [error, result, boundariesData] = await init.safeRun({ dryRun: false });
+
+    // Verify we got an error
+    expect(error).toBeDefined();
+    expect(error?.message).toContain('Failed to save file');
+
+    // Result should be null
+    expect(result).toBeNull();
+
+    // Boundary data should be available
+    expect(boundariesData).toBeDefined();
+    expect(boundariesData).toHaveProperty('saveFile');
+  });
+
+  it('should reset individual mocks', async () => {
+    // Create two mocks
+    const saveFileMock = createMockBoundary(jest.fn());
+    const getCwdMock = createMockBoundary(jest.fn());
+
+    // Mock both boundaries
+    init.mockBoundary('saveFile', saveFileMock);
+    init.mockBoundary('getCwd', getCwdMock);
+
+    // Reset just one mock
+    init.resetMock('saveFile');
+
+    // The saveFile should be restored to original implementation
+    // while getCwd should still be mocked
+    expect(init.getBoundaries().saveFile).not.toBe(saveFileMock);
+    expect(init.getBoundaries().getCwd).toBe(getCwdMock);
+  });
 });
 ```
+
+The `createMockBoundary` utility function creates mock boundaries that properly implement the `WrappedBoundaryFunction` interface:
+
+```typescript
+import { type WrappedBoundaryFunction } from '@forgehive/task';
+
+export const createMockBoundary = (mockFn?: jest.Mock): WrappedBoundaryFunction => {
+  // Use provided mock or create a new one
+  const baseMockFn = mockFn || jest.fn().mockResolvedValue(undefined);
+
+  // Create a proper boundary function object that extends the mock function
+  const boundaryMock = Object.assign(
+    baseMockFn,
+    {
+      getTape: jest.fn().mockReturnValue([]),
+      setTape: jest.fn(),
+      getMode: jest.fn().mockReturnValue('proxy'),
+      setMode: jest.fn(),
+      startRun: jest.fn(),
+      stopRun: jest.fn(),
+      getRunData: jest.fn().mockReturnValue([])
+    }
+  ) as WrappedBoundaryFunction;
+
+  return boundaryMock;
+};
+```
+
+For more detailed information on testing with mocks, see the [Testing with Boundary Mocks](./testing-with-boundary-mocks.md) guide.
 
 ## API Reference
 
@@ -365,7 +512,8 @@ Returns a `TaskInstanceType` with methods for running and managing the task.
 
 #### Execution Methods
 
-- `run(argv?)`: Executes the task with the given arguments
+- `run(argv?)`: Executes the task with the given arguments and throws any errors
+- `safeRun(argv?)`: Executes the task and returns a tuple of `[Error | null, Result | null, BoundaryLogs | null]`
 - `asBoundary()`: Convert the task to a boundary function
 
 #### Validation Methods
@@ -391,6 +539,12 @@ Returns a `TaskInstanceType` with methods for running and managing the task.
 - `getBondariesData()`: Get the current boundary data
 - `getBondariesRunLog()`: Get the boundary execution log
 - `startRunLog()`: Start a new boundary execution log
+
+#### Mock Methods
+
+- `mockBoundary(name, mockFn)`: Replace a specific boundary with a mock function for testing
+- `resetMock(name)`: Restore the original implementation of a specific boundary
+- `resetMocks()`: Restore all original boundary implementations
 
 #### Schema Methods
 
@@ -429,14 +583,34 @@ Returns a `TaskInstanceType` with methods for running and managing the task.
 - **Boundary execution errors**: Boundaries throw exceptions
 - **Replay mode failures**: Missing or incorrect boundary data
 - **Type errors**: TypeScript type mismatches
+- **Mock implementation issues**: Incorrectly implemented mock boundaries
 
 ### Debugging Tips
 
-1. Add a listener to log task execution details
-2. Use `validate` to check input before running the task
-3. Check boundary data format when using replay mode
-4. Verify that all required boundaries are provided
+1. Use `safeRun` instead of `run` to get detailed error information and boundary data in one call
+2. Add a listener to log task execution details
+3. Use `validate` to check input before running the task
+4. Check boundary data format when using replay mode
+5. Verify that all required boundaries are provided
+6. Use the `mockBoundary` method with Jest spies to track boundary calls in tests
+
+Example of using `safeRun` for debugging:
+
+```typescript
+// Using safeRun for debugging
+const [error, result, boundariesData] = await myTask.safeRun(input);
+
+// Log detailed information
+console.log('Error:', error);
+console.log('Result:', result);
+console.log('Boundary calls:', JSON.stringify(boundariesData, null, 2));
+
+// Continue execution even if the task failed
+if (error) {
+  console.error('Task failed but we can inspect the boundary data');
+}
+```
 
 ## Conclusion
 
-The Task library provides a powerful, type-safe way to define and execute tasks with input validation, boundary separation, and execution tracking. By using tasks, you can create more maintainable, testable, and reliable code. 
+The Task library provides a powerful, type-safe way to define and execute tasks with input validation, boundary separation, and execution tracking. By using tasks, you can create more maintainable, testable, and reliable code.
