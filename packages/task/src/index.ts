@@ -1,5 +1,5 @@
 import { Schema, type SchemaType, type InferSchema, type SchemaDescription } from '@forgehive/schema'
-import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries, type WrappedBoundaryFunction, type BoundaryRecord } from './utils/boundary'
+import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries, type WrappedBoundaryFunction } from './utils/boundary'
 
 export interface Task {
   id: string;
@@ -134,9 +134,9 @@ export const Task = class Task<
       // Type assertion to handle initial data safely
       for (const name in this._boundariesData) {
         if (Array.isArray(this._boundariesData[name])) {
-          this._accumulatedBoundariesData[name] = this._boundariesData[name] as BoundaryData;
+          this._accumulatedBoundariesData[name] = this._boundariesData[name] as BoundaryData
         } else {
-          this._accumulatedBoundariesData[name] = [];
+          this._accumulatedBoundariesData[name] = []
         }
       }
     }
@@ -224,9 +224,9 @@ export const Task = class Task<
     // Type assertion to handle provided data safely
     for (const name in boundariesData) {
       if (Array.isArray(boundariesData[name])) {
-        this._accumulatedBoundariesData[name] = boundariesData[name] as BoundaryData;
+        this._accumulatedBoundariesData[name] = boundariesData[name] as BoundaryData
       } else {
-        this._accumulatedBoundariesData[name] = [];
+        this._accumulatedBoundariesData[name] = []
       }
     }
   }
@@ -314,8 +314,6 @@ export const Task = class Task<
   }
 
   async safeRun (argv?: Parameters<Func>[0]): Promise<[Error | null, ReturnType<Func> | null, Record<string, unknown> | null]> {
-    let boundaryLogs: Record<string, unknown> | null = null
-
     // Handle schema validation
     if (this._schema) {
       try {

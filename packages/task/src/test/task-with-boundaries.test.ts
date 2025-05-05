@@ -1,4 +1,4 @@
-import { createTask, Schema } from '../index'
+import { createTask, Schema, TaskRecord } from '../index'
 
 // Need to add proxy cache mode to the boundaries
 describe('Boundaries tasks tests', () => {
@@ -136,7 +136,7 @@ describe('Boundaries tasks tests', () => {
   })
 
   it('Multiple parallel task runs with boundaries', async () => {
-    const records: any[] = []
+    const records: TaskRecord<{value: number}, number>[] = []
 
     // Create a schema for the task that accepts a number
     const schema = new Schema({
@@ -184,23 +184,23 @@ describe('Boundaries tasks tests', () => {
     // Check record for first task (value: 2)
     expect(sortedRecords[0].input).toEqual({ value: 2 })
     expect(sortedRecords[0].output).toBe(8)
-    expect(sortedRecords[0].boundaries.fetchExternalData).toHaveLength(1)
-    expect(sortedRecords[0].boundaries.fetchExternalData[0].input).toEqual([2])
-    expect(sortedRecords[0].boundaries.fetchExternalData[0].output).toBe(4)
+    expect(sortedRecords[0].boundaries?.fetchExternalData).toHaveLength(1)
+    expect(sortedRecords[0].boundaries?.fetchExternalData[0].input).toEqual([2])
+    expect(sortedRecords[0].boundaries?.fetchExternalData[0].output).toBe(4)
 
     // Check record for second task (value: 3)
     expect(sortedRecords[1].input).toEqual({ value: 3 })
     expect(sortedRecords[1].output).toBe(18)
-    expect(sortedRecords[1].boundaries.fetchExternalData).toHaveLength(1)
-    expect(sortedRecords[1].boundaries.fetchExternalData[0].input).toEqual([3])
-    expect(sortedRecords[1].boundaries.fetchExternalData[0].output).toBe(6)
+    expect(sortedRecords[1].boundaries?.fetchExternalData).toHaveLength(1)
+    expect(sortedRecords[1].boundaries?.fetchExternalData[0].input).toEqual([3])
+    expect(sortedRecords[1].boundaries?.fetchExternalData[0].output).toBe(6)
 
     // Check record for third task (value: 4)
     expect(sortedRecords[2].input).toEqual({ value: 4 })
     expect(sortedRecords[2].output).toBe(32)
-    expect(sortedRecords[2].boundaries.fetchExternalData).toHaveLength(1)
-    expect(sortedRecords[2].boundaries.fetchExternalData[0].input).toEqual([4])
-    expect(sortedRecords[2].boundaries.fetchExternalData[0].output).toBe(8)
+    expect(sortedRecords[2].boundaries?.fetchExternalData).toHaveLength(1)
+    expect(sortedRecords[2].boundaries?.fetchExternalData[0].input).toEqual([4])
+    expect(sortedRecords[2].boundaries?.fetchExternalData[0].output).toBe(8)
   })
 
   it('Boundary data accumulates run data correctly', async () => {

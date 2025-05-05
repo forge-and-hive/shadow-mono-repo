@@ -1,5 +1,4 @@
-import { createTask, Schema, type TaskInstanceType } from '../index'
-import { type WrappedBoundaryFunction } from '../utils/boundary'
+import { createTask, Schema } from '../index'
 
 describe('Task boundary mocking', () => {
   it('can mock specific boundaries for testing', async () => {
@@ -13,10 +12,6 @@ describe('Task boundary mocking', () => {
       fetchExternalData: async (int: number): Promise<number> => {
         // This would normally fetch data from an external source
         return int * 2
-      },
-      logData: async (data: number): Promise<void> => {
-        // This would normally log data to some external system
-        console.log(data)
       }
     }
 
@@ -24,9 +19,8 @@ describe('Task boundary mocking', () => {
     const multiplyTask = createTask(
       schema,
       boundaries,
-      async function ({ value }, { fetchExternalData, logData }) {
+      async function ({ value }, { fetchExternalData }) {
         const result = value * await fetchExternalData(value)
-        await logData(result)
         return result
       }
     )
