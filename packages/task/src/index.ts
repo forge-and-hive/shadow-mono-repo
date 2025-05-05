@@ -61,7 +61,13 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   setBoundariesData: (boundariesData: Record<string, unknown>) => void
   getBondariesData: () => Record<string, unknown>
 
+  // Mocking methods for testing
+  mockBoundary: <K extends keyof B>(name: K, mockFn: jest.Mock) => void
+  resetMock: <K extends keyof B>(name: K) => void
+  resetMocks: () => void
+
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
+  safeRun: (argv?: Parameters<Func>[0]) => Promise<[Error | null, ReturnType<Func> | null, Record<string, unknown> | null]>
 }
 
 // Helper type to infer schema type
@@ -88,6 +94,9 @@ export const Task = class Task<
   _boundariesDefinition: B
   _boundariesData: Record<string, unknown> | null
   _accumulatedBoundariesData: Record<string, BoundaryData> = {}
+
+  // For storing mocks
+  _boundaryMocks: Record<string, WrappedBoundaryFunction> = {}
 
   _schema: Schema<Record<string, SchemaType>> | undefined
   _listener?: ((record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void) | undefined
@@ -226,6 +235,43 @@ export const Task = class Task<
     return this._accumulatedBoundariesData
   }
 
+  /**
+   * Mocks a specific boundary function for testing
+   * @param name The name of the boundary to mock
+   * @param mockFn The mock function to use
+   */
+  mockBoundary<K extends keyof B>(name: K, mockFn: jest.Mock): void {
+    // Create a wrapped mock function that adheres to the WrappedBoundaryFunction interface
+    const wrappedMock = mockFn as unknown as WrappedBoundaryFunction
+    wrappedMock.getTape = jest.fn().mockReturnValue([])
+    wrappedMock.setTape = jest.fn()
+    wrappedMock.getMode = jest.fn().mockReturnValue(this._mode)
+    wrappedMock.setMode = jest.fn()
+    wrappedMock.startRun = jest.fn()
+    wrappedMock.stopRun = jest.fn()
+    wrappedMock.getRunData = jest.fn().mockReturnValue([])
+
+    // Store the mock function with the boundary name
+    this._boundaryMocks[name as string] = wrappedMock
+  }
+
+  /**
+   * Resets a specific mocked boundary back to its original function
+   * @param name The name of the boundary to reset
+   */
+  resetMock<K extends keyof B>(name: K): void {
+    if (this._boundaryMocks[name as string]) {
+      delete this._boundaryMocks[name as string]
+    }
+  }
+
+  /**
+   * Resets all mocked boundaries back to their original functions
+   */
+  resetMocks(): void {
+    this._boundaryMocks = {}
+  }
+
   _createBounderies ({
     definition,
     baseData,
@@ -238,6 +284,13 @@ export const Task = class Task<
     const boundariesFns: Record<string, WrappedBoundaryFunction> = {}
 
     for (const name in definition) {
+      // Check if we have a mock for this boundary
+      if (this._boundaryMocks[name]) {
+        boundariesFns[name] = this._boundaryMocks[name]
+        continue
+      }
+
+      // Otherwise create the normal boundary
       const boundary = createBoundary(definition[name])
 
       if (baseData !== null && typeof baseData[name] !== 'undefined') {
@@ -261,7 +314,7 @@ export const Task = class Task<
   }
 
   async run (argv?: Parameters<Func>[0]): Promise<ReturnType<Func>> {
-    // Handle schema validation separately
+    // Handle schema validation
     if (this._schema) {
       try {
         const validation = this._schema.safeParse(argv)
@@ -375,6 +428,32 @@ export const Task = class Task<
       })
 
       throw error
+    }
+  }
+
+  async safeRun (argv?: Parameters<Func>[0]): Promise<[Error | null, ReturnType<Func> | null, Record<string, unknown> | null]> {
+    let boundaryLogs: Record<string, unknown> | null = null
+
+    // Capture boundary log data
+    const captureLogData = (record: TaskRecord): void => {
+      if (record.boundaries) {
+        boundaryLogs = record.boundaries
+      }
+    }
+
+    // Register temporary listener to capture boundary data
+    const originalListener = this._listener
+    this.addListener(captureLogData)
+
+    try {
+      const result = await this.run(argv)
+      // Restore original listener
+      this._listener = originalListener
+      return [null, result, boundaryLogs]
+    } catch (error) {
+      // Restore original listener
+      this._listener = originalListener
+      return [error instanceof Error ? error : new Error(String(error)), null, boundaryLogs]
     }
   }
 }

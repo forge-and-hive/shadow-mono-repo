@@ -1,7 +1,6 @@
 import { createTaskCommand } from '../../tasks/task/createTask'
 import { createFsFromVolume, Volume } from 'memfs'
 import path from 'path'
-import { createBoundaryMock } from '../utils'
 import { ForgeConf } from '../../tasks/types'
 
 // Verify the task file content
@@ -59,37 +58,31 @@ describe('Create task', () => {
 
   afterEach(() => {
     jest.clearAllMocks()
+    // Reset any boundary mocks after each test
+    createTaskCommand.resetMocks()
   })
 
   it('should create a new task file with correct content and update forge.json', async () => {
-    // Create properly typed mocks for the boundaries
-    const persistTaskMock = createBoundaryMock()
-    const persistConfMock = createBoundaryMock()
-    const getCwdMock = createBoundaryMock()
-    const persistTaskFn = persistTaskMock as unknown as jest.Mock
-    const persistConfFn = persistConfMock as unknown as jest.Mock
-    const getCwdFn = getCwdMock as unknown as jest.Mock
-
-    // Override the persistTask implementation to use our in-memory fs
-    persistTaskFn.mockImplementation(async (dir: string, fileName: string, content: string, cwd: string) => {
+    // Create mocks directly using mockBoundary
+    const persistTaskFn = jest.fn().mockImplementation(async (dir: string, fileName: string, content: string, cwd: string) => {
       const fullPath = path.join(cwd, dir, fileName)
       await (fs as { promises: { writeFile: (path: string, content: string) => Promise<void> } }).promises.writeFile(fullPath, content)
       return { path: fullPath }
     })
 
-    // Override the persistConf implementation to use our in-memory fs
-    persistConfFn.mockImplementation(async (conf: ForgeConf, cwd: string) => {
+    // Mock persistConf to use our in-memory fs
+    const persistConfFn = jest.fn().mockImplementation(async (conf: ForgeConf, cwd: string) => {
       const forgePath = path.join(cwd, 'forge.json')
       await (fs as { promises: { writeFile: (path: string, content: string) => Promise<void> } }).promises.writeFile(forgePath, JSON.stringify(conf, null, 2))
     })
 
-    // Override the getCwd implementation to return our root directory
-    getCwdFn.mockResolvedValue(rootDir)
+    // Mock getCwd to return our root directory
+    const getCwdFn = jest.fn().mockResolvedValue(rootDir)
 
-    // Override the boundaries
-    createTaskCommand.getBoundaries().persistTask = persistTaskMock
-    createTaskCommand.getBoundaries().persistConf = persistConfMock
-    createTaskCommand.getBoundaries().getCwd = getCwdMock
+    // Use the new mockBoundary method to mock the boundaries
+    createTaskCommand.mockBoundary('persistTask', persistTaskFn)
+    createTaskCommand.mockBoundary('persistConf', persistConfFn)
+    createTaskCommand.mockBoundary('getCwd', getCwdFn)
 
     // Run the task
     const taskName = 'sample:new-task'
