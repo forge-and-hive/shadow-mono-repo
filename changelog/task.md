@@ -6,7 +6,6 @@
 
 - Removed `getBondariesRunLog` and `startRunLog` methods in favor of the new boundary data handling approach.
 - The `run` method now delegates to `safeRun` and throws any errors returned.
-- Test utilities `createTestBoundary` and `createTestBoundaryWithData` are no longer exported. Users need to implement their own mock boundary functions.
 
 ### Major Features
 
@@ -33,5 +32,4 @@ Check the documentation in `docs/testing-with-boundary-mocks.md` for implementat
 ### Other Improvements
 
 - Added comprehensive documentation for testing with mocked boundaries.
-- Improved consistency in boundary data handling.
 - Added more detailed type definitions for all task and boundary-related functions.
