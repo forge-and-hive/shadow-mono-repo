@@ -112,6 +112,8 @@ export const Task = class Task<
 
     // Review this assignment
     this._boundariesData = conf.boundariesData ?? null
+
+    // Create the initial boundaries (this will be recreated per execution in run)
     this._boundaries = this._createBounderies({
       definition: this._boundariesDefinition,
       baseData: this._boundariesData,
@@ -287,9 +289,18 @@ export const Task = class Task<
   }
 
   async run (argv?: Parameters<Func>[0]): Promise<ReturnType<Func>> {
-    // start run log
-    this.startRunLog()
-    const boundaries = this._boundaries
+    // Create fresh boundaries for this execution
+    const executionBoundaries = this._createBounderies({
+      definition: this._boundariesDefinition,
+      baseData: this._boundariesData,
+      mode: this._mode
+    })
+
+    // Start run log for these boundaries
+    for (const name in executionBoundaries) {
+      const boundary = executionBoundaries[name]
+      boundary.startRun()
+    }
 
     const q = new Promise<ReturnType<Func>>((resolve, reject) => {
       if (this._schema) {
@@ -314,14 +325,26 @@ export const Task = class Task<
       }
 
       (async (): Promise<ReturnType<Func>> => {
-        // Use proper typing for the function call
-        const output = await this._fn(argv as Parameters<Func>[0], boundaries as unknown as Parameters<Func>[1])
+        // Use proper typing for the function call and pass the execution-specific boundaries
+        const output = await this._fn(argv as Parameters<Func>[0], executionBoundaries as unknown as Parameters<Func>[1])
 
         return output
       })().then((output) => {
+        // Collect boundary data for this execution
+        const boundariesRunLog: Record<string, unknown> = {}
+        for (const name in executionBoundaries) {
+          const boundary = executionBoundaries[name]
+          boundariesRunLog[name] = boundary.getRunData()
+        }
+
+        // Store this execution's boundary data in _boundaries for future reference
+        // This ensures getBoundariesData() will have the latest boundary data
+        this._boundaries = executionBoundaries;
+
         this.emit({
           input: argv,
-          output
+          output,
+          boundaries: boundariesRunLog
         })
 
         resolve(output)

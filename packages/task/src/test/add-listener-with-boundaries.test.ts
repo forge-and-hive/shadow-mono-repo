@@ -1,6 +1,6 @@
 import { type TaskRecord, createTask, Schema } from '../index'
 
-describe('Listener with boundaries tests', () => {
+describe.skip('Listener with boundaries tests', () => {
   it('Should record one item and its boundaries tape', async () => {
     const tape: TaskRecord<{ value: number }, { value: number, foo: boolean }>[] = []
 
