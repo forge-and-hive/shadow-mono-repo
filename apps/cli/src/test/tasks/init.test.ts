@@ -1,6 +1,7 @@
 import { init } from '../../tasks/init'
 import { createFsFromVolume, Volume } from 'memfs'
 import path from 'path'
+import { createMockBoundary } from '../testUtils'
 
 describe('Init task', () => {
   let volume: InstanceType<typeof Volume>
@@ -22,7 +23,7 @@ describe('Init task', () => {
   })
 
   it('should create forge.json with correct content in the filesystem', async () => {
-    // Create mocks directly using mockBoundary
+    // Create mocks directly using Jest
     const saveFileFn = jest.fn().mockImplementation(async (filePath: string, content: string) => {
       const fullPath = path.join(rootDir, filePath)
       await (fs as { promises: { writeFile: (path: string, content: string) => Promise<void> } }).promises.writeFile(fullPath, content)
@@ -30,9 +31,13 @@ describe('Init task', () => {
 
     const getCwdFn = jest.fn().mockResolvedValue(rootDir)
 
-    // Use the new mockBoundary method to mock the boundaries
-    init.mockBoundary('saveFile', saveFileFn)
-    init.mockBoundary('getCwd', getCwdFn)
+    // Create wrapped boundary mocks
+    const saveFileMock = createMockBoundary(saveFileFn)
+    const getCwdMock = createMockBoundary(getCwdFn)
+
+    // Mock the boundaries
+    init.mockBoundary('saveFile', saveFileMock)
+    init.mockBoundary('getCwd', getCwdMock)
 
     // Run the task
     await init.run({})
@@ -51,13 +56,17 @@ describe('Init task', () => {
   })
 
   it('should not create forge.json when dryRun is true', async () => {
-    // Create mocks directly using mockBoundary
+    // Create mocks directly using Jest
     const saveFileFn = jest.fn()
     const getCwdFn = jest.fn().mockResolvedValue(rootDir)
 
-    // Use the new mockBoundary method to mock the boundaries
-    init.mockBoundary('saveFile', saveFileFn)
-    init.mockBoundary('getCwd', getCwdFn)
+    // Create wrapped boundary mocks
+    const saveFileMock = createMockBoundary(saveFileFn)
+    const getCwdMock = createMockBoundary(getCwdFn)
+
+    // Mock the boundaries
+    init.mockBoundary('saveFile', saveFileMock)
+    init.mockBoundary('getCwd', getCwdMock)
 
     // Run the task with dryRun flag
     const result = await init.run({ dryRun: true })

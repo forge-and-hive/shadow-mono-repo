@@ -1,6 +1,7 @@
 import { createTaskCommand } from '../../tasks/task/createTask'
 import { createFsFromVolume, Volume } from 'memfs'
 import path from 'path'
+import { createMockBoundary } from '../testUtils'
 import { ForgeConf } from '../../tasks/types'
 
 // Verify the task file content
@@ -58,12 +59,12 @@ describe('Create task', () => {
 
   afterEach(() => {
     jest.clearAllMocks()
-    // Reset any boundary mocks after each test
+    // Reset any boundary mocks
     createTaskCommand.resetMocks()
   })
 
   it('should create a new task file with correct content and update forge.json', async () => {
-    // Create mocks directly using mockBoundary
+    // Create mock functions with Jest
     const persistTaskFn = jest.fn().mockImplementation(async (dir: string, fileName: string, content: string, cwd: string) => {
       const fullPath = path.join(cwd, dir, fileName)
       await (fs as { promises: { writeFile: (path: string, content: string) => Promise<void> } }).promises.writeFile(fullPath, content)
@@ -79,10 +80,15 @@ describe('Create task', () => {
     // Mock getCwd to return our root directory
     const getCwdFn = jest.fn().mockResolvedValue(rootDir)
 
-    // Use the new mockBoundary method to mock the boundaries
-    createTaskCommand.mockBoundary('persistTask', persistTaskFn)
-    createTaskCommand.mockBoundary('persistConf', persistConfFn)
-    createTaskCommand.mockBoundary('getCwd', getCwdFn)
+    // Create boundary mocks with proper type casting
+    const persistTaskMock = createMockBoundary(persistTaskFn)
+    const persistConfMock = createMockBoundary(persistConfFn)
+    const getCwdMock = createMockBoundary(getCwdFn)
+
+    // Use the mockBoundary method to mock the boundaries
+    createTaskCommand.mockBoundary('persistTask', persistTaskMock)
+    createTaskCommand.mockBoundary('persistConf', persistConfMock)
+    createTaskCommand.mockBoundary('getCwd', getCwdMock)
 
     // Run the task
     const taskName = 'sample:new-task'

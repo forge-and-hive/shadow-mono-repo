@@ -63,7 +63,7 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   getBondariesData: () => Record<string, unknown>
 
   // Mocking methods for testing
-  mockBoundary: <K extends keyof B>(name: K, mockFn: jest.Mock) => void
+  mockBoundary: <K extends keyof B>(name: K, mockFn: WrappedBoundaryFunction) => void
   resetMock: <K extends keyof B>(name: K) => void
   resetMocks: () => void
 
@@ -241,19 +241,8 @@ export const Task = class Task<
    * @param name The name of the boundary to mock
    * @param mockFn The mock function to use
    */
-  mockBoundary<K extends keyof B>(name: K, mockFn: jest.Mock): void {
-    // Create a wrapped mock function that adheres to the WrappedBoundaryFunction interface
-    const wrappedMock = mockFn as unknown as WrappedBoundaryFunction
-    wrappedMock.getTape = jest.fn().mockReturnValue([])
-    wrappedMock.setTape = jest.fn()
-    wrappedMock.getMode = jest.fn().mockReturnValue(this._mode)
-    wrappedMock.setMode = jest.fn()
-    wrappedMock.startRun = jest.fn()
-    wrappedMock.stopRun = jest.fn()
-    wrappedMock.getRunData = jest.fn().mockReturnValue([])
-
-    // Store the mock function with the boundary name
-    this._boundaryMocks[name as string] = wrappedMock
+  mockBoundary<K extends keyof B>(name: K, mockFn: WrappedBoundaryFunction): void {
+    this._boundaryMocks[name as string] = mockFn
   }
 
   /**

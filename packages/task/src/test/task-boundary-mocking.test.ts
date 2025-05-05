@@ -1,4 +1,6 @@
-import { createTask, Schema } from '../index'
+import { createTask, Schema, TaskRecord } from '../index'
+import { type WrappedBoundaryFunction } from '../utils/boundary'
+import { createMockBoundary } from '../utils/mock'
 
 describe('Task boundary mocking', () => {
   it('can mock specific boundaries for testing', async () => {
@@ -12,6 +14,10 @@ describe('Task boundary mocking', () => {
       fetchExternalData: async (int: number): Promise<number> => {
         // This would normally fetch data from an external source
         return int * 2
+      },
+      logData: async (data: number): Promise<void> => {
+        // This would normally log data to some external system
+        console.log(data)
       }
     }
 
@@ -19,17 +25,19 @@ describe('Task boundary mocking', () => {
     const multiplyTask = createTask(
       schema,
       boundaries,
-      async function ({ value }, { fetchExternalData }) {
+      async function ({ value }, { fetchExternalData, logData }) {
         const result = value * await fetchExternalData(value)
+        await logData(result)
         return result
       }
     )
 
     // Create mock for fetchExternalData boundary that returns a specific value
     const mockFetchData = jest.fn().mockResolvedValue(5)
+    const wrappedMockFetchData = createMockBoundary(mockFetchData)
 
     // Mock only the fetchExternalData boundary, leaving logData boundary as is
-    multiplyTask.mockBoundary('fetchExternalData', mockFetchData)
+    multiplyTask.mockBoundary('fetchExternalData', wrappedMockFetchData)
 
     // Run the task with mocked boundary
     const result = await multiplyTask.run({ value: 3 })
@@ -79,9 +87,13 @@ describe('Task boundary mocking', () => {
       }
     )
 
+    // Create wrapped mock functions
+    const mockDoubleValue = jest.fn().mockResolvedValue(10)
+    const mockTripleValue = jest.fn().mockResolvedValue(20)
+
     // Mock both boundaries
-    calculateTask.mockBoundary('doubleValue', jest.fn().mockResolvedValue(10))
-    calculateTask.mockBoundary('tripleValue', jest.fn().mockResolvedValue(20))
+    calculateTask.mockBoundary('doubleValue', createMockBoundary(mockDoubleValue))
+    calculateTask.mockBoundary('tripleValue', createMockBoundary(mockTripleValue))
 
     // Run the task with both mocked boundaries
     const result = await calculateTask.run({ value: 5 })
