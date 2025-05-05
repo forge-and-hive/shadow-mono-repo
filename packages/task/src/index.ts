@@ -23,6 +23,7 @@ export interface TaskConfig<B extends Boundaries = Boundaries> {
   boundariesData?: Record<string, unknown>
 }
 
+// ToDo: Add a type for the boundaries data
 /**
  * Represents the record passed to task listeners
  */

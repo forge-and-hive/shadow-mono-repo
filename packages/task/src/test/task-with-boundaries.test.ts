@@ -136,7 +136,19 @@ describe('Boundaries tasks tests', () => {
   })
 
   it('Multiple parallel task runs with boundaries', async () => {
-    const records: TaskRecord<{value: number}, number>[] = []
+    // Define a type for the boundary data structure we expect
+    type BoundaryData = {
+      input: unknown[];
+      output?: unknown;
+    };
+
+    // Define a type for the record boundaries
+    interface RecordBoundaries {
+      fetchExternalData: BoundaryData[];
+    }
+
+    // Use the correct type definition for records
+    const records: TaskRecord<{value: number}, Promise<number>>[] = []
 
     // Create a schema for the task that accepts a number
     const schema = new Schema({
@@ -184,23 +196,32 @@ describe('Boundaries tasks tests', () => {
     // Check record for first task (value: 2)
     expect(sortedRecords[0].input).toEqual({ value: 2 })
     expect(sortedRecords[0].output).toBe(8)
-    expect(sortedRecords[0].boundaries?.fetchExternalData).toHaveLength(1)
-    expect(sortedRecords[0].boundaries?.fetchExternalData[0].input).toEqual([2])
-    expect(sortedRecords[0].boundaries?.fetchExternalData[0].output).toBe(4)
+
+    // Use type assertion to access the boundary data safely
+    const boundaries0 = sortedRecords[0].boundaries as unknown as RecordBoundaries
+    expect(boundaries0.fetchExternalData).toHaveLength(1)
+    expect(boundaries0.fetchExternalData[0].input).toEqual([2])
+    expect(boundaries0.fetchExternalData[0].output).toBe(4)
 
     // Check record for second task (value: 3)
     expect(sortedRecords[1].input).toEqual({ value: 3 })
     expect(sortedRecords[1].output).toBe(18)
-    expect(sortedRecords[1].boundaries?.fetchExternalData).toHaveLength(1)
-    expect(sortedRecords[1].boundaries?.fetchExternalData[0].input).toEqual([3])
-    expect(sortedRecords[1].boundaries?.fetchExternalData[0].output).toBe(6)
+
+    // Use type assertion to access the boundary data safely
+    const boundaries1 = sortedRecords[1].boundaries as unknown as RecordBoundaries
+    expect(boundaries1.fetchExternalData).toHaveLength(1)
+    expect(boundaries1.fetchExternalData[0].input).toEqual([3])
+    expect(boundaries1.fetchExternalData[0].output).toBe(6)
 
     // Check record for third task (value: 4)
     expect(sortedRecords[2].input).toEqual({ value: 4 })
     expect(sortedRecords[2].output).toBe(32)
-    expect(sortedRecords[2].boundaries?.fetchExternalData).toHaveLength(1)
-    expect(sortedRecords[2].boundaries?.fetchExternalData[0].input).toEqual([4])
-    expect(sortedRecords[2].boundaries?.fetchExternalData[0].output).toBe(8)
+
+    // Use type assertion to access the boundary data safely
+    const boundaries2 = sortedRecords[2].boundaries as unknown as RecordBoundaries
+    expect(boundaries2.fetchExternalData).toHaveLength(1)
+    expect(boundaries2.fetchExternalData[0].input).toEqual([4])
+    expect(boundaries2.fetchExternalData[0].output).toBe(8)
   })
 
   it('Boundary data accumulates run data correctly', async () => {
