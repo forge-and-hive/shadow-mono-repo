@@ -56,7 +56,8 @@ describe('Stock Price Task Error Handling', () => {
     getPrice.mockBoundary('fetchStockPrice', fetchStockPriceMock)
 
     // Use safeRun with invalid input (missing required ticker)
-    const [error, result, boundariesData] = await getPrice.safeRun({} as any)
+    // Fake the input type to be the expected type so the type checker doesn't complain and the test runs
+    const [error, result, boundariesData] = await getPrice.safeRun({} as { ticker: string })
 
     // Verify we got a validation error
     expect(error).toBeDefined()
