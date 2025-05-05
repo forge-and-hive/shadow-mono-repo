@@ -313,7 +313,9 @@ export const Task = class Task<
     }
   }
 
-  async run (argv?: Parameters<Func>[0]): Promise<ReturnType<Func>> {
+  async safeRun (argv?: Parameters<Func>[0]): Promise<[Error | null, ReturnType<Func> | null, Record<string, unknown> | null]> {
+    let boundaryLogs: Record<string, unknown> | null = null
+
     // Handle schema validation
     if (this._schema) {
       try {
@@ -333,11 +335,10 @@ export const Task = class Task<
             error: errorMessage
           })
 
-          throw new Error(errorMessage)
+          return [new Error(errorMessage), null, null]
         }
       } catch (error) {
-        // We only throw validation errors here, so just re-throw
-        throw error
+        return [error instanceof Error ? error : new Error(String(error)), null, null]
       }
     }
 
@@ -393,7 +394,7 @@ export const Task = class Task<
         boundaries: boundariesRunLog
       })
 
-      return output
+      return [null, output, boundariesRunLog]
     } catch (error) {
       // Process boundary data after error
       const boundariesRunLog: Record<string, unknown> = {}
@@ -427,34 +428,18 @@ export const Task = class Task<
         boundaries: boundariesRunLog
       })
 
-      throw error
+      return [error instanceof Error ? error : new Error(String(error)), null, boundariesRunLog]
     }
   }
 
-  async safeRun (argv?: Parameters<Func>[0]): Promise<[Error | null, ReturnType<Func> | null, Record<string, unknown> | null]> {
-    let boundaryLogs: Record<string, unknown> | null = null
+  async run (argv?: Parameters<Func>[0]): Promise<ReturnType<Func>> {
+    const [error, result] = await this.safeRun(argv)
 
-    // Capture boundary log data
-    const captureLogData = (record: TaskRecord): void => {
-      if (record.boundaries) {
-        boundaryLogs = record.boundaries
-      }
+    if (error) {
+      throw error
     }
 
-    // Register temporary listener to capture boundary data
-    const originalListener = this._listener
-    this.addListener(captureLogData)
-
-    try {
-      const result = await this.run(argv)
-      // Restore original listener
-      this._listener = originalListener
-      return [null, result, boundaryLogs]
-    } catch (error) {
-      // Restore original listener
-      this._listener = originalListener
-      return [error instanceof Error ? error : new Error(String(error)), null, boundaryLogs]
-    }
+    return result as ReturnType<Func>
   }
 }
 
