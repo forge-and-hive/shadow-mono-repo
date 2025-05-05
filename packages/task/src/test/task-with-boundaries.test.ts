@@ -202,4 +202,112 @@ describe('Boundaries tasks tests', () => {
     expect(sortedRecords[2].boundaries.fetchExternalData[0].input).toEqual([4])
     expect(sortedRecords[2].boundaries.fetchExternalData[0].output).toBe(8)
   })
+
+  it('Boundary data accumulates run data correctly', async () => {
+    // Create a schema for the task that accepts a number
+    const schema = new Schema({
+      value: Schema.number()
+    })
+
+    // Define the boundaries
+    const boundaries = {
+      fetchExternalData: async (int: number): Promise<number> => {
+        return int * 2
+      }
+    }
+
+    // Create the task using createTask
+    const multiplyTask = createTask(
+      schema,
+      boundaries,
+      async function ({ value }, { fetchExternalData }) {
+        const externalData: number = await fetchExternalData(value)
+        return value * externalData
+      }
+    )
+
+    // Run task with value 2
+    await multiplyTask.run({ value: 2 })
+
+    // Get boundary data after first run
+    const boundariesData1 = multiplyTask.getBondariesData()
+
+    // Verify data structure
+    expect(boundariesData1).toHaveProperty('fetchExternalData')
+    expect(Array.isArray(boundariesData1.fetchExternalData)).toBe(true)
+    expect(boundariesData1.fetchExternalData).toHaveLength(1)
+
+    // Verify the tape entry for first run
+    const firstRunTape = boundariesData1.fetchExternalData as Array<{input: unknown[], output: unknown}>
+    expect(firstRunTape[0].input).toEqual([2])
+    expect(firstRunTape[0].output).toBe(4)
+
+    // Run task with value 3
+    await multiplyTask.run({ value: 3 })
+
+    // Get boundary data after second run
+    const boundariesData2 = multiplyTask.getBondariesData()
+
+    // Tape should now have 2 entries
+    expect(boundariesData2.fetchExternalData).toHaveLength(2)
+
+    // Sort the tape by input value for consistent testing
+    const secondRunTape = boundariesData2.fetchExternalData as Array<{input: unknown[], output: unknown}>
+    const sortedTape = [...secondRunTape].sort((a, b) => (a.input[0] as number) - (b.input[0] as number))
+
+    // First entry should still be the same
+    expect(sortedTape[0].input).toEqual([2])
+    expect(sortedTape[0].output).toBe(4)
+
+    // Second entry should be from the second run
+    expect(sortedTape[1].input).toEqual([3])
+    expect(sortedTape[1].output).toBe(6)
+
+    // Run task with value 4
+    await multiplyTask.run({ value: 4 })
+
+    // Get boundary data after third run
+    const boundariesData3 = multiplyTask.getBondariesData()
+
+    // Tape should now have 3 entries
+    expect(boundariesData3.fetchExternalData).toHaveLength(3)
+
+    // Sort the tape again
+    const thirdRunTape = boundariesData3.fetchExternalData as Array<{input: unknown[], output: unknown}>
+    const finalSortedTape = [...thirdRunTape].sort((a, b) => (a.input[0] as number) - (b.input[0] as number))
+
+    // Verify all three entries
+    expect(finalSortedTape[0].input).toEqual([2])
+    expect(finalSortedTape[0].output).toBe(4)
+
+    expect(finalSortedTape[1].input).toEqual([3])
+    expect(finalSortedTape[1].output).toBe(6)
+
+    expect(finalSortedTape[2].input).toEqual([4])
+    expect(finalSortedTape[2].output).toBe(8)
+
+    // Verify tape can be used for replay in proxy-pass mode
+    const replayTask = createTask(
+      schema,
+      boundaries,
+      async function ({ value }, { fetchExternalData }) {
+        const externalData: number = await fetchExternalData(value)
+        return value * externalData
+      },
+      {
+        boundariesData: boundariesData3,
+        mode: 'proxy-pass'
+      }
+    )
+
+    // Run task with all three values from the tape
+    const result2 = await replayTask.run({ value: 2 })
+    const result3 = await replayTask.run({ value: 3 })
+    const result4 = await replayTask.run({ value: 4 })
+
+    // Results should match original runs
+    expect(result2).toBe(8)
+    expect(result3).toBe(18)
+    expect(result4).toBe(32)
+  })
 })

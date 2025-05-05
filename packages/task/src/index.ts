@@ -1,5 +1,5 @@
 import { Schema, type SchemaType, type InferSchema, type SchemaDescription } from '@forgehive/schema'
-import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries, type WrappedBoundaryFunction } from './utils/boundary'
+import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries, type WrappedBoundaryFunction, type BoundaryRecord } from './utils/boundary'
 
 export interface Task {
   id: string;
@@ -60,8 +60,7 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   getBoundaries: () => WrappedBoundaries<B>
   setBoundariesData: (boundariesData: Record<string, unknown>) => void
   getBondariesData: () => Record<string, unknown>
-  getBondariesRunLog: () => Record<string, unknown>
-  startRunLog: () => void
+
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
 }
 
@@ -74,6 +73,9 @@ export type TaskFunction<S, B extends Boundaries> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<any>;
 
+// Define a type for the accumulated boundary data
+type BoundaryData = Array<{input: unknown[], output?: unknown}>
+
 export const Task = class Task<
   B extends Boundaries = Boundaries,
   Func extends BaseFunction = BaseFunction
@@ -84,8 +86,8 @@ export const Task = class Task<
   _description?: string
 
   _boundariesDefinition: B
-  _boundaries: WrappedBoundaries<B>
   _boundariesData: Record<string, unknown> | null
+  _accumulatedBoundariesData: Record<string, BoundaryData> = {}
 
   _schema: Schema<Record<string, SchemaType>> | undefined
   _listener?: ((record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void) | undefined
@@ -110,15 +112,25 @@ export const Task = class Task<
     // Cool down time before killing the process on cli runner
     this._coolDown = 1000
 
-    // Review this assignment
+    // Initialize boundaries data
     this._boundariesData = conf.boundariesData ?? null
 
-    // Create the initial boundaries (this will be recreated per execution in run)
-    this._boundaries = this._createBounderies({
-      definition: this._boundariesDefinition,
-      baseData: this._boundariesData,
-      mode: this._mode
-    })
+    // Initialize empty accumulated boundaries data structure
+    for (const name in this._boundariesDefinition) {
+      this._accumulatedBoundariesData[name] = []
+    }
+
+    // Initialize accumulated boundaries data from initial boundaries data
+    if (this._boundariesData) {
+      // Type assertion to handle initial data safely
+      for (const name in this._boundariesData) {
+        if (Array.isArray(this._boundariesData[name])) {
+          this._accumulatedBoundariesData[name] = this._boundariesData[name] as BoundaryData;
+        } else {
+          this._accumulatedBoundariesData[name] = [];
+        }
+      }
+    }
   }
 
   getMode (): Mode {
@@ -126,12 +138,6 @@ export const Task = class Task<
   }
 
   setMode (mode: Mode): void {
-    for (const name in this._boundaries) {
-      const boundary = this._boundaries[name]
-
-      boundary.setMode(mode)
-    }
-
     this._mode = mode
   }
 
@@ -190,45 +196,34 @@ export const Task = class Task<
   emit (data: Partial<TaskRecord>): void {
     if (typeof this._listener === 'undefined') { return }
 
-    const event = {
-      ...data,
-      boundaries: this.getBondariesRunLog()
-    } as TaskRecord<Parameters<Func>[0], ReturnType<Func>>
-
-    this._listener(event)
+    this._listener(data as TaskRecord<Parameters<Func>[0], ReturnType<Func>>)
   }
 
   getBoundaries (): WrappedBoundaries<B> {
-    return this._boundaries
+    // Create fresh boundaries when requested
+    return this._createBounderies({
+      definition: this._boundariesDefinition,
+      baseData: this._boundariesData,
+      mode: this._mode
+    })
   }
 
   setBoundariesData (boundariesData: Record<string, unknown>): void {
-    for (const name in this._boundaries) {
-      const boundary = this._boundaries[name]
+    this._boundariesData = boundariesData
 
-      let tape
-      if (typeof boundariesData !== 'undefined') {
-        tape = boundariesData[name]
-      }
-
-      if (typeof boundary !== 'undefined' && typeof tape !== 'undefined') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        boundary.setTape(tape as any)
+    // Update accumulated data as well
+    // Type assertion to handle provided data safely
+    for (const name in boundariesData) {
+      if (Array.isArray(boundariesData[name])) {
+        this._accumulatedBoundariesData[name] = boundariesData[name] as BoundaryData;
+      } else {
+        this._accumulatedBoundariesData[name] = [];
       }
     }
   }
 
   getBondariesData (): Record<string, unknown> {
-    const boundaries = this._boundaries
-    const boundariesData: Record<string, unknown> = {}
-
-    for (const name in boundaries) {
-      const boundary = boundaries[name]
-
-      boundariesData[name] = boundary.getTape()
-    }
-
-    return boundariesData
+    return this._accumulatedBoundariesData
   }
 
   _createBounderies ({
@@ -259,29 +254,6 @@ export const Task = class Task<
     return boundariesFns as WrappedBoundaries<B>
   }
 
-  getBondariesRunLog (): Record<string, unknown> {
-    const boundaries = this._boundaries
-    const boundariesRunLog: Record<string, unknown> = {}
-
-    for (const name in boundaries) {
-      const boundary = boundaries[name]
-
-      boundariesRunLog[name] = boundary.getRunData()
-    }
-
-    return boundariesRunLog
-  }
-
-  startRunLog (): void {
-    const boundaries = this._boundaries
-
-    for (const name in boundaries) {
-      const boundary = boundaries[name]
-
-      boundary.startRun()
-    }
-  }
-
   asBoundary (): (args: Parameters<Func>[0]) => Promise<ReturnType<Func>> {
     return async (args: Parameters<Func>[0]): Promise<ReturnType<Func>> => {
       return await this.run(args)
@@ -296,7 +268,7 @@ export const Task = class Task<
       mode: this._mode
     })
 
-    // Start run log for these boundaries
+    // Start run for each boundary
     for (const name in executionBoundaries) {
       const boundary = executionBoundaries[name]
       boundary.startRun()
@@ -315,46 +287,68 @@ export const Task = class Task<
             ? `Invalid input on: ${errorDetails}`
             : 'Invalid input'
 
-          this.emit({
-            input: argv,
-            error: errorMessage
-          })
-
-          throw new Error(errorMessage)
+          reject(new Error(errorMessage))
+          return
         }
       }
+
+      // Store these variables in the closure scope
+      let taskOutput: ReturnType<Func> | undefined = undefined
+      let taskError: Error | undefined
 
       (async (): Promise<ReturnType<Func>> => {
         // Use proper typing for the function call and pass the execution-specific boundaries
         const output = await this._fn(argv as Parameters<Func>[0], executionBoundaries as unknown as Parameters<Func>[1])
-
         return output
-      })().then((output) => {
-        // Collect boundary data for this execution
+      })().then((output: ReturnType<Func>) => {
+        taskOutput = output
+        resolve(output)
+      }).catch((error: Error) => {
+        taskError = error
+        reject(error)
+      }).finally(() => {
+        // Process and accumulate boundary data
         const boundariesRunLog: Record<string, unknown> = {}
+
         for (const name in executionBoundaries) {
           const boundary = executionBoundaries[name]
-          boundariesRunLog[name] = boundary.getRunData()
+          const runData = boundary.getRunData()
+
+          // Add to the run log
+          boundariesRunLog[name] = runData
+
+          // Also accumulate in the task's total boundaries data
+          if (!this._accumulatedBoundariesData[name]) {
+            this._accumulatedBoundariesData[name] = []
+          }
+
+          // Get the current accumulated data for this boundary
+          const currentData = this._accumulatedBoundariesData[name]
+
+          // Add the new run data
+          if (Array.isArray(runData) && runData.length > 0) {
+            // Cast the run data to the correct type
+            this._accumulatedBoundariesData[name] = [...currentData, ...(runData as BoundaryData)]
+          }
         }
 
-        // Store this execution's boundary data in _boundaries for future reference
-        // This ensures getBoundariesData() will have the latest boundary data
-        this._boundaries = executionBoundaries;
-
-        this.emit({
-          input: argv,
-          output,
-          boundaries: boundariesRunLog
-        })
-
-        resolve(output)
-      }).catch((error) => {
-        this.emit({
-          input: argv,
-          error: error.message
-        })
-
-        reject(error)
+        // Don't use emit directly from here to avoid the undefined issue
+        // Instead, manually check for listener existence and call if it exists
+        if (this._listener) {
+          if (taskError) {
+            this._listener({
+              input: argv,
+              error: taskError.message,
+              boundaries: boundariesRunLog
+            } as TaskRecord<Parameters<Func>[0], ReturnType<Func>>)
+          } else if (taskOutput !== undefined) {
+            this._listener({
+              input: argv,
+              output: taskOutput,
+              boundaries: boundariesRunLog
+            } as TaskRecord<Parameters<Func>[0], ReturnType<Func>>)
+          }
+        }
       })
     })
 
