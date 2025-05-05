@@ -95,7 +95,7 @@ describe('Stock Price Task Error Handling', () => {
 
   it('should verify mocking can be reset', async () => {
     // Get a reference to the mock object we're going to create
-    let mockFn = jest.fn().mockResolvedValue({ price: 123.45 })
+    const mockFn = jest.fn().mockResolvedValue({ price: 123.45 })
     const fetchStockPriceMock = createMockBoundary(mockFn)
 
     // Mock the boundary
