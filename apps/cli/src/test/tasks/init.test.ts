@@ -1,7 +1,7 @@
 import { init } from '../../tasks/init'
 import { createFsFromVolume, Volume } from 'memfs'
 import path from 'path'
-import { createBoundaryMock } from '../utils'
+import { createMockBoundary } from '../testUtils'
 
 describe('Init task', () => {
   let volume: InstanceType<typeof Volume>
@@ -18,27 +18,26 @@ describe('Init task', () => {
 
   afterEach(() => {
     jest.clearAllMocks()
+    // Reset any boundary mocks after each test
+    init.resetMocks()
   })
 
   it('should create forge.json with correct content in the filesystem', async () => {
-    // Create properly typed mocks for the boundaries
-    const saveFileMock = createBoundaryMock()
-    const getCwdMock = createBoundaryMock()
-    const saveFileFn = saveFileMock as unknown as jest.Mock
-    const getCwdFn = getCwdMock as unknown as jest.Mock
-
-    // Override the saveFile implementation to use our in-memory fs
-    saveFileFn.mockImplementation(async (filePath: string, content: string) => {
+    // Create mocks directly using Jest
+    const saveFileFn = jest.fn().mockImplementation(async (filePath: string, content: string) => {
       const fullPath = path.join(rootDir, filePath)
       await (fs as { promises: { writeFile: (path: string, content: string) => Promise<void> } }).promises.writeFile(fullPath, content)
     })
 
-    // Override the getCwd implementation to return our root directory
-    getCwdFn.mockResolvedValue(rootDir)
+    const getCwdFn = jest.fn().mockResolvedValue(rootDir)
 
-    // Override the boundaries
-    init.getBoundaries().saveFile = saveFileMock
-    init.getBoundaries().getCwd = getCwdMock
+    // Create wrapped boundary mocks
+    const saveFileMock = createMockBoundary(saveFileFn)
+    const getCwdMock = createMockBoundary(getCwdFn)
+
+    // Mock the boundaries
+    init.mockBoundary('saveFile', saveFileMock)
+    init.mockBoundary('getCwd', getCwdMock)
 
     // Run the task
     await init.run({})
@@ -57,18 +56,17 @@ describe('Init task', () => {
   })
 
   it('should not create forge.json when dryRun is true', async () => {
-    // Create properly typed mocks for the boundaries
-    const saveFileMock = createBoundaryMock()
-    const getCwdMock = createBoundaryMock()
-    const saveFileFn = saveFileMock as unknown as jest.Mock
-    const getCwdFn = getCwdMock as unknown as jest.Mock
+    // Create mocks directly using Jest
+    const saveFileFn = jest.fn()
+    const getCwdFn = jest.fn().mockResolvedValue(rootDir)
 
-    // Override the getCwd implementation to return our root directory
-    getCwdFn.mockResolvedValue(rootDir)
+    // Create wrapped boundary mocks
+    const saveFileMock = createMockBoundary(saveFileFn)
+    const getCwdMock = createMockBoundary(getCwdFn)
 
-    // Override the boundaries
-    init.getBoundaries().saveFile = saveFileMock
-    init.getBoundaries().getCwd = getCwdMock
+    // Mock the boundaries
+    init.mockBoundary('saveFile', saveFileMock)
+    init.mockBoundary('getCwd', getCwdMock)
 
     // Run the task with dryRun flag
     const result = await init.run({ dryRun: true })

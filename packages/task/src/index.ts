@@ -23,6 +23,7 @@ export interface TaskConfig<B extends Boundaries = Boundaries> {
   boundariesData?: Record<string, unknown>
 }
 
+// ToDo: Add a type for the boundaries data
 /**
  * Represents the record passed to task listeners
  */
@@ -60,9 +61,14 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   getBoundaries: () => WrappedBoundaries<B>
   setBoundariesData: (boundariesData: Record<string, unknown>) => void
   getBondariesData: () => Record<string, unknown>
-  getBondariesRunLog: () => Record<string, unknown>
-  startRunLog: () => void
+
+  // Mocking methods for testing
+  mockBoundary: <K extends keyof B>(name: K, mockFn: WrappedBoundaryFunction) => void
+  resetMock: <K extends keyof B>(name: K) => void
+  resetMocks: () => void
+
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
+  safeRun: (argv?: Parameters<Func>[0]) => Promise<[Error | null, ReturnType<Func> | null, Record<string, unknown> | null]>
 }
 
 // Helper type to infer schema type
@@ -74,6 +80,9 @@ export type TaskFunction<S, B extends Boundaries> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<any>;
 
+// Define a type for the accumulated boundary data
+type BoundaryData = Array<{input: unknown[], output?: unknown}>
+
 export const Task = class Task<
   B extends Boundaries = Boundaries,
   Func extends BaseFunction = BaseFunction
@@ -84,8 +93,11 @@ export const Task = class Task<
   _description?: string
 
   _boundariesDefinition: B
-  _boundaries: WrappedBoundaries<B>
   _boundariesData: Record<string, unknown> | null
+  _accumulatedBoundariesData: Record<string, BoundaryData> = {}
+
+  // For storing mocks
+  _boundaryMocks: Record<string, WrappedBoundaryFunction> = {}
 
   _schema: Schema<Record<string, SchemaType>> | undefined
   _listener?: ((record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void) | undefined
@@ -110,13 +122,25 @@ export const Task = class Task<
     // Cool down time before killing the process on cli runner
     this._coolDown = 1000
 
-    // Review this assignment
+    // Initialize boundaries data
     this._boundariesData = conf.boundariesData ?? null
-    this._boundaries = this._createBounderies({
-      definition: this._boundariesDefinition,
-      baseData: this._boundariesData,
-      mode: this._mode
-    })
+
+    // Initialize empty accumulated boundaries data structure
+    for (const name in this._boundariesDefinition) {
+      this._accumulatedBoundariesData[name] = []
+    }
+
+    // Initialize accumulated boundaries data from initial boundaries data
+    if (this._boundariesData) {
+      // Type assertion to handle initial data safely
+      for (const name in this._boundariesData) {
+        if (Array.isArray(this._boundariesData[name])) {
+          this._accumulatedBoundariesData[name] = this._boundariesData[name] as BoundaryData
+        } else {
+          this._accumulatedBoundariesData[name] = []
+        }
+      }
+    }
   }
 
   getMode (): Mode {
@@ -124,12 +148,6 @@ export const Task = class Task<
   }
 
   setMode (mode: Mode): void {
-    for (const name in this._boundaries) {
-      const boundary = this._boundaries[name]
-
-      boundary.setMode(mode)
-    }
-
     this._mode = mode
   }
 
@@ -188,45 +206,60 @@ export const Task = class Task<
   emit (data: Partial<TaskRecord>): void {
     if (typeof this._listener === 'undefined') { return }
 
-    const event = {
-      ...data,
-      boundaries: this.getBondariesRunLog()
-    } as TaskRecord<Parameters<Func>[0], ReturnType<Func>>
-
-    this._listener(event)
+    this._listener(data as TaskRecord<Parameters<Func>[0], ReturnType<Func>>)
   }
 
   getBoundaries (): WrappedBoundaries<B> {
-    return this._boundaries
+    // Create fresh boundaries when requested
+    return this._createBounderies({
+      definition: this._boundariesDefinition,
+      baseData: this._boundariesData,
+      mode: this._mode
+    })
   }
 
   setBoundariesData (boundariesData: Record<string, unknown>): void {
-    for (const name in this._boundaries) {
-      const boundary = this._boundaries[name]
+    this._boundariesData = boundariesData
 
-      let tape
-      if (typeof boundariesData !== 'undefined') {
-        tape = boundariesData[name]
-      }
-
-      if (typeof boundary !== 'undefined' && typeof tape !== 'undefined') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        boundary.setTape(tape as any)
+    // Update accumulated data as well
+    // Type assertion to handle provided data safely
+    for (const name in boundariesData) {
+      if (Array.isArray(boundariesData[name])) {
+        this._accumulatedBoundariesData[name] = boundariesData[name] as BoundaryData
+      } else {
+        this._accumulatedBoundariesData[name] = []
       }
     }
   }
 
   getBondariesData (): Record<string, unknown> {
-    const boundaries = this._boundaries
-    const boundariesData: Record<string, unknown> = {}
+    return this._accumulatedBoundariesData
+  }
 
-    for (const name in boundaries) {
-      const boundary = boundaries[name]
+  /**
+   * Mocks a specific boundary function for testing
+   * @param name The name of the boundary to mock
+   * @param mockFn The mock function to use
+   */
+  mockBoundary<K extends keyof B>(name: K, mockFn: WrappedBoundaryFunction): void {
+    this._boundaryMocks[name as string] = mockFn
+  }
 
-      boundariesData[name] = boundary.getTape()
+  /**
+   * Resets a specific mocked boundary back to its original function
+   * @param name The name of the boundary to reset
+   */
+  resetMock<K extends keyof B>(name: K): void {
+    if (this._boundaryMocks[name as string]) {
+      delete this._boundaryMocks[name as string]
     }
+  }
 
-    return boundariesData
+  /**
+   * Resets all mocked boundaries back to their original functions
+   */
+  resetMocks(): void {
+    this._boundaryMocks = {}
   }
 
   _createBounderies ({
@@ -241,6 +274,13 @@ export const Task = class Task<
     const boundariesFns: Record<string, WrappedBoundaryFunction> = {}
 
     for (const name in definition) {
+      // Check if we have a mock for this boundary
+      if (this._boundaryMocks[name]) {
+        boundariesFns[name] = this._boundaryMocks[name]
+        continue
+      }
+
+      // Otherwise create the normal boundary
       const boundary = createBoundary(definition[name])
 
       if (baseData !== null && typeof baseData[name] !== 'undefined') {
@@ -257,44 +297,17 @@ export const Task = class Task<
     return boundariesFns as WrappedBoundaries<B>
   }
 
-  getBondariesRunLog (): Record<string, unknown> {
-    const boundaries = this._boundaries
-    const boundariesRunLog: Record<string, unknown> = {}
-
-    for (const name in boundaries) {
-      const boundary = boundaries[name]
-
-      boundariesRunLog[name] = boundary.getRunData()
-    }
-
-    return boundariesRunLog
-  }
-
-  startRunLog (): void {
-    const boundaries = this._boundaries
-
-    for (const name in boundaries) {
-      const boundary = boundaries[name]
-
-      boundary.startRun()
-    }
-  }
-
   asBoundary (): (args: Parameters<Func>[0]) => Promise<ReturnType<Func>> {
     return async (args: Parameters<Func>[0]): Promise<ReturnType<Func>> => {
       return await this.run(args)
     }
   }
 
-  async run (argv?: Parameters<Func>[0]): Promise<ReturnType<Func>> {
-    // start run log
-    this.startRunLog()
-    const boundaries = this._boundaries
-
-    const q = new Promise<ReturnType<Func>>((resolve, reject) => {
-      if (this._schema) {
+  async safeRun (argv?: Parameters<Func>[0]): Promise<[Error | null, ReturnType<Func> | null, Record<string, unknown> | null]> {
+    // Handle schema validation
+    if (this._schema) {
+      try {
         const validation = this._schema.safeParse(argv)
-
         if (!validation.success) {
           const errorDetails = validation.error?.errors.map(err =>
             `${err.path.join('.')}: ${err.message}`
@@ -304,40 +317,117 @@ export const Task = class Task<
             ? `Invalid input on: ${errorDetails}`
             : 'Invalid input'
 
+          // Emit the validation error
           this.emit({
             input: argv,
             error: errorMessage
           })
 
-          throw new Error(errorMessage)
+          return [new Error(errorMessage), null, null]
+        }
+      } catch (error) {
+        return [error instanceof Error ? error : new Error(String(error)), null, null]
+      }
+    }
+
+    // Create fresh boundaries for this execution
+    const executionBoundaries = this._createBounderies({
+      definition: this._boundariesDefinition,
+      baseData: this._boundariesData,
+      mode: this._mode
+    })
+
+    // Start run for each boundary
+    for (const name in executionBoundaries) {
+      const boundary = executionBoundaries[name]
+      boundary.startRun()
+    }
+
+    try {
+      // Execute the task function
+      const output = await this._fn(
+        argv as Parameters<Func>[0],
+        executionBoundaries as unknown as Parameters<Func>[1]
+      )
+
+      // Process boundary data after successful execution
+      const boundariesRunLog: Record<string, unknown> = {}
+
+      for (const name in executionBoundaries) {
+        const boundary = executionBoundaries[name]
+        const runData = boundary.getRunData()
+
+        // Add to the run log
+        boundariesRunLog[name] = runData
+
+        // Accumulate in the task's total boundaries data
+        if (!this._accumulatedBoundariesData[name]) {
+          this._accumulatedBoundariesData[name] = []
+        }
+
+        // Get the current accumulated data for this boundary
+        const currentData = this._accumulatedBoundariesData[name]
+
+        // Add the new run data
+        if (Array.isArray(runData) && runData.length > 0) {
+          // Cast the run data to the correct type
+          this._accumulatedBoundariesData[name] = [...currentData, ...(runData as BoundaryData)]
         }
       }
 
-      (async (): Promise<ReturnType<Func>> => {
-        // Use proper typing for the function call
-        const output = await this._fn(argv as Parameters<Func>[0], boundaries as unknown as Parameters<Func>[1])
-
-        return output
-      })().then((output) => {
-        this.emit({
-          input: argv,
-          output
-        })
-
-        resolve(output)
-      }).catch((error) => {
-        this.emit({
-          input: argv,
-          error: error.message
-        })
-
-        reject(error)
+      // Emit the success event with boundary data
+      this.emit({
+        input: argv,
+        output,
+        boundaries: boundariesRunLog
       })
-    })
 
-    const result = await q
+      return [null, output, boundariesRunLog]
+    } catch (error) {
+      // Process boundary data after error
+      const boundariesRunLog: Record<string, unknown> = {}
 
-    return result
+      for (const name in executionBoundaries) {
+        const boundary = executionBoundaries[name]
+        const runData = boundary.getRunData()
+
+        // Add to the run log
+        boundariesRunLog[name] = runData
+
+        // Accumulate in the task's total boundaries data
+        if (!this._accumulatedBoundariesData[name]) {
+          this._accumulatedBoundariesData[name] = []
+        }
+
+        // Get the current accumulated data for this boundary
+        const currentData = this._accumulatedBoundariesData[name]
+
+        // Add the new run data
+        if (Array.isArray(runData) && runData.length > 0) {
+          // Cast the run data to the correct type
+          this._accumulatedBoundariesData[name] = [...currentData, ...(runData as BoundaryData)]
+        }
+      }
+
+      // Emit the error event with boundary data
+      this.emit({
+        input: argv,
+        error: error instanceof Error ? error.message : String(error),
+        boundaries: boundariesRunLog
+      })
+
+      return [error instanceof Error ? error : new Error(String(error)), null, boundariesRunLog]
+    }
+  }
+
+  async run (argv?: Parameters<Func>[0]): Promise<ReturnType<Func>> {
+    const [error, result] = await this.safeRun(argv)
+
+    if (error) {
+      throw error
+    }
+
+    return result as ReturnType<Func>
   }
 }
 
