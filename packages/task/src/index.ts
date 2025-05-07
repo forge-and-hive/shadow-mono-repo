@@ -38,6 +38,21 @@ export interface TaskRecord<InputType = unknown, OutputType = unknown> {
   boundaries?: Record<string, unknown>;
 }
 
+export interface BoundaryLog {
+  input: unknown[]
+  output?: unknown
+  error?: string
+}
+
+export interface LogItem<InputType = unknown, OutputType = unknown, B extends Boundaries = Boundaries> {
+  input: InputType
+  output?: OutputType | null
+  error?: string
+  boundaries: {
+    [K in keyof B]: BoundaryLog[]
+  }
+}
+
 export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B extends Boundaries = Boundaries> {
   getMode: () => Mode
   setMode: (mode: Mode) => void
@@ -68,7 +83,7 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   resetMocks: () => void
 
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
-  safeRun: (argv?: Parameters<Func>[0]) => Promise<[Error | null, ReturnType<Func> | null, Record<string, unknown> | null]>
+  safeRun: (argv?: Parameters<Func>[0]) => Promise<[Error | null, ReturnType<Func> | null, LogItem<Parameters<Func>[0], ReturnType<Func>, B>]>
 }
 
 // Helper type to infer schema type
@@ -303,11 +318,11 @@ export const Task = class Task<
     }
   }
 
-  async safeRun (argv?: Parameters<Func>[0]): Promise<[Error | null, ReturnType<Func> | null, Record<string, unknown> | null]> {
+  async safeRun (argv?: Parameters<Func>[0]): Promise<[Error | null, ReturnType<Func> | null, LogItem<Parameters<Func>[0], ReturnType<Func>, B>]> {
     // Initialize log item
-    const logItem: Record<string, unknown> = {
-      input: argv,
-      boundaries: {}
+    const logItem: LogItem<Parameters<Func>[0], ReturnType<Func>, B> = {
+      input: argv as Parameters<Func>[0],
+      boundaries: {} as { [K in keyof B]: BoundaryLog[] }
     }
 
     // Handle schema validation
@@ -360,14 +375,14 @@ export const Task = class Task<
     }
 
     // Process boundary data after execution (both success and error cases)
-    const boundariesRunLog: Record<string, unknown> = {}
+    const boundariesRunLog: { [K in keyof B]: BoundaryLog[] } = {} as { [K in keyof B]: BoundaryLog[] }
 
     for (const name in executionBoundaries) {
       const boundary = executionBoundaries[name]
       const runData = boundary.getRunData()
 
       // Add to the run log
-      boundariesRunLog[name] = runData
+      boundariesRunLog[name as keyof B] = runData as BoundaryLog[]
 
       // Accumulate in the task's total boundaries data
       if (!this._accumulatedBoundariesData[name]) {

@@ -39,17 +39,20 @@ describe('Task safeRun tests', () => {
     // Call safeRun with valid input
     const [error, result, logItem] = await successTask.safeRun({ value: 5 })
 
+
     // Verify success case
     expect(error).toBeNull()
     expect(result).toEqual({ result: 10, success: true })
     expect(logItem).not.toBeNull()
     expect(logItem).toHaveProperty('boundaries.fetchData')
-    const typedLogItem = logItem as unknown as BoundaryRecord
+
+    const typedLogItem = logItem
     expect(typedLogItem.boundaries.fetchData).toHaveLength(1)
-    expect(typedLogItem.boundaries.fetchData[0]).toEqual({
-      input: [5],
-      output: 10
-    })
+
+    const data = typedLogItem.boundaries.fetchData[0]
+    expect(data.input).toEqual([5])
+    expect(data.output).toEqual(10)
+    expect(data.error).toBeUndefined()
   })
 
   it('returns [error, null, logItem] on failed execution', async () => {
