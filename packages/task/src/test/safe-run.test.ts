@@ -1,16 +1,4 @@
-import { createTask, Schema, TaskRecord } from '../index'
-
-interface BoundaryData {
-  input: unknown[];
-  output?: unknown;
-  error?: string;
-}
-
-interface BoundaryRecord extends TaskRecord {
-  boundaries: {
-    [key: string]: BoundaryData[]
-  }
-}
+import { createTask, Schema } from '../index'
 
 describe('Task safeRun tests', () => {
   it('returns [null, result, logItem] on successful execution', async () => {
@@ -39,17 +27,15 @@ describe('Task safeRun tests', () => {
     // Call safeRun with valid input
     const [error, result, logItem] = await successTask.safeRun({ value: 5 })
 
-
     // Verify success case
     expect(error).toBeNull()
     expect(result).toEqual({ result: 10, success: true })
     expect(logItem).not.toBeNull()
     expect(logItem).toHaveProperty('boundaries.fetchData')
+    expect(logItem.boundaries.fetchData).toHaveLength(1)
 
-    const typedLogItem = logItem
-    expect(typedLogItem.boundaries.fetchData).toHaveLength(1)
-
-    const data = typedLogItem.boundaries.fetchData[0]
+    // useful to check types on logItem
+    const data = logItem.boundaries.fetchData[0]
     expect(data.input).toEqual([5])
     expect(data.output).toEqual(10)
     expect(data.error).toBeUndefined()
@@ -90,12 +76,12 @@ describe('Task safeRun tests', () => {
     expect(result).toBeNull()
     expect(logItem).not.toBeNull()
     expect(logItem).toHaveProperty('boundaries.fetchData')
-    const typedLogItem = logItem as unknown as BoundaryRecord
-    expect(typedLogItem.boundaries.fetchData).toHaveLength(1)
-    expect(typedLogItem.boundaries.fetchData[0]).toEqual({
-      input: [-5],
-      error: 'Value cannot be negative'
-    })
+    expect(logItem.boundaries.fetchData).toHaveLength(1)
+
+    const data = logItem.boundaries.fetchData[0]
+    expect(data.input).toEqual([-5])
+    expect(data.error).toContain('Value cannot be negative')
+    expect(data.output).toBeUndefined()
   })
 
   it('returns [error, null, logItem] on schema validation failure', async () => {
@@ -129,10 +115,11 @@ describe('Task safeRun tests', () => {
     expect(error?.message).toContain('Value must be positive')
     expect(result).toBeNull()
     expect(logItem).not.toBeNull()
-    const typedLogItem = logItem as unknown as TaskRecord
-    expect(typedLogItem.input).toEqual({ value: 0 })
-    expect(typedLogItem.error).toContain('Value must be positive')
-    expect(typedLogItem.boundaries).toEqual({})
+    expect(logItem.input).toEqual({ value: 0 })
+    expect(logItem.error).toContain('Value must be positive')
+    expect(logItem.boundaries).toEqual({
+      fetchData: []
+    })
   })
 
   it('properly calls the listener with safeRun and run', async () => {
@@ -237,12 +224,12 @@ describe('Task safeRun tests', () => {
     expect(logItem).not.toBeNull()
     expect(logItem).toHaveProperty('boundaries.doubleValue')
     expect(logItem).toHaveProperty('boundaries.sumValues')
-    const typedLogItem = logItem as unknown as BoundaryRecord
-    expect(typedLogItem.boundaries.doubleValue).toHaveLength(3)
-    expect(typedLogItem.boundaries.sumValues).toHaveLength(1)
-    expect(typedLogItem.boundaries.doubleValue[0]).toEqual({ input: [1], output: 2 })
-    expect(typedLogItem.boundaries.doubleValue[1]).toEqual({ input: [2], output: 4 })
-    expect(typedLogItem.boundaries.doubleValue[2]).toEqual({ input: [3], output: 6 })
-    expect(typedLogItem.boundaries.sumValues[0]).toEqual({ input: [[2, 4, 6]], output: 12 })
+
+    expect(logItem.boundaries.doubleValue).toHaveLength(3)
+    expect(logItem.boundaries.sumValues).toHaveLength(1)
+    expect(logItem.boundaries.doubleValue[0]).toEqual({ input: [1], output: 2 })
+    expect(logItem.boundaries.doubleValue[1]).toEqual({ input: [2], output: 4 })
+    expect(logItem.boundaries.doubleValue[2]).toEqual({ input: [3], output: 6 })
+    expect(logItem.boundaries.sumValues[0]).toEqual({ input: [[2, 4, 6]], output: 12 })
   })
 })
