@@ -67,6 +67,8 @@ export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B ex
 }
 
 export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B extends Boundaries = Boundaries> {
+  version: string
+
   getMode: () => Mode
   setMode: (mode: Mode) => void
   setSchema: (base: Schema<Record<string, SchemaType>>) => void
@@ -115,6 +117,8 @@ export const Task = class Task<
   B extends Boundaries = Boundaries,
   Func extends BaseFunction = BaseFunction
 > implements TaskInstanceType<Func, B> {
+  public version: string = '0.1.7'
+
   _fn: Func
   _mode: Mode
   _coolDown: number
