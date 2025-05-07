@@ -25,7 +25,7 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun with valid input
-    const [error, result, logItem] = await successTask.safeRun({ value: 5 })
+    const [result, error, logItem] = await successTask.safeRun({ value: 5 })
 
     // Verify success case
     expect(error).toBeNull()
@@ -68,7 +68,7 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun with problematic input that will cause an error
-    const [error, result, logItem] = await errorTask.safeRun({ value: -5 })
+    const [result, error, logItem] = await errorTask.safeRun({ value: -5 })
 
     // Verify error case
     expect(error).not.toBeNull()
@@ -108,7 +108,7 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun with invalid input that will fail schema validation
-    const [error, result, logItem] = await validationTask.safeRun({ value: 0 })
+    const [result, error, logItem] = await validationTask.safeRun({ value: 0 })
 
     // Verify validation error case
     expect(error).toBeInstanceOf(Error)
@@ -211,7 +211,7 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun
-    const [error, result, logItem] = await multiBoundaryTask.safeRun({ values: [1, 2, 3] })
+    const [result, error, logItem] = await multiBoundaryTask.safeRun({ values: [1, 2, 3] })
 
     // Verify success
     expect(error).toBeNull()

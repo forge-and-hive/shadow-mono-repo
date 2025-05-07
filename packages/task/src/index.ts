@@ -96,7 +96,7 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   resetMocks: () => void
 
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
-  safeRun: (argv?: Parameters<Func>[0]) => Promise<[Error | null, ReturnType<Func> | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
+  safeRun: (argv?: Parameters<Func>[0]) => Promise<[ReturnType<Func> | null, Error | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
 }
 
 // Helper type to infer schema type
@@ -332,8 +332,8 @@ export const Task = class Task<
   }
 
   async safeRun (argv?: Parameters<Func>[0]): Promise<[
-    Error | null,
     ReturnType<Func> | null,
+    Error | null,
     ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>
   ]> {
     // Initialize log item
@@ -376,7 +376,7 @@ export const Task = class Task<
         }
 
         this.emit(logItem)
-        return [new Error(errorMessage), null, logItem]
+        return [null, new Error(errorMessage), logItem]
       }
     }
 
@@ -429,11 +429,11 @@ export const Task = class Task<
     this.emit(logItem)
 
     // Return the error, output and log item
-    return [error, output, logItem]
+    return [output, error, logItem]
   }
 
   async run (argv?: Parameters<Func>[0]): Promise<ReturnType<Func>> {
-    const [error, result] = await this.safeRun(argv)
+    const [result, error] = await this.safeRun(argv)
 
     if (error) {
       throw error
