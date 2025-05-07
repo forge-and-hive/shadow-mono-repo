@@ -30,7 +30,7 @@ describe('RecordTape safeRun integration tests', () => {
 
     // Run the task with safeRun and directly use the logItem
     const [result, error, record] = await task.safeRun({ value: 5 })
-    tape.push<{ result: number; success: boolean }>('test-task', record)
+    tape.push('test-task', record)
 
     // Verify the execution was successful
     expect(error).toBeNull()
@@ -41,18 +41,18 @@ describe('RecordTape safeRun integration tests', () => {
 
     // Verify the log was recorded correctly
     expect(recordedLog).toHaveLength(1)
-    expect(recordedLog[0]).toEqual({
-      name: 'test-task',
-      type: 'success',
-      input: { value: 5 },
-      output: { result: 10, success: true },
-      boundaries: {
-        fetchData: [{
-          input: [5],
-          output: 10,
-          error: null
-        }]
-      }
+
+    const logItem = recordedLog[0]
+    expect(logItem.name).toEqual('test-task')
+    expect(logItem.type).toEqual('success')
+    expect(logItem.input).toEqual({ value: 5 })
+    expect(logItem.output).toEqual({ result: 10, success: true })
+    expect(logItem.boundaries).toEqual({
+      fetchData: [{
+        input: [5],
+        output: 10,
+        error: null
+      }]
     })
   })
 
@@ -229,7 +229,7 @@ describe('RecordTape safeRun integration tests', () => {
     const [result, error, record] = await task.safeRun({ value: -5 })
 
     // Push the error record directly with type parameter
-    tape.push<{ result: number; success: boolean }>('test-error', record)
+    tape.push('test-error', record)
 
     // Verify the execution failed as expected
     expect(result).toBeNull()
@@ -322,7 +322,7 @@ describe('RecordTape safeRun integration tests', () => {
     }
 
     // Push the record with Promise output using type parameter
-    tape.push<{ result: number }>('promise-record', promiseRecord)
+    tape.push('promise-record', promiseRecord)
 
     // Get the recorded log from the tape
     const recordedLog = tape.getLog()

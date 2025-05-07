@@ -41,13 +41,11 @@ export type Mode = 'record' | 'replay'
 export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> {
   private _path: fs.PathLike | undefined
   private _mode: Mode
-  private _boundaries: Record<string, unknown>
   private _log: LogRecord<TInput, TOutput, B>[]
 
   constructor(config: Config<TInput, TOutput, B> = {}) {
     this._path = typeof config.path === 'string' ? `${config.path}.log` : undefined
     this._log = config.log ?? []
-    this._boundaries = config.boundaries ?? {}
     this._mode = 'record'
   }
 
@@ -119,7 +117,11 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     }
   }
 
-  push<T = TOutput>(name: string, record: ExecutionRecord<TInput, T | Promise<T>, B>, context?: Record<string, string>): LogRecord<TInput, TOutput, B> {
+  push(
+    name: string,
+    record: ExecutionRecord<TInput, unknown, B>,
+    context?: Record<string, string>
+  ): LogRecord<TInput, TOutput, B> {
     if (this._mode === 'replay') {
       return {} as LogRecord<TInput, TOutput, B>
     }
@@ -144,7 +146,7 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     if ('output' in record && record.output !== undefined) {
       const input = record.input
       // Handle Promise outputs by setting to null in the log
-      const output = record.output instanceof Promise ? null : record.output as unknown as TOutput
+      const output = record.output instanceof Promise ? null : record.output
 
       logRecord = {
         name,

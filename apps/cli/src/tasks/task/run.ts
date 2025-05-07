@@ -169,7 +169,7 @@ export const run = createTask(
     // Run the task with provided arguments
     const [result, error, record] = await task.safeRun(args)
     const logItem = tape.push(descriptorName, record, {
-      enviroment: 'cli'
+      environment: 'cli'
     })
     await tape.save()
 
