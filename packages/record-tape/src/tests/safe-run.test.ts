@@ -1,5 +1,5 @@
 import { RecordTape } from '../index'
-import { createTask, Schema, type ExecutionRecord, type Boundaries, type TaskRecord } from '@forgehive/task'
+import { createTask, Schema, type ExecutionRecord, type TaskRecord } from '@forgehive/task'
 
 describe('RecordTape safeRun integration tests', () => {
   it('should record log items directly from safeRun result', async () => {
@@ -97,7 +97,7 @@ describe('RecordTape safeRun integration tests', () => {
     })
 
     // Run the task with safeRun
-    const [result, error, record] = await task.safeRun({ value: 5 })
+    const [result, error] = await task.safeRun({ value: 5 })
 
     // Verify the execution was successful
     expect(error).toBeNull()
@@ -167,7 +167,7 @@ describe('RecordTape safeRun integration tests', () => {
     })
 
     // Run the task with safeRun with a value that will cause an error
-    const [result, error, record] = await task.safeRun({ value: -5 })
+    const [result, error] = await task.safeRun({ value: -5 })
 
     // Verify the execution failed as expected
     expect(result).toBeNull()
@@ -304,7 +304,7 @@ describe('RecordTape safeRun integration tests', () => {
     const tape = new RecordTape<{ value: number }, { result: number }, { fetchData: (n: number) => Promise<number> }>()
 
     // Create a custom execution record with a Promise output
-    const promiseResult = Promise.resolve({ result: 30 });
+    const promiseResult = Promise.resolve({ result: 30 })
     const promiseRecord: ExecutionRecord<{ value: number }, Promise<{ result: number }>, { fetchData: (n: number) => Promise<number> }> = {
       input: { value: 15 },
       output: promiseResult,

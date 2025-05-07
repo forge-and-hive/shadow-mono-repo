@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { type ExecutionRecord, type Boundaries, type TaskRecord } from '@forgehive/task'
+import { type ExecutionRecord, type Boundaries } from '@forgehive/task'
 
 export interface LogRecord<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> extends ExecutionRecord<TInput, TOutput, B> {
   name: string
@@ -81,7 +81,7 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     if (logItem.boundaries) {
       for (const key in logItem.boundaries) {
         // Check if the source is from safe-run (if it has error field in entries)
-        const isSafeRun = logItem.boundaries[key].some((entry: any) => entry.error !== undefined);
+        const isSafeRun = logItem.boundaries[key].some((entry: any) => entry.error !== undefined)
 
         formattedBoundaries[key] = logItem.boundaries[key].map((entry: any) => {
           // Only add error field if it's from safe-run
