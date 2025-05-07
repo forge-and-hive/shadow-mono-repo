@@ -16,17 +16,22 @@ describe('Stock Price Task Error Handling', () => {
     getPrice.mockBoundary('fetchStockPrice', fetchStockPriceMock)
 
     // Use safeRun to get the error
-    const [error, result, boundariesData] = await getPrice.safeRun({ ticker: 'AAPL' })
+    const [result, error, record] = await getPrice.safeRun({ ticker: 'AAPL' })
 
     // Verify we got an error
     expect(error).toBeDefined()
+    expect(error instanceof Error).toBe(true)
     expect(error?.message).toContain('API unavailable')
 
     // Result should be null
     expect(result).toBeNull()
 
     // Boundary data should still be available
-    expect(boundariesData).toBeDefined()
+    expect(record.boundaries).toBeDefined()
+    expect(record.boundaries.fetchStockPrice).toBeInstanceOf(Array)
+
+    // Check that the mock was called
+    expect(fetchStockPriceMock).toHaveBeenCalledWith('AAPL')
   })
 
   it('should throw when using run with an error', async () => {
@@ -57,17 +62,18 @@ describe('Stock Price Task Error Handling', () => {
 
     // Use safeRun with invalid input (missing required ticker)
     // Fake the input type to be the expected type so the type checker doesn't complain and the test runs
-    const [error, result, boundariesData] = await getPrice.safeRun({} as { ticker: string })
+    const [result, error, record] = await getPrice.safeRun({} as { ticker: string })
 
     // Verify we got a validation error
     expect(error).toBeDefined()
+    expect(error instanceof Error).toBe(true)
     expect(error?.message).toContain('Invalid input')
 
     // Result should be null
     expect(result).toBeNull()
 
-    // Boundary logs should be null since validation failed before boundaries ran
-    expect(boundariesData).toBeNull()
+    // Boundary logs should be an empty array since validation failed before boundaries ran
+    expect(record.boundaries).toEqual({fetchStockPrice: []})
 
     // The boundary should not have been called
     expect(fetchStockPriceMock).not.toHaveBeenCalled()

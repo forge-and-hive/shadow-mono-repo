@@ -1,9 +1,16 @@
 {
   "name": "@forgehive/record-tape",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "dependencies": {
+      "@forgehive/schema": "^0.1.4",
+      "@forgehive/task": "^0.1.7"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "test": "jest",
@@ -17,7 +24,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@forgehive/schema": "^0.1.4",
-    "@forgehive/task": "^0.1.6"
+    "@forgehive/schema": "workspace:*",
+    "@forgehive/task": "workspace:*"
   }
 }
