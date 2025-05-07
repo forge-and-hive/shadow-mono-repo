@@ -5,6 +5,7 @@ import { type ExecutionRecord, type Boundaries } from '@forgehive/task'
 export interface LogRecord<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> extends ExecutionRecord<TInput, TOutput, B> {
   name: string
   type: 'success' | 'error'
+  context?: Record<string, string>
 }
 
 export interface SuccessLogItem<TInput = unknown, TOutput = unknown> {
@@ -143,9 +144,9 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     }
   }
 
-  push(name: string, record: ExecutionRecord<TInput, any, B>): void {
+  push(name: string, record: ExecutionRecord<TInput, any, B>, context?: Record<string, string>): LogRecord<TInput, TOutput, B> {
     if (this._mode === 'replay') {
-      return
+      return {} as LogRecord<TInput, TOutput, B>
     }
 
     // For safeRun records, always include both error and output fields
@@ -162,27 +163,35 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
       }
     }
 
+    let logRecord: LogRecord<TInput, TOutput, B>;
+
     if (record.output !== undefined) {
       const { input, output } = record
-      this._log.push({
+      logRecord = {
         name,
         type: 'success',
         input,
         output: output instanceof Promise ? null : output,
-        boundaries: formattedBoundaries
-      } as unknown as LogRecord<TInput, TOutput, B>)
+        boundaries: formattedBoundaries,
+        context
+      } as unknown as LogRecord<TInput, TOutput, B>
+      this._log.push(logRecord)
     } else if (record.error !== undefined) {
       const { input, error } = record
-      this._log.push({
+      logRecord = {
         name,
         type: 'error',
         input,
         error,
-        boundaries: formattedBoundaries
-      } as unknown as LogRecord<TInput, TOutput, B>)
+        boundaries: formattedBoundaries,
+        context
+      } as unknown as LogRecord<TInput, TOutput, B>
+      this._log.push(logRecord)
     } else {
       throw new Error('invalid record type')
     }
+
+    return logRecord
   }
 
   addLogRecord(logRecord: LogRecord<TInput, TOutput, B>): void {
