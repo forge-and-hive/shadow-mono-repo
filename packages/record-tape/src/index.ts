@@ -1,22 +1,19 @@
 import fs from 'fs'
 import path from 'path'
+import { type ExecutionRecord, type Boundaries, type TaskRecord } from '@forgehive/task'
 
-export interface LogRecord<TInput = unknown[], TOutput = unknown> {
+export interface LogRecord<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> extends ExecutionRecord<TInput, TOutput, B> {
   name: string
   type: 'success' | 'error'
-  input: TInput
-  output?: TOutput
-  error?: unknown
-  boundaries: Record<string, unknown>
 }
 
-interface SuccessLogItem<TInput = unknown[], TOutput = unknown> {
+export interface SuccessLogItem<TInput = unknown, TOutput = unknown> {
   input: TInput
   output: TOutput
   boundaries?: Record<string, unknown>
 }
 
-interface ErrorLogItem<TInput = unknown[]> {
+export interface ErrorLogItem<TInput = unknown> {
   input: TInput
   error: unknown
   boundaries?: Record<string, unknown>
@@ -30,23 +27,31 @@ function isErrorLogItem<TInput>(log: SuccessLogItem<TInput> | ErrorLogItem<TInpu
   return (log as ErrorLogItem<TInput>).error !== undefined
 }
 
-export type LogItem<TInput = unknown[], TOutput = unknown> = SuccessLogItem<TInput, TOutput> | ErrorLogItem<TInput>
+export type LogItem<TInput = unknown, TOutput = unknown> = SuccessLogItem<TInput, TOutput> | ErrorLogItem<TInput>
 
-interface Config<TInput = unknown[], TOutput = unknown> {
+// Additional type to handle TaskRecord compatibility
+export type TaskLogItem<TInput = unknown, TOutput = unknown> = LogItem<TInput, TOutput> | {
+  input: TInput;
+  output?: TOutput;
+  error?: unknown;
+  boundaries?: Record<string, unknown>;
+}
+
+interface Config<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> {
   path?: fs.PathLike
-  log?: LogRecord<TInput, TOutput>[]
+  log?: LogRecord<TInput, TOutput, B>[]
   boundaries?: Record<string, unknown>
 }
 
 export type Mode = 'record' | 'replay'
 
-export class RecordTape<TInput = unknown[], TOutput = unknown> {
+export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> {
   private _path: fs.PathLike | undefined
   private _mode: Mode
   private _boundaries: Record<string, unknown>
-  private _log: LogRecord<TInput, TOutput>[]
+  private _log: LogRecord<TInput, TOutput, B>[]
 
-  constructor(config: Config<TInput, TOutput> = {}) {
+  constructor(config: Config<TInput, TOutput, B> = {}) {
     this._path = typeof config.path === 'string' ? `${config.path}.log` : undefined
     this._log = config.log ?? []
     this._boundaries = config.boundaries ?? {}
@@ -54,7 +59,7 @@ export class RecordTape<TInput = unknown[], TOutput = unknown> {
   }
 
   // Data functions
-  getLog(): LogRecord<TInput, TOutput>[] {
+  getLog(): LogRecord<TInput, TOutput, B>[] {
     return this._log
   }
 
@@ -66,23 +71,121 @@ export class RecordTape<TInput = unknown[], TOutput = unknown> {
     this._mode = mode
   }
 
-  addLogItem(name: string, logItem: LogItem<TInput, TOutput>): void {
+  addLogItem(name: string, logItem: any): void {
     if (this._mode === 'replay') {
       return
     }
 
+    // Format boundaries to ensure both error and output fields are set if needed
+    const formattedBoundaries: Record<string, any> = {}
+    if (logItem.boundaries) {
+      for (const key in logItem.boundaries) {
+        // Check if the source is from safe-run (if it has error field in entries)
+        const isSafeRun = logItem.boundaries[key].some((entry: any) => entry.error !== undefined);
+
+        formattedBoundaries[key] = logItem.boundaries[key].map((entry: any) => {
+          // Only add error field if it's from safe-run
+          return isSafeRun ?
+            {
+              input: entry.input,
+              output: entry.output ?? null,
+              error: entry.error ?? null
+            } :
+            {
+              input: entry.input,
+              output: entry.output
+            }
+        })
+      }
+    }
+
+    // Handle LogItem interface
     if (isSuccessLogItem(logItem)) {
-      const { input, output, boundaries = {} } = logItem
-      this._log.push({ name, type: 'success', input, output, boundaries })
+      const { input, output } = logItem
+      this._log.push({
+        name,
+        type: 'success',
+        input,
+        output,
+        boundaries: formattedBoundaries
+      } as LogRecord<TInput, TOutput, B>)
     } else if (isErrorLogItem(logItem)) {
-      const { input, error, boundaries = {} } = logItem
-      this._log.push({ name, type: 'error', input, error, boundaries })
+      const { input, error } = logItem
+      this._log.push({
+        name,
+        type: 'error',
+        input,
+        error,
+        boundaries: formattedBoundaries
+      } as LogRecord<TInput, TOutput, B>)
+    }
+    // Handle TaskRecord interface
+    else if (logItem.output !== undefined) {
+      const { input, output } = logItem
+      this._log.push({
+        name,
+        type: 'success',
+        input,
+        output,
+        boundaries: formattedBoundaries
+      } as LogRecord<TInput, TOutput, B>)
+    } else if (logItem.error !== undefined) {
+      const { input, error } = logItem
+      this._log.push({
+        name,
+        type: 'error',
+        input,
+        error,
+        boundaries: formattedBoundaries
+      } as LogRecord<TInput, TOutput, B>)
     } else {
       throw new Error('invalid log item')
     }
   }
 
-  addLogRecord(logRecord: LogRecord<TInput, TOutput>): void {
+  push(name: string, record: ExecutionRecord<TInput, any, B>): void {
+    if (this._mode === 'replay') {
+      return
+    }
+
+    // For safeRun records, always include both error and output fields
+    const formattedBoundaries: Record<string, any> = {}
+    if (record.boundaries) {
+      for (const key in record.boundaries) {
+        formattedBoundaries[key] = record.boundaries[key].map((entry: any) => {
+          return {
+            input: entry.input,
+            output: entry.output ?? null,
+            error: entry.error ?? null
+          }
+        })
+      }
+    }
+
+    if (record.output !== undefined) {
+      const { input, output } = record
+      this._log.push({
+        name,
+        type: 'success',
+        input,
+        output: output instanceof Promise ? null : output,
+        boundaries: formattedBoundaries
+      } as unknown as LogRecord<TInput, TOutput, B>)
+    } else if (record.error !== undefined) {
+      const { input, error } = record
+      this._log.push({
+        name,
+        type: 'error',
+        input,
+        error,
+        boundaries: formattedBoundaries
+      } as unknown as LogRecord<TInput, TOutput, B>)
+    } else {
+      throw new Error('invalid record type')
+    }
+  }
+
+  addLogRecord(logRecord: LogRecord<TInput, TOutput, B>): void {
     this._log.push(logRecord)
   }
 
@@ -95,12 +198,12 @@ export class RecordTape<TInput = unknown[], TOutput = unknown> {
     return log
   }
 
-  parse(content: string): LogRecord<TInput, TOutput>[] {
+  parse(content: string): LogRecord<TInput, TOutput, B>[] {
     const items = content.split('\n')
-    const log: LogRecord<TInput, TOutput>[] = []
+    const log: LogRecord<TInput, TOutput, B>[] = []
     for (const item of items) {
       if (item !== '') {
-        const data = JSON.parse(item) as LogRecord<TInput, TOutput>
+        const data = JSON.parse(item) as LogRecord<TInput, TOutput, B>
         log.push(data)
       }
     }
@@ -137,7 +240,7 @@ export class RecordTape<TInput = unknown[], TOutput = unknown> {
   }
 
   // Load save functions
-  async load(): Promise<LogRecord<TInput, TOutput>[]> {
+  async load(): Promise<LogRecord<TInput, TOutput, B>[]> {
     if (typeof this._path === 'undefined') {
       return []
     }
@@ -167,7 +270,7 @@ export class RecordTape<TInput = unknown[], TOutput = unknown> {
     return this._log
   }
 
-  loadSync(): LogRecord<TInput, TOutput>[] {
+  loadSync(): LogRecord<TInput, TOutput, B>[] {
     if (typeof this._path === 'undefined') { return [] }
 
     const dirpath = path.dirname(this._path.toString())

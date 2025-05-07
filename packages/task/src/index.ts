@@ -52,10 +52,17 @@ export type BoundaryLogsFor<B extends Boundaries> = {
     : BoundaryLog[]
 }
 
-export interface LogItem<InputType = unknown, OutputType = unknown, B extends Boundaries = Boundaries> {
+/**
+ * Represents the execution record of a task, including input, output, error, and boundary data
+ */
+export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B extends Boundaries = Boundaries> {
+  /** The input arguments passed to the task */
   input: InputType
+  /** The output returned by the task (if successful) */
   output?: OutputType | null
+  /** The error message if the task failed */
   error?: string
+  /** Boundary execution data */
   boundaries: BoundaryLogsFor<B>
 }
 
@@ -89,7 +96,7 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   resetMocks: () => void
 
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
-  safeRun: (argv?: Parameters<Func>[0]) => Promise<[Error | null, ReturnType<Func> | null, LogItem<Parameters<Func>[0], ReturnType<Func>, B>]>
+  safeRun: (argv?: Parameters<Func>[0]) => Promise<[Error | null, ReturnType<Func> | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
 }
 
 // Helper type to infer schema type
@@ -327,10 +334,10 @@ export const Task = class Task<
   async safeRun (argv?: Parameters<Func>[0]): Promise<[
     Error | null,
     ReturnType<Func> | null,
-    LogItem<Parameters<Func>[0], ReturnType<Func>, B>
+    ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>
   ]> {
     // Initialize log item
-    const logItem: LogItem<Parameters<Func>[0], ReturnType<Func>, B> = {
+    const logItem: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B> = {
       input: argv as Parameters<Func>[0],
       boundaries: {} as BoundaryLogsFor<B>
     }

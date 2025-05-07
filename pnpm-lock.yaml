@@ -162,11 +162,11 @@ importers:
   packages/record-tape:
     dependencies:
       '@forgehive/schema':
-        specifier: ^0.1.4
-        version: 0.1.4
+        specifier: workspace:*
+        version: link:../schema
       '@forgehive/task':
-        specifier: ^0.1.5
-        version: 0.1.5
+        specifier: workspace:*
+        version: link:../task
     devDependencies:
       '@types/jest':
         specifier: ^29.5.14
@@ -700,12 +700,6 @@ packages:
   '@fastify/busboy@2.1.1':
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
-
-  '@forgehive/schema@0.1.4':
-    resolution: {integrity: sha512-EXCvzA4SNH4cY1g3tdlGpC6yZ9KWRki5F1MYuXSfzKjD7Zmq/lJ7+FWKdkuIZnvtOtiF9SAt0NHZFdvBFh8p4A==}
-
-  '@forgehive/task@0.1.5':
-    resolution: {integrity: sha512-EvTlSgBHeCqczTJhQp2q4mLAKzzB75m5PE7otmsLLR+j/JeKSSHB1ir7f83ep0SWYgbyahsc8/GMNMwHcLGNTA==}
 
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -5510,14 +5504,6 @@ snapshots:
   '@eslint/js@8.57.1': {}
 
   '@fastify/busboy@2.1.1': {}
-
-  '@forgehive/schema@0.1.4':
-    dependencies:
-      zod: 3.24.2
-
-  '@forgehive/task@0.1.5':
-    dependencies:
-      '@forgehive/schema': 0.1.4
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
