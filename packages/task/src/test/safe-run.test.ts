@@ -1,4 +1,4 @@
-import { createTask, Schema, type TaskRecord } from '../index'
+import { createTask, Schema, TaskRecord } from '../index'
 
 interface BoundaryData {
   input: unknown[];
@@ -6,10 +6,14 @@ interface BoundaryData {
   error?: string;
 }
 
-type BoundaryRecord = Record<string, BoundaryData[]>;
+interface BoundaryRecord extends TaskRecord {
+  boundaries: {
+    [key: string]: BoundaryData[]
+  }
+}
 
 describe('Task safeRun tests', () => {
-  it('returns [null, result, record] on successful execution', async () => {
+  it('returns [null, result, logItem] on successful execution', async () => {
     // Create a simple schema
     const schema = new Schema({
       value: Schema.number()
@@ -33,22 +37,22 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun with valid input
-    const [error, result, record] = await successTask.safeRun({ value: 5 })
+    const [error, result, logItem] = await successTask.safeRun({ value: 5 })
 
     // Verify success case
     expect(error).toBeNull()
     expect(result).toEqual({ result: 10, success: true })
-    expect(record).not.toBeNull()
-    expect(record).toHaveProperty('fetchData')
-    const typedRecord = record as BoundaryRecord
-    expect(typedRecord.fetchData).toHaveLength(1)
-    expect(typedRecord.fetchData[0]).toEqual({
+    expect(logItem).not.toBeNull()
+    expect(logItem).toHaveProperty('boundaries.fetchData')
+    const typedLogItem = logItem as unknown as BoundaryRecord
+    expect(typedLogItem.boundaries.fetchData).toHaveLength(1)
+    expect(typedLogItem.boundaries.fetchData[0]).toEqual({
       input: [5],
       output: 10
     })
   })
 
-  it('returns [error, null, record] on failed execution', async () => {
+  it('returns [error, null, logItem] on failed execution', async () => {
     // Create a simple schema
     const schema = new Schema({
       value: Schema.number()
@@ -75,23 +79,23 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun with problematic input that will cause an error
-    const [error, result, record] = await errorTask.safeRun({ value: -5 })
+    const [error, result, logItem] = await errorTask.safeRun({ value: -5 })
 
     // Verify error case
-    expect(error).toBeInstanceOf(Error)
+    expect(error).not.toBeNull()
     expect(error?.message).toContain('Value cannot be negative')
     expect(result).toBeNull()
-    expect(record).not.toBeNull()
-    expect(record).toHaveProperty('fetchData')
-    const typedRecord = record as BoundaryRecord
-    expect(typedRecord.fetchData).toHaveLength(1)
-    expect(typedRecord.fetchData[0]).toEqual({
+    expect(logItem).not.toBeNull()
+    expect(logItem).toHaveProperty('boundaries.fetchData')
+    const typedLogItem = logItem as unknown as BoundaryRecord
+    expect(typedLogItem.boundaries.fetchData).toHaveLength(1)
+    expect(typedLogItem.boundaries.fetchData[0]).toEqual({
       input: [-5],
       error: 'Value cannot be negative'
     })
   })
 
-  it('returns [error, null, record] on schema validation failure', async () => {
+  it('returns [error, null, logItem] on schema validation failure', async () => {
     // Create a schema that requires a positive number
     const schema = new Schema({
       value: Schema.number().min(1, 'Value must be positive')
@@ -115,17 +119,17 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun with invalid input that will fail schema validation
-    const [error, result, record] = await validationTask.safeRun({ value: 0 })
+    const [error, result, logItem] = await validationTask.safeRun({ value: 0 })
 
     // Verify validation error case
     expect(error).toBeInstanceOf(Error)
     expect(error?.message).toContain('Value must be positive')
     expect(result).toBeNull()
-    expect(record).not.toBeNull()
-    const typedRecord = record as unknown as TaskRecord
-    expect(typedRecord.input).toEqual({ value: 0 })
-    expect(typedRecord.error).toContain('Value must be positive')
-    expect(typedRecord.boundaries).toEqual({})
+    expect(logItem).not.toBeNull()
+    const typedLogItem = logItem as unknown as TaskRecord
+    expect(typedLogItem.input).toEqual({ value: 0 })
+    expect(typedLogItem.error).toContain('Value must be positive')
+    expect(typedLogItem.boundaries).toEqual({})
   })
 
   it('properly calls the listener with safeRun and run', async () => {
@@ -217,7 +221,7 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun
-    const [error, result, record] = await multiBoundaryTask.safeRun({ values: [1, 2, 3] })
+    const [error, result, logItem] = await multiBoundaryTask.safeRun({ values: [1, 2, 3] })
 
     // Verify success
     expect(error).toBeNull()
@@ -226,16 +230,16 @@ describe('Task safeRun tests', () => {
       total: 12
     })
 
-    // Verify record structure
-    expect(record).not.toBeNull()
-    expect(record).toHaveProperty('doubleValue')
-    expect(record).toHaveProperty('sumValues')
-    const typedRecord = record as BoundaryRecord
-    expect(typedRecord.doubleValue).toHaveLength(3)
-    expect(typedRecord.sumValues).toHaveLength(1)
-    expect(typedRecord.doubleValue[0]).toEqual({ input: [1], output: 2 })
-    expect(typedRecord.doubleValue[1]).toEqual({ input: [2], output: 4 })
-    expect(typedRecord.doubleValue[2]).toEqual({ input: [3], output: 6 })
-    expect(typedRecord.sumValues[0]).toEqual({ input: [[2, 4, 6]], output: 12 })
+    // Verify logItem structure
+    expect(logItem).not.toBeNull()
+    expect(logItem).toHaveProperty('boundaries.doubleValue')
+    expect(logItem).toHaveProperty('boundaries.sumValues')
+    const typedLogItem = logItem as unknown as BoundaryRecord
+    expect(typedLogItem.boundaries.doubleValue).toHaveLength(3)
+    expect(typedLogItem.boundaries.sumValues).toHaveLength(1)
+    expect(typedLogItem.boundaries.doubleValue[0]).toEqual({ input: [1], output: 2 })
+    expect(typedLogItem.boundaries.doubleValue[1]).toEqual({ input: [2], output: 4 })
+    expect(typedLogItem.boundaries.doubleValue[2]).toEqual({ input: [3], output: 6 })
+    expect(typedLogItem.boundaries.sumValues[0]).toEqual({ input: [[2, 4, 6]], output: 12 })
   })
 })
