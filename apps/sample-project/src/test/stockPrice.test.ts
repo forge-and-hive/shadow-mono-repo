@@ -62,7 +62,7 @@ describe('Stock Price Task', () => {
     getPrice.mockBoundary('fetchStockPrice', fetchStockPriceMock)
 
     // Use safeRun to get both the result and boundaries data
-    const [error, result, boundariesData] = await getPrice.safeRun({ ticker: 'AMZN' })
+    const [result, error, record] = await getPrice.safeRun({ ticker: 'AMZN' })
 
     // Check there's no error
     expect(error).toBeNull()
@@ -74,8 +74,18 @@ describe('Stock Price Task', () => {
     })
 
     // Verify we have boundary data
-    expect(boundariesData).toBeDefined()
-    expect(boundariesData).toHaveProperty('fetchStockPrice')
+    expect(record.boundaries).toBeDefined()
+    expect(record.boundaries).toHaveProperty('fetchStockPrice')
+
+    // Check that the boundary has the expected structure
+    expect(record.boundaries.fetchStockPrice).toBeInstanceOf(Array)
+    if (record.boundaries.fetchStockPrice.length > 0) {
+      const boundaryCall = record.boundaries.fetchStockPrice[0]
+      expect(boundaryCall).toHaveProperty('input')
+      expect(boundaryCall).toHaveProperty('output')
+      expect(boundaryCall.input).toEqual(['AMZN'])
+      expect(boundaryCall.output).toEqual({ price: mockStockPrices.AMZN })
+    }
   })
 
   it('should handle unknown tickers with default price', async () => {

@@ -20,6 +20,7 @@ describe('Stock Price Task Error Handling', () => {
 
     // Verify we got an error
     expect(error).toBeDefined()
+    expect(error instanceof Error).toBe(true)
     expect(error?.message).toContain('API unavailable')
 
     // Result should be null
@@ -27,6 +28,10 @@ describe('Stock Price Task Error Handling', () => {
 
     // Boundary data should still be available
     expect(record.boundaries).toBeDefined()
+    expect(record.boundaries.fetchStockPrice).toBeInstanceOf(Array)
+
+    // Check that the mock was called
+    expect(fetchStockPriceMock).toHaveBeenCalledWith('AAPL')
   })
 
   it('should throw when using run with an error', async () => {
@@ -61,13 +66,14 @@ describe('Stock Price Task Error Handling', () => {
 
     // Verify we got a validation error
     expect(error).toBeDefined()
+    expect(error instanceof Error).toBe(true)
     expect(error?.message).toContain('Invalid input')
 
     // Result should be null
     expect(result).toBeNull()
 
-    // Boundary logs should be null since validation failed before boundaries ran
-    expect(record.boundaries).toBeNull()
+    // Boundary logs should be an empty array since validation failed before boundaries ran
+    expect(record.boundaries).toEqual({fetchStockPrice: []})
 
     // The boundary should not have been called
     expect(fetchStockPriceMock).not.toHaveBeenCalled()
