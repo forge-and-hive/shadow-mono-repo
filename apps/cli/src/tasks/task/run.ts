@@ -166,23 +166,16 @@ export const run = createTask(
       // if the tape is not found, create a new one on saving
     }
 
-    tape.recordFrom(descriptorName, task)
-
     // Run the task with provided arguments
-    let result, error
-    try {
-      result = await task.run(args)
-    } catch (e) {
-      error = e as Error
-    }
-
+    const [result, error, record] = await task.safeRun(args)
+    const logItem = tape.push(descriptorName, record, {
+      environment: 'cli'
+    })
     await tape.save()
-    const logItems = tape.getLog()
-    const lastLogItem = logItems[logItems.length - 1]
 
     if (profile) {
       try {
-        await sendLogToAPI(profile, projectName, descriptorName, lastLogItem)
+        await sendLogToAPI(profile, projectName, descriptorName, logItem)
       } catch (e) {
         console.error('Failed to send log to API:', e)
       }

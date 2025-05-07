@@ -1,4 +1,4 @@
-import { RecordTape } from '../index'
+import { RecordTape, type LogItem } from '../index'
 import { createTask, Schema, type ExecutionRecord, type TaskRecord } from '@forgehive/task'
 
 describe('RecordTape safeRun integration tests', () => {
@@ -41,18 +41,18 @@ describe('RecordTape safeRun integration tests', () => {
 
     // Verify the log was recorded correctly
     expect(recordedLog).toHaveLength(1)
-    expect(recordedLog[0]).toEqual({
-      name: 'test-task',
-      type: 'success',
-      input: { value: 5 },
-      output: { result: 10, success: true },
-      boundaries: {
-        fetchData: [{
-          input: [5],
-          output: 10,
-          error: null
-        }]
-      }
+
+    const logItem = recordedLog[0]
+    expect(logItem.name).toEqual('test-task')
+    expect(logItem.type).toEqual('success')
+    expect(logItem.input).toEqual({ value: 5 })
+    expect(logItem.output).toEqual({ result: 10, success: true })
+    expect(logItem.boundaries).toEqual({
+      fetchData: [{
+        input: [5],
+        output: 10,
+        error: null
+      }]
     })
   })
 
@@ -86,14 +86,15 @@ describe('RecordTape safeRun integration tests', () => {
     task.addListener((record: TaskRecord<{ value: number }, { result: number; success: boolean }>) => {
       // Manually ensure boundary records have error field for consistency with safeRun
       if (record.boundaries && record.boundaries.fetchData && Array.isArray(record.boundaries.fetchData)) {
-        record.boundaries.fetchData = record.boundaries.fetchData.map((entry: any) => ({
+        record.boundaries.fetchData = record.boundaries.fetchData.map((entry: Record<string, unknown>) => ({
           ...entry,
           error: entry.error ?? null,
           output: entry.output ?? null
         }))
       }
 
-      tape.addLogItem('test-task', record)
+      // Cast the record to LogItem type to satisfy TypeScript
+      tape.addLogItem('test-task', record as unknown as LogItem<{ value: number }, { result: number; success: boolean }>)
     })
 
     // Run the task with safeRun
@@ -156,14 +157,15 @@ describe('RecordTape safeRun integration tests', () => {
     task.addListener((record: TaskRecord<{ value: number }, { result: number; success: boolean }>) => {
       // Manually ensure boundary records have error field for consistency with safeRun
       if (record.boundaries && record.boundaries.fetchData && Array.isArray(record.boundaries.fetchData)) {
-        record.boundaries.fetchData = record.boundaries.fetchData.map((entry: any) => ({
+        record.boundaries.fetchData = record.boundaries.fetchData.map((entry: Record<string, unknown>) => ({
           ...entry,
           error: entry.error ?? null,
           output: entry.output ?? null
         }))
       }
 
-      tape.addLogItem('test-task', record)
+      // Cast the record to LogItem type to satisfy TypeScript
+      tape.addLogItem('test-task', record as unknown as LogItem<{ value: number }, { result: number; success: boolean }>)
     })
 
     // Run the task with safeRun with a value that will cause an error
@@ -226,7 +228,7 @@ describe('RecordTape safeRun integration tests', () => {
     // Run the task with safeRun with a value that will cause an error
     const [result, error, record] = await task.safeRun({ value: -5 })
 
-    // Push the error record directly
+    // Push the error record directly with type parameter
     tape.push('test-error', record)
 
     // Verify the execution failed as expected
@@ -319,7 +321,7 @@ describe('RecordTape safeRun integration tests', () => {
       }
     }
 
-    // Push the record with Promise output
+    // Push the record with Promise output using type parameter
     tape.push('promise-record', promiseRecord)
 
     // Get the recorded log from the tape
