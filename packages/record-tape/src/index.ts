@@ -20,14 +20,6 @@ export interface ErrorLogItem<TInput = unknown> {
   boundaries?: Record<string, unknown>
 }
 
-function isSuccessLogItem<TInput, TOutput>(log: SuccessLogItem<TInput, TOutput> | ErrorLogItem<TInput>): log is SuccessLogItem<TInput, TOutput> {
-  return (log as SuccessLogItem<TInput, TOutput>).output !== undefined
-}
-
-function isErrorLogItem<TInput>(log: SuccessLogItem<TInput> | ErrorLogItem<TInput>): log is ErrorLogItem<TInput> {
-  return (log as ErrorLogItem<TInput>).error !== undefined
-}
-
 export type LogItem<TInput = unknown, TOutput = unknown> = SuccessLogItem<TInput, TOutput> | ErrorLogItem<TInput>
 
 // Additional type to handle TaskRecord compatibility
@@ -72,19 +64,20 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     this._mode = mode
   }
 
-  addLogItem(name: string, logItem: any): void {
+  addLogItem(name: string, logItem: LogItem<TInput, TOutput>): void {
     if (this._mode === 'replay') {
       return
     }
 
     // Format boundaries to ensure both error and output fields are set if needed
-    const formattedBoundaries: Record<string, any> = {}
+    const formattedBoundaries: Record<string, unknown> = {}
     if (logItem.boundaries) {
       for (const key in logItem.boundaries) {
         // Check if the source is from safe-run (if it has error field in entries)
-        const isSafeRun = logItem.boundaries[key].some((entry: any) => entry.error !== undefined)
+        const boundaryEntries = logItem.boundaries[key] as Array<Record<string, unknown>>
+        const isSafeRun = boundaryEntries.some(entry => entry.error !== undefined)
 
-        formattedBoundaries[key] = logItem.boundaries[key].map((entry: any) => {
+        formattedBoundaries[key] = boundaryEntries.map(entry => {
           // Only add error field if it's from safe-run
           return isSafeRun ?
             {
@@ -100,9 +93,11 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
       }
     }
 
-    // Handle LogItem interface
-    if (isSuccessLogItem(logItem)) {
-      const { input, output } = logItem
+    // Handle LogItem interface - need to type cast to access properties safely
+    const typedLogItem = logItem as (SuccessLogItem<TInput, TOutput> | ErrorLogItem<TInput>)
+
+    if ('output' in typedLogItem && typedLogItem.output !== undefined) {
+      const { input, output } = typedLogItem
       this._log.push({
         name,
         type: 'success',
@@ -110,28 +105,8 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
         output,
         boundaries: formattedBoundaries
       } as LogRecord<TInput, TOutput, B>)
-    } else if (isErrorLogItem(logItem)) {
-      const { input, error } = logItem
-      this._log.push({
-        name,
-        type: 'error',
-        input,
-        error,
-        boundaries: formattedBoundaries
-      } as LogRecord<TInput, TOutput, B>)
-    }
-    // Handle TaskRecord interface
-    else if (logItem.output !== undefined) {
-      const { input, output } = logItem
-      this._log.push({
-        name,
-        type: 'success',
-        input,
-        output,
-        boundaries: formattedBoundaries
-      } as LogRecord<TInput, TOutput, B>)
-    } else if (logItem.error !== undefined) {
-      const { input, error } = logItem
+    } else if ('error' in typedLogItem && typedLogItem.error !== undefined) {
+      const { input, error } = typedLogItem
       this._log.push({
         name,
         type: 'error',
@@ -144,16 +119,17 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     }
   }
 
-  push(name: string, record: ExecutionRecord<TInput, any, B>, context?: Record<string, string>): LogRecord<TInput, TOutput, B> {
+  push<T = TOutput>(name: string, record: ExecutionRecord<TInput, T | Promise<T>, B>, context?: Record<string, string>): LogRecord<TInput, TOutput, B> {
     if (this._mode === 'replay') {
       return {} as LogRecord<TInput, TOutput, B>
     }
 
     // For safeRun records, always include both error and output fields
-    const formattedBoundaries: Record<string, any> = {}
+    const formattedBoundaries: Record<string, unknown> = {}
     if (record.boundaries) {
       for (const key in record.boundaries) {
-        formattedBoundaries[key] = record.boundaries[key].map((entry: any) => {
+        const boundaryArray = record.boundaries[key] as Array<Record<string, unknown>>
+        formattedBoundaries[key] = boundaryArray.map(entry => {
           return {
             input: entry.input,
             output: entry.output ?? null,
@@ -163,21 +139,26 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
       }
     }
 
-    let logRecord: LogRecord<TInput, TOutput, B>;
+    let logRecord: LogRecord<TInput, TOutput, B>
 
-    if (record.output !== undefined) {
-      const { input, output } = record
+    if ('output' in record && record.output !== undefined) {
+      const input = record.input
+      // Handle Promise outputs by setting to null in the log
+      const output = record.output instanceof Promise ? null : record.output as unknown as TOutput
+
       logRecord = {
         name,
         type: 'success',
         input,
-        output: output instanceof Promise ? null : output,
+        output,
         boundaries: formattedBoundaries,
         context
-      } as unknown as LogRecord<TInput, TOutput, B>
+      } as LogRecord<TInput, TOutput, B>
       this._log.push(logRecord)
-    } else if (record.error !== undefined) {
-      const { input, error } = record
+    } else if ('error' in record && record.error !== undefined) {
+      const input = record.input
+      const error = record.error
+
       logRecord = {
         name,
         type: 'error',
@@ -185,7 +166,7 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
         error,
         boundaries: formattedBoundaries,
         context
-      } as unknown as LogRecord<TInput, TOutput, B>
+      } as LogRecord<TInput, TOutput, B>
       this._log.push(logRecord)
     } else {
       throw new Error('invalid record type')
