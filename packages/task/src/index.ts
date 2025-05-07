@@ -306,27 +306,26 @@ export const Task = class Task<
   async safeRun (argv?: Parameters<Func>[0]): Promise<[Error | null, ReturnType<Func> | null, Record<string, unknown> | null]> {
     // Handle schema validation
     if (this._schema) {
-      try {
-        const validation = this._schema.safeParse(argv)
-        if (!validation.success) {
-          const errorDetails = validation.error?.errors.map(err =>
-            `${err.path.join('.')}: ${err.message}`
-          ).join(', ')
+      const validation = this._schema.safeParse(argv)
+      if (!validation.success) {
+        const errorDetails = validation.error?.errors.map(err =>
+          `${err.path.join('.')}: ${err.message}`
+        ).join(', ')
 
-          const errorMessage = errorDetails
-            ? `Invalid input on: ${errorDetails}`
-            : 'Invalid input'
+        const errorMessage = errorDetails
+          ? `Invalid input on: ${errorDetails}`
+          : 'Invalid input'
 
-          // Emit the validation error
-          this.emit({
-            input: argv,
-            error: errorMessage
-          })
-
-          return [new Error(errorMessage), null, null]
+        const record = {
+          input: argv,
+          error: errorMessage,
+          boundaries: {}
         }
-      } catch (error) {
-        return [error instanceof Error ? error : new Error(String(error)), null, null]
+
+        // Emit the validation error
+        this.emit(record)
+
+        return [new Error(errorMessage), null, record]
       }
     }
 
@@ -375,12 +374,14 @@ export const Task = class Task<
         }
       }
 
-      // Emit the success event with boundary data
-      this.emit({
+      const record = {
         input: argv,
         output,
         boundaries: boundariesRunLog
-      })
+      }
+
+      // Emit the success event with boundary data
+      this.emit(record)
 
       return [null, output, boundariesRunLog]
     } catch (error) {
@@ -409,12 +410,14 @@ export const Task = class Task<
         }
       }
 
-      // Emit the error event with boundary data
-      this.emit({
+      const record = {
         input: argv,
         error: error instanceof Error ? error.message : String(error),
         boundaries: boundariesRunLog
-      })
+      }
+
+      // Emit the error event with boundary data
+      this.emit(record)
 
       return [error instanceof Error ? error : new Error(String(error)), null, boundariesRunLog]
     }

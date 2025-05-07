@@ -1,7 +1,15 @@
-import { createTask, Schema } from '../index'
+import { createTask, Schema, type TaskRecord } from '../index'
+
+interface BoundaryData {
+  input: unknown[];
+  output?: unknown;
+  error?: string;
+}
+
+type BoundaryRecord = Record<string, BoundaryData[]>;
 
 describe('Task safeRun tests', () => {
-  it('returns [null, result, boundaryLogs] on successful execution', async () => {
+  it('returns [null, result, record] on successful execution', async () => {
     // Create a simple schema
     const schema = new Schema({
       value: Schema.number()
@@ -25,16 +33,22 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun with valid input
-    const [error, result, boundaryLogs] = await successTask.safeRun({ value: 5 })
+    const [error, result, record] = await successTask.safeRun({ value: 5 })
 
     // Verify success case
     expect(error).toBeNull()
     expect(result).toEqual({ result: 10, success: true })
-    expect(boundaryLogs).not.toBeNull()
-    expect(boundaryLogs).toHaveProperty('fetchData')
+    expect(record).not.toBeNull()
+    expect(record).toHaveProperty('fetchData')
+    const typedRecord = record as BoundaryRecord
+    expect(typedRecord.fetchData).toHaveLength(1)
+    expect(typedRecord.fetchData[0]).toEqual({
+      input: [5],
+      output: 10
+    })
   })
 
-  it('returns [error, null, boundaryLogs] on failed execution', async () => {
+  it('returns [error, null, record] on failed execution', async () => {
     // Create a simple schema
     const schema = new Schema({
       value: Schema.number()
@@ -61,17 +75,23 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun with problematic input that will cause an error
-    const [error, result, boundaryLogs] = await errorTask.safeRun({ value: -5 })
+    const [error, result, record] = await errorTask.safeRun({ value: -5 })
 
     // Verify error case
     expect(error).toBeInstanceOf(Error)
     expect(error?.message).toContain('Value cannot be negative')
     expect(result).toBeNull()
-    expect(boundaryLogs).not.toBeNull()
-    expect(boundaryLogs).toHaveProperty('fetchData')
+    expect(record).not.toBeNull()
+    expect(record).toHaveProperty('fetchData')
+    const typedRecord = record as BoundaryRecord
+    expect(typedRecord.fetchData).toHaveLength(1)
+    expect(typedRecord.fetchData[0]).toEqual({
+      input: [-5],
+      error: 'Value cannot be negative'
+    })
   })
 
-  it('returns [error, null, null] on schema validation failure', async () => {
+  it('returns [error, null, record] on schema validation failure', async () => {
     // Create a schema that requires a positive number
     const schema = new Schema({
       value: Schema.number().min(1, 'Value must be positive')
@@ -95,13 +115,17 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun with invalid input that will fail schema validation
-    const [error, result, boundaryLogs] = await validationTask.safeRun({ value: 0 })
+    const [error, result, record] = await validationTask.safeRun({ value: 0 })
 
     // Verify validation error case
     expect(error).toBeInstanceOf(Error)
     expect(error?.message).toContain('Value must be positive')
     expect(result).toBeNull()
-    expect(boundaryLogs).toBeNull() // No boundary calls were made due to validation failure
+    expect(record).not.toBeNull()
+    const typedRecord = record as unknown as TaskRecord
+    expect(typedRecord.input).toEqual({ value: 0 })
+    expect(typedRecord.error).toContain('Value must be positive')
+    expect(typedRecord.boundaries).toEqual({})
   })
 
   it('properly calls the listener with safeRun and run', async () => {
@@ -145,7 +169,10 @@ describe('Task safeRun tests', () => {
       1,
       expect.objectContaining({
         input: { value: 10 },
-        output: 20
+        output: 20,
+        boundaries: {
+          fetchData: expect.any(Array)
+        }
       })
     )
 
@@ -154,7 +181,10 @@ describe('Task safeRun tests', () => {
       2,
       expect.objectContaining({
         input: { value: 20 },
-        output: 40
+        output: 40,
+        boundaries: {
+          fetchData: expect.any(Array)
+        }
       })
     )
   })
@@ -187,7 +217,7 @@ describe('Task safeRun tests', () => {
     )
 
     // Call safeRun
-    const [error, result, boundaryLogs] = await multiBoundaryTask.safeRun({ values: [1, 2, 3] })
+    const [error, result, record] = await multiBoundaryTask.safeRun({ values: [1, 2, 3] })
 
     // Verify success
     expect(error).toBeNull()
@@ -196,19 +226,16 @@ describe('Task safeRun tests', () => {
       total: 12
     })
 
-    // Verify boundary logs for both boundaries
-    expect(boundaryLogs).not.toBeNull()
-    expect(boundaryLogs).toHaveProperty('doubleValue')
-    expect(boundaryLogs).toHaveProperty('sumValues')
-
-    // Check that doubleValue was called 3 times (once for each input value)
-    // @ts-expect-error - we know the boundaryLogs is not null here
-    expect(boundaryLogs.doubleValue).toHaveLength(3)
-
-    // Check that sumValues was called once with the doubled values
-    // @ts-expect-error - we know the boundaryLogs is not null here
-    expect(boundaryLogs.sumValues).toHaveLength(1)
-    // @ts-expect-error - we know the boundaryLogs is not null here
-    expect(boundaryLogs.sumValues[0].input).toEqual([[2, 4, 6]])
+    // Verify record structure
+    expect(record).not.toBeNull()
+    expect(record).toHaveProperty('doubleValue')
+    expect(record).toHaveProperty('sumValues')
+    const typedRecord = record as BoundaryRecord
+    expect(typedRecord.doubleValue).toHaveLength(3)
+    expect(typedRecord.sumValues).toHaveLength(1)
+    expect(typedRecord.doubleValue[0]).toEqual({ input: [1], output: 2 })
+    expect(typedRecord.doubleValue[1]).toEqual({ input: [2], output: 4 })
+    expect(typedRecord.doubleValue[2]).toEqual({ input: [3], output: 6 })
+    expect(typedRecord.sumValues[0]).toEqual({ input: [[2, 4, 6]], output: 12 })
   })
 })
