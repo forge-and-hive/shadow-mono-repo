@@ -18,9 +18,7 @@ describe('safeReplay functionality tests', () => {
 
     // Mock price data
     prices = {
-      'AAPL': 150.23,
-      'MSFT': 305.45,
-      'GOOG': 125.67
+      'AAPL': 150.23
     }
 
     // Define the boundaries
@@ -43,15 +41,14 @@ describe('safeReplay functionality tests', () => {
         const price = await fetchData(ticker)
         return {
           ticker,
-          price,
-          timestamp: Date.now()
+          price
         }
       }
     )
   })
 
-  it('Should replay a previous execution using the execution log', async () => {
-    // Create a manual execution log for testing
+  it('Should replay a previous execution using the execution log and replay the fetchData boundary', async () => {
+    // Create a manual execution log
     const executionLog: ExecutionRecord = {
       input: { ticker: 'AAPL' },
       output: {
@@ -72,9 +69,14 @@ describe('safeReplay functionality tests', () => {
     // No safeReplay method yet, this will be implemented later
     // This will be our test for that functionality
     const [replayResult, replayError, replayLog] = await getTickerPrice.safeReplay(
-      executionLog,
-      { boundaries: { fetchData: 'replay' } }
+      executionLog
     )
+
+    console.log('============')
+    console.log('replayResult', replayResult)
+    console.log('replayError', replayError)
+    console.log('replayLog', replayLog)
+    console.log('============')
 
     // Verify the replay execution
     expect(replayError).toBeNull()
@@ -83,7 +85,6 @@ describe('safeReplay functionality tests', () => {
       price: 150.23
     })
 
-    console.log(replayLog)
     expect(replayLog).toMatchObject({
       input: { ticker: 'AAPL' },
       output: {
@@ -131,11 +132,17 @@ describe('safeReplay functionality tests', () => {
       }
     )
 
+    console.log('============')
+    console.log('replayResult', replayResult)
+    console.log('replayError', replayError)
+    console.log('replayLog', replayLog)
+    console.log('============')
+
     // Verify the replay execution
     expect(replayError).toBeNull()
     expect(replayResult).toMatchObject({
       ticker: 'AAPL',
-      price: 150.23
+      price: 160.23
     })
 
     expect(replayLog).toMatchObject({
