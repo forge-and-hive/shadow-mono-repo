@@ -1,5 +1,13 @@
 import { Schema, type SchemaType, type InferSchema, type SchemaDescription } from '@forgehive/schema'
-import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries, type WrappedBoundaryFunction, type BoundaryRecord } from './utils/boundary'
+import {
+  createBoundary,
+  type Mode,
+  type Boundaries,
+  type WrappedBoundaries,
+  type WrappedBoundaryFunction,
+  type BoundaryRecord,
+  type BoundaryTapeData
+} from './utils/boundary'
 
 export interface Task {
   id: string;
@@ -7,14 +15,21 @@ export interface Task {
   completed: boolean;
 }
 
-// Define a type for boundary tape data
-export type BoundaryTapeData = Record<string, Array<{input: unknown[], output?: unknown, error?: string | null}>>;
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type BaseFunction = (...args: any[]) => any
 
 // Re-export the boundary types for external use
-export type { BoundaryFunction, WrappedBoundaryFunction, Boundaries, WrappedBoundaries, Mode } from './utils/boundary'
+export type {
+  BoundaryFunction,
+  WrappedBoundaryFunction,
+  Boundaries,
+  WrappedBoundaries,
+  Mode,
+  BoundarySuccessRecord,
+  BoundaryErrorRecord,
+  BoundaryRecord,
+  BoundaryTapeData
+} from './utils/boundary'
 
 // Re-export Schema for external use
 export { Schema }
@@ -49,11 +64,7 @@ export interface TaskRecord<InputType = unknown, OutputType = unknown> {
 }
 
 // Make BoundaryLog generic
-export type BoundaryLog<I extends unknown[] = unknown[], O = unknown> = {
-  input: I
-  output: O | null
-  error?: string | null
-}
+export type BoundaryLog<I extends unknown[] = unknown[], O = unknown> = BoundaryRecord<I, O>;
 
 // Mapped type for boundaries
 export type BoundaryLogsFor<B extends Boundaries> = {

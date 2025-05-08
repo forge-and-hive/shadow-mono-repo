@@ -111,8 +111,7 @@ describe('safeReplay functionality tests', () => {
         fetchData: [
           {
             input: ['AAPL'],
-            output: 160.23,
-            error: null
+            output: 160.23
           }
         ]
       }
@@ -145,8 +144,7 @@ describe('safeReplay functionality tests', () => {
         fetchData: [
           {
             input: ['AAPL'],
-            output: 160.23,
-            error: null
+            output: 160.23
           }
         ]
       }
@@ -163,7 +161,6 @@ describe('safeReplay functionality tests', () => {
         fetchData: [
           {
             input: ['AAPL'],
-            output: null,
             error: 'API error: Rate limit exceeded'
           }
         ]
