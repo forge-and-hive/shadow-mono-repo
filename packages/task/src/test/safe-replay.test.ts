@@ -152,4 +152,41 @@ describe('safeReplay functionality tests', () => {
       }
     })
   })
+
+  it('Should properly handle errors in boundary replay mode', async () => {
+    // Create a manual execution log with an error in the boundary
+    const executionLog: ExecutionRecord = {
+      input: { ticker: 'AAPL' },
+      output: null,
+      error: 'API error: Rate limit exceeded',
+      boundaries: {
+        fetchData: [
+          {
+            input: ['AAPL'],
+            output: null,
+            error: 'API error: Rate limit exceeded'
+          }
+        ]
+      }
+    }
+
+    // Use replay mode for fetchData
+    const [replayResult, replayError, replayLog] = await getTickerPrice.safeReplay(
+      executionLog,
+      {
+        boundaries: {
+          fetchData: 'replay',
+        }
+      }
+    )
+
+    // Verify the replay execution - should have an error
+    expect(replayResult).toBeNull()
+    expect(replayError).not.toBeNull()
+    expect(replayError?.message).toBe('API error: Rate limit exceeded')
+
+    // The log should contain the error from the boundary
+    expect(replayLog.error).toBeDefined()
+    expect(replayLog.boundaries.fetchData[0].error).toBe('API error: Rate limit exceeded')
+  })
 })
