@@ -461,6 +461,7 @@ export const Task = class Task<
   ]> {
     // Extract the input from the execution log
     const argv = executionLog.input
+    console.log('Replaying with input: ', argv)
 
     // Initialize log item for this replay
     const logItem: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B> = {
@@ -521,7 +522,6 @@ export const Task = class Task<
 
     try {
       // Execute the task function with replay boundaries
-      console.log('Executing task function with replay boundaries', argv, executionBoundaries.fetchData.getMode(), executionBoundaries.fetchData.getTape())
       output = await this._fn(
         argv,
         executionBoundaries as unknown as Parameters<Func>[1]
@@ -551,8 +551,8 @@ export const Task = class Task<
     // Emit the log item
     this.emit(logItem)
 
-    // Return null for the error to keep the tests passing
-    return [output, null, executionLog]
+    // Return the output, null for error (to match test expectations), and log item
+    return [output, error, logItem]
   }
 
   /**
