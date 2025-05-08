@@ -49,7 +49,7 @@ export interface TaskRecord<InputType = unknown, OutputType = unknown> {
 export type BoundaryLog<I extends unknown[] = unknown[], O = unknown> = {
   input: I
   output: O | null
-  error: string | null
+  error?: string | null
 }
 
 // Mapped type for boundaries
@@ -473,11 +473,13 @@ export const Task = class Task<
     const boundariesConfig: Record<string, unknown> = {}
 
     // Setup boundary data for replay mode boundaries
-    for (const name in config.boundaries) {
-      const mode = config.boundaries[name]
-      if (mode === 'replay' && executionLog.boundaries[name as keyof B]) {
+    for (const name in this._boundariesDefinition) {
+      // Check if this boundary is configured for replay mode
+      const mode = config.boundaries[name] || 'proxy'
+
+      if (mode === 'replay' && executionLog.boundaries[name]) {
         // Add boundary data from the execution log for replay mode
-        boundariesConfig[name] = executionLog.boundaries[name as keyof B]
+        boundariesConfig[name] = executionLog.boundaries[name]
       }
     }
 
@@ -541,8 +543,14 @@ export const Task = class Task<
       const boundary = executionBoundaries[name]
       const runData = boundary.getRunData()
 
-      // Add to the run log
-      boundariesRunLog[name as keyof B] = runData as unknown as BoundaryLogsFor<B>[typeof name]
+      // For boundaries in replay mode, use the original log data instead
+      const mode = config.boundaries[name] || 'proxy'
+      if (mode === 'replay' && executionLog.boundaries[name]) {
+        boundariesRunLog[name as keyof B] = executionLog.boundaries[name as keyof B]
+      } else {
+        // For other modes, use the actual run data
+        boundariesRunLog[name as keyof B] = runData as unknown as BoundaryLogsFor<B>[typeof name]
+      }
     }
 
     // Set boundaries in log item before emitting
@@ -551,7 +559,7 @@ export const Task = class Task<
     // Emit the log item
     this.emit(logItem)
 
-    // Return the output, null for error (to match test expectations), and log item
+    // Return the output, error, and log item
     return [output, error, logItem]
   }
 
@@ -579,12 +587,14 @@ export const Task = class Task<
       const boundary = createBoundary(definition[name])
 
       if (mode === 'replay' && boundariesData[name]) {
-        // Set to replay mode and use the provided tape data
-        boundary.setMode('replay')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        console.log(`Setting tape data for boundary ${name}:`, boundariesData[name])
+        // Set tape data first, then set to replay mode
         boundary.setTape(boundariesData[name] as any)
+        boundary.setMode('replay')
+        console.log(`Boundary ${name} mode set to: ${boundary.getMode()}`)
+        console.log(`Boundary ${name} tape:`, boundary.getTape())
       } else {
-        // For execution use the default proxy mode
+        // For execution use the configured mode or default to proxy
         boundary.setMode(mode)
       }
 

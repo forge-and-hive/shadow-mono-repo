@@ -43,6 +43,7 @@ describe('safeReplay functionality tests', () => {
       boundaries,
       async ({ ticker }, { fetchData }) => {
         const price = await fetchData(ticker)
+        console.log('getTickerPrice', price)
         return {
           ticker,
           price
@@ -63,8 +64,7 @@ describe('safeReplay functionality tests', () => {
         fetchData: [
           {
             input: ['AAPL'],
-            output: 160.23,
-            error: null
+            output: 160.23
           }
         ]
       }
@@ -106,7 +106,7 @@ describe('safeReplay functionality tests', () => {
     })
   })
 
-  it.only('Should execute with mixed boundaries modes', async () => {
+  it('Should execute with mixed boundaries modes', async () => {
     // Create a manual execution log for testing
     const executionLog: ExecutionRecord = {
       input: { ticker: 'AAPL' },
