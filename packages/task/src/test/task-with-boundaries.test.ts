@@ -1,4 +1,4 @@
-import { createTask, Schema, TaskRecord } from '../index'
+import { createTask, Schema, TaskRecord, BoundaryTapeData } from '../index'
 
 // Need to add proxy cache mode to the boundaries
 describe('Boundaries tasks tests', () => {
@@ -316,7 +316,7 @@ describe('Boundaries tasks tests', () => {
         return value * externalData
       },
       {
-        boundariesData: boundariesData3,
+        boundariesData: boundariesData3 as BoundaryTapeData,
         mode: 'proxy-pass'
       }
     )

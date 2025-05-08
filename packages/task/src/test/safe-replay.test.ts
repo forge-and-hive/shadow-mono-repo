@@ -43,7 +43,6 @@ describe('safeReplay functionality tests', () => {
       boundaries,
       async ({ ticker }, { fetchData }) => {
         const price = await fetchData(ticker)
-        console.log('getTickerPrice', price)
         return {
           ticker,
           price
@@ -75,12 +74,6 @@ describe('safeReplay functionality tests', () => {
     const [replayResult, replayError, replayLog] = await getTickerPrice.safeReplay(
       executionLog
     )
-
-    console.log('============')
-    console.log('replayResult', replayResult)
-    console.log('replayError', replayError)
-    console.log('replayLog', replayLog)
-    console.log('============')
 
     // Verify the replay execution
     expect(replayError).toBeNull()
@@ -134,12 +127,6 @@ describe('safeReplay functionality tests', () => {
         }
       }
     )
-
-    console.log('============')
-    console.log('replayResult', replayResult)
-    console.log('replayError', replayError)
-    console.log('replayLog', replayLog)
-    console.log('============')
 
     // Verify the replay execution
     expect(replayError).toBeNull()

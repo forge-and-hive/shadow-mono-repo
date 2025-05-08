@@ -95,20 +95,14 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
 
     if (mode === 'replay') {
       return await (async (): Promise<ReturnType<Func>> => {
-        console.log('============')
-        console.log('wrappedFn replay findRecord', args)
         const record = findRecord(args, cacheTape)
-        console.log('wrappedFn replay findRecord', record)
-        console.log('============')
 
         if (typeof record === 'undefined') {
           throw new Error('No tape value for this inputs')
         }
 
-
-        console.log('wrappedFn replay record.error', record.error)
-        console.log('============')
-        if (record.error !== null) {
+        // Only throw an error if the error field exists and is not null
+        if (record.error !== null && record.error !== undefined) {
           throw new Error(record.error)
         }
 
