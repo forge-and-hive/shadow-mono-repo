@@ -189,8 +189,8 @@ describe('RecordTape safeRun integration tests', () => {
       boundaries: {
         fetchData: [{
           input: [-5],
-          output: null,
-          error: 'Value cannot be negative'
+          error: 'Value cannot be negative',
+          output: null
         }]
       }
     })
@@ -271,8 +271,7 @@ describe('RecordTape safeRun integration tests', () => {
         fetchData: [
           {
             input: [10],
-            output: 20,
-            error: null
+            output: 20
           }
         ]
       }
@@ -297,7 +296,8 @@ describe('RecordTape safeRun integration tests', () => {
           output: 20,
           error: null
         }]
-      }
+      },
+      context: undefined
     })
   })
 
@@ -314,8 +314,7 @@ describe('RecordTape safeRun integration tests', () => {
         fetchData: [
           {
             input: [15],
-            output: 30,
-            error: null
+            output: 30
           }
         ]
       }
