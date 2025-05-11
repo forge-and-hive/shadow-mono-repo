@@ -1,5 +1,13 @@
 import { Schema, type SchemaType, type InferSchema, type SchemaDescription } from '@forgehive/schema'
-import { createBoundary, type Mode, type Boundaries, type WrappedBoundaries, type WrappedBoundaryFunction } from './utils/boundary'
+import {
+  createBoundary,
+  type Mode,
+  type Boundaries,
+  type WrappedBoundaries,
+  type WrappedBoundaryFunction,
+  type BoundaryRecord,
+  type BoundaryTapeData
+} from './utils/boundary'
 
 export interface Task {
   id: string;
@@ -11,7 +19,17 @@ export interface Task {
 export type BaseFunction = (...args: any[]) => any
 
 // Re-export the boundary types for external use
-export type { BoundaryFunction, WrappedBoundaryFunction, Boundaries, WrappedBoundaries, Mode } from './utils/boundary'
+export type {
+  BoundaryFunction,
+  WrappedBoundaryFunction,
+  Boundaries,
+  WrappedBoundaries,
+  Mode,
+  BoundarySuccessRecord,
+  BoundaryErrorRecord,
+  BoundaryRecord,
+  BoundaryTapeData
+} from './utils/boundary'
 
 // Re-export Schema for external use
 export { Schema }
@@ -20,7 +38,14 @@ export interface TaskConfig<B extends Boundaries = Boundaries> {
   schema?: Schema<Record<string, SchemaType>>
   mode?: Mode
   boundaries?: B
-  boundariesData?: Record<string, unknown>
+  boundariesData?: BoundaryTapeData
+}
+
+// Interface for safeReplay configuration
+export interface ReplayConfig<B extends Boundaries = Boundaries> {
+  boundaries: {
+    [K in keyof B]?: Mode
+  }
 }
 
 // ToDo: Add a type for the boundaries data
@@ -39,11 +64,7 @@ export interface TaskRecord<InputType = unknown, OutputType = unknown> {
 }
 
 // Make BoundaryLog generic
-export type BoundaryLog<I extends unknown[] = unknown[], O = unknown> = {
-  input: I
-  output: O | null
-  error: string | null
-}
+export type BoundaryLog<I extends unknown[] = unknown[], O = unknown> = BoundaryRecord<I, O>;
 
 // Mapped type for boundaries
 export type BoundaryLogsFor<B extends Boundaries> = {
@@ -89,7 +110,7 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   // Boundary methods
   asBoundary: () => (args: Parameters<Func>[0]) => Promise<ReturnType<Func>>
   getBoundaries: () => WrappedBoundaries<B>
-  setBoundariesData: (boundariesData: Record<string, unknown>) => void
+  setBoundariesData: (boundariesData: BoundaryTapeData) => void
   getBondariesData: () => Record<string, unknown>
 
   // Mocking methods for testing
@@ -99,7 +120,16 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
 
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
   safeRun: (argv?: Parameters<Func>[0]) => Promise<[ReturnType<Func> | null, Error | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
+
+  // Method for replaying task execution
+  safeReplay: (
+    executionLog: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>,
+    config: ReplayConfig<B>
+  ) => Promise<[ReturnType<Func> | null, Error | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
 }
+
+// Define a type for the accumulated boundary data
+type BoundaryData = Array<{input: unknown[], output?: unknown}>
 
 // Helper type to infer schema type
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,9 +139,6 @@ export type InferSchemaType<S> = S extends Schema<any> ? InferSchema<S> : Record
 export type TaskFunction<S, B extends Boundaries> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<any>;
-
-// Define a type for the accumulated boundary data
-type BoundaryData = Array<{input: unknown[], output?: unknown}>
 
 export const Task = class Task<
   B extends Boundaries = Boundaries,
@@ -125,7 +152,7 @@ export const Task = class Task<
   _description?: string
 
   _boundariesDefinition: B
-  _boundariesData: Record<string, unknown> | null
+  _boundariesData: BoundaryTapeData | null
   _accumulatedBoundariesData: Record<string, BoundaryData> = {}
 
   // For storing mocks
@@ -250,7 +277,7 @@ export const Task = class Task<
     })
   }
 
-  setBoundariesData (boundariesData: Record<string, unknown>): void {
+  setBoundariesData (boundariesData: BoundaryTapeData): void {
     this._boundariesData = boundariesData
 
     // Update accumulated data as well
@@ -297,31 +324,36 @@ export const Task = class Task<
   _createBounderies ({
     definition,
     baseData,
-    mode = 'proxy'
+    mode = 'proxy',
+    boundaryModes = {}
   }: {
     definition: B;
-    baseData: Record<string, unknown> | null;
+    baseData: BoundaryTapeData | null;
     mode?: Mode;
+    boundaryModes?: Record<string, Mode | undefined>;
   }): WrappedBoundaries<B> {
     const boundariesFns: Record<string, WrappedBoundaryFunction> = {}
 
     for (const name in definition) {
+      // Get the configured mode for this boundary or use default
+      const boundaryMode = boundaryModes[name] || mode
+
       // Check if we have a mock for this boundary
       if (this._boundaryMocks[name]) {
         boundariesFns[name] = this._boundaryMocks[name]
         continue
       }
 
-      // Otherwise create the normal boundary
+      // Create the boundary
       const boundary = createBoundary(definition[name])
 
       if (baseData !== null && typeof baseData[name] !== 'undefined') {
-        const tape = baseData[name]
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        boundary.setTape(tape as any)
+        const boundaryData = baseData[name] as Array<BoundaryRecord<Parameters<B[Extract<keyof B, string>]>, Awaited<ReturnType<B[Extract<keyof B, string>]>>>>
+        boundary.setTape(boundaryData)
       }
-      boundary.setMode(mode as Mode)
+
+      // Set the mode after setting the tape
+      boundary.setMode(boundaryMode)
 
       boundariesFns[name] = boundary
     }
@@ -433,6 +465,120 @@ export const Task = class Task<
     this.emit(logItem)
 
     // Return the error, output and log item
+    return [output, error, logItem]
+  }
+
+  async safeReplay(
+    executionLog: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>,
+    config: ReplayConfig<B> = {
+      boundaries: {}
+    }
+  ): Promise<[
+    ReturnType<Func> | null,
+    Error | null,
+    ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>
+  ]> {
+    // Extract the input from the execution log
+    const argv = executionLog.input
+
+    // Initialize log item for this replay
+    const logItem: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B> = {
+      input: argv,
+      boundaries: {} as BoundaryLogsFor<B>
+    }
+
+    // Create boundaries for this replay execution with custom modes based on config
+    const boundariesConfig: BoundaryTapeData = {}
+
+    // Setup boundary data for replay mode boundaries
+    for (const name in this._boundariesDefinition) {
+      // Check if this boundary is configured for replay mode
+      const mode = config.boundaries[name] || 'proxy'
+
+      if (mode === 'replay' && executionLog.boundaries[name]) {
+        // Add boundary data from the execution log for replay mode
+        boundariesConfig[name] = executionLog.boundaries[name]
+      }
+    }
+
+    // Create fresh boundaries for this execution
+    const executionBoundaries = this._createBounderies({
+      definition: this._boundariesDefinition,
+      baseData: boundariesConfig,
+      mode: 'proxy',
+      boundaryModes: config.boundaries
+    })
+
+    // Start run for each boundary
+    for (const name in executionBoundaries) {
+      const boundary = executionBoundaries[name]
+      boundary.startRun()
+    }
+
+    // Handle schema validation - reusing the input from the execution log
+    if (this._schema) {
+      const validation = this._schema.safeParse(argv)
+      if (!validation.success) {
+        const errorDetails = validation.error?.errors.map(err =>
+          `${err.path.join('.')}: ${err.message}`
+        ).join(', ')
+
+        const errorMessage = errorDetails
+          ? `Invalid input on: ${errorDetails}`
+          : 'Invalid input'
+
+        logItem.error = errorMessage
+        logItem.output = executionLog.output // Keep the original output
+
+        // Copy the boundary data from the execution log
+        logItem.boundaries = executionLog.boundaries
+
+        this.emit(logItem)
+        return [null, new Error(errorMessage), logItem]
+      }
+    }
+
+    let output: ReturnType<Func> | null = null
+    let error: Error | null = null
+
+    try {
+      // Execute the task function with replay boundaries
+      output = await this._fn(
+        argv,
+        executionBoundaries as unknown as Parameters<Func>[1]
+      )
+
+      logItem.output = output
+    } catch (caughtError) {
+      const errorMessage = caughtError instanceof Error ? caughtError.message : String(caughtError)
+      logItem.error = errorMessage
+      error = new Error(errorMessage)
+    }
+
+    // Process boundary data after execution
+    const boundariesRunLog: BoundaryLogsFor<B> = {} as BoundaryLogsFor<B>
+
+    for (const name in executionBoundaries) {
+      const boundary = executionBoundaries[name]
+      const runData = boundary.getRunData()
+
+      // For boundaries in replay mode, use the original log data instead
+      const mode = config.boundaries[name] || 'proxy'
+      if (mode === 'replay' && executionLog.boundaries[name]) {
+        boundariesRunLog[name as keyof B] = executionLog.boundaries[name as keyof B]
+      } else {
+        // For other modes, use the actual run data
+        boundariesRunLog[name as keyof B] = runData as unknown as BoundaryLogsFor<B>[typeof name]
+      }
+    }
+
+    // Set boundaries in log item before emitting
+    logItem.boundaries = boundariesRunLog
+
+    // Emit the log item
+    this.emit(logItem)
+
+    // Return the output, error, and log item
     return [output, error, logItem]
   }
 

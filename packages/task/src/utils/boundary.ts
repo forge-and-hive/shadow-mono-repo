@@ -14,16 +14,38 @@ export type Mode = 'proxy' | 'proxy-pass' | 'proxy-catch' | 'replay'
 export type BoundaryFunction<TReturn = any> = (...args: any[]) => Promise<TReturn>
 
 /**
- * Represents a record of a boundary function call
+ * Success record for a boundary function call
  * @template TInput - The type of input data
  * @template TOutput - The type of output data
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface BoundaryRecord<TInput = any[], TOutput = any> {
-  input: TInput
-  output?: TOutput
-  error?: string
+export type BoundarySuccessRecord<TInput = unknown[], TOutput = unknown> = {
+  input: TInput;
+  output: TOutput;
+  error?: undefined;
 }
+
+/**
+ * Error record for a boundary function call
+ * @template TInput - The type of input data
+ */
+export type BoundaryErrorRecord<TInput = unknown[]> = {
+  input: TInput;
+  output?: undefined;
+  error: string;
+}
+
+/**
+ * Represents a record of a boundary function call - either success or error
+ * @template TInput - The type of input data
+ * @template TOutput - The type of output data
+ */
+export type BoundaryRecord<TInput = unknown[], TOutput = unknown> =
+  BoundarySuccessRecord<TInput, TOutput> | BoundaryErrorRecord<TInput>;
+
+/**
+ * Represents the tape data for all boundaries
+ */
+export type BoundaryTapeData = Record<string, Array<BoundaryRecord>>;
 
 /**
  * Represents a wrapped boundary function with additional methods
@@ -79,10 +101,6 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
       return result
     }
 
-    const record: RecordType = {
-      input: args
-    }
-
     if (mode === 'proxy-pass') {
       const record = findRecord(args, cacheTape)
 
@@ -101,7 +119,8 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
           throw new Error('No tape value for this inputs')
         }
 
-        if (typeof record.error !== 'undefined') {
+        // Check if this is an error record by checking if error property exists
+        if (record.error !== undefined) {
           throw new Error(record.error)
         }
 
@@ -124,18 +143,26 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
             return prevRecord.output as unknown as ReturnType<Func>
           })()
         } else {
-          record.error = error.message
+          // Create an error record
+          const errorRecord: BoundaryErrorRecord<FuncInput> = {
+            input: args,
+            error: error.message
+          }
 
-          if (hasRun) { runLog.push(record) }
-          cacheTape.push(record)
+          if (hasRun) { runLog.push(errorRecord) }
+          cacheTape.push(errorRecord)
 
           throw error
         }
       } else {
-        record.output = result as FuncOutput
+        // Create a success record
+        const successRecord: BoundarySuccessRecord<FuncInput, FuncOutput> = {
+          input: args,
+          output: result as FuncOutput
+        }
 
-        if (hasRun) { runLog.push(record) }
-        cacheTape.push(record)
+        if (hasRun) { runLog.push(successRecord) }
+        cacheTape.push(successRecord)
 
         return result as ReturnType<Func>
       }
