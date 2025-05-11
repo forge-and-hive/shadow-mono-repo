@@ -1,5 +1,5 @@
 import { Runner } from '../index'
-import { Task, Schema, createTask } from '@forgehive/task'
+import { Schema, createTask } from '@forgehive/task'
 
 describe('Runner describe', () => {
   it('should return task details including name, description and schema', () => {
@@ -8,10 +8,8 @@ describe('Runner describe', () => {
       value: Schema.number()
     })
 
-    const task = new Task(({ value }: { value: number }) => {
+    const task = createTask(schema, {}, async ({ value }) => {
       return value
-    }, {
-      schema
     })
 
     task.setDescription('A test task that processes numbers')
@@ -34,7 +32,9 @@ describe('Runner describe', () => {
 
   it('should handle tasks without description or schema', () => {
     const runner = new Runner()
-    const task = new Task(() => {
+    const schema = new Schema({})
+
+    const task = createTask(schema, {}, async () => {
       return 'test'
     })
 
@@ -53,14 +53,13 @@ describe('Runner describe', () => {
   it('should handle multiple tasks with task: prefix', () => {
     const runner = new Runner()
 
-    const runTask = createTask(
-      new Schema({
-        descriptorName: Schema.string(),
-        args: Schema.mixedRecord()
-      }),
-      {},
-      async () => 'running'
-    )
+    const schema = new Schema({
+      descriptorName: Schema.string(),
+      args: Schema.mixedRecord()
+    })
+
+    const runTask = createTask(schema, {}, async () => 'running')
+
     runTask.setDescription('Executes the task')
 
     const createTaskInstance = createTask(
@@ -72,6 +71,7 @@ describe('Runner describe', () => {
         return descriptorName
       }
     )
+
     createTaskInstance.setDescription('Creates a new task')
 
     runner.load('task:run', runTask)

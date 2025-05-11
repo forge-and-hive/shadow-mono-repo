@@ -2,8 +2,13 @@
 import { TaskInstanceType, BaseFunction } from '@forgehive/task'
 import { type SchemaDescription } from '@forgehive/schema'
 
-type TaskRecord<T extends TaskInstanceType = TaskInstanceType> = {
-  task: T
+// Export a generic task type that is more permissive with boundaries
+// Allows the load method to accept any task type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type GenericTask = TaskInstanceType<BaseFunction, any>
+
+type TaskRecord = {
+  task: GenericTask
 }
 
 type Tasks = Record<string, TaskRecord>
@@ -75,18 +80,17 @@ export class Runner<InputType = unknown, ParseResult extends RunnerParsedArgumen
     return result
   }
 
-  load<T extends BaseFunction>(name: string, task: TaskInstanceType<T>): void {
+  load(name: string, task: GenericTask): void {
     this._tasks[name] = { task }
   }
 
-  getTask<T extends BaseFunction = BaseFunction>(name: string): TaskInstanceType<T> | undefined {
+  getTask(name: string): GenericTask | undefined {
     if (this._tasks[name] === undefined) {
       return undefined
     }
 
     const { task } = this._tasks[name]
-
-    return task as TaskInstanceType<T>
+    return task
   }
 
   getTasks(): Tasks {
@@ -97,7 +101,7 @@ export class Runner<InputType = unknown, ParseResult extends RunnerParsedArgumen
     return Object.keys(this._tasks)
   }
 
-  async run<T extends BaseFunction, P extends Parameters<T>[0], R = ReturnType<T>>(
+  async run<F extends BaseFunction = BaseFunction, P = Parameters<F>[0], R = ReturnType<F>>(
     name: string,
     args: P
   ): Promise<Awaited<R>> {

@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Runner } from '../index'
-import { Task } from '@forgehive/task'
+import { Schema } from '@forgehive/schema'
+import { createTask } from '@forgehive/task'
 
 describe('Runner', () => {
   it('should create a new Runner instance', () => {
@@ -32,9 +32,9 @@ describe('Runner', () => {
   })
 
   it('should run a task', async () => {
-    const task = new Task(() => {
-      return 'hi five!!!'
-    })
+    const schema = new Schema({})
+
+    const task = createTask(schema, {}, async () => 'hi five!!!')
 
     const runner = new Runner()
     runner.load('sample', task)
@@ -45,24 +45,36 @@ describe('Runner', () => {
   })
 
   it('should run a task with params', async () => {
-    const taskInt = new Task(({ int }: { int: number }) => {
+    const schema = new Schema({
+      int: Schema.number()
+    })
+
+    const taskInt = createTask(schema, {}, async ({ int }) => {
       return int + 5
     })
 
     const runner = new Runner()
     runner.load('sample', taskInt)
 
-    const result = await runner.run<typeof taskInt['_fn'], { int: number }, number>('sample', { int: 6 })
+    const result = await runner.run('sample', { int: 6 })
 
     expect(result).toBe(11)
   })
 
   it('should run multiple tasks with different params', async () => {
-    const taskInt = new Task(({ int }: { int: number }) => {
+    const schema = new Schema({
+      int: Schema.number(),
+    })
+
+    const schema2 = new Schema({
+      str: Schema.string()
+    })
+
+    const taskInt = createTask(schema, {}, async ({ int }) => {
       return int + 5
     })
 
-    const taskString = new Task(({ str }: { str: string }) => {
+    const taskString = createTask(schema2, {}, async ({ str }) => {
       return str + ' world'
     })
 
@@ -70,26 +82,30 @@ describe('Runner', () => {
     runner.load('int', taskInt)
     runner.load('string', taskString)
 
-    const int = await runner.run<typeof taskInt['_fn'], { int: number }, number>('int', { int: 6 })
-    const str = await runner.run<typeof taskString['_fn'], { str: string }, string>('string', { str: 'hello' })
+    const int = await runner.run('int', { int: 6 })
+    const str = await runner.run('string', { str: 'hello' })
 
     expect(int).toBe(11)
     expect(str).toBe('hello world')
   })
 
   it('should get task back and be able to run it', async () => {
-    const taskInt = new Task(async ({ int }: { int: number }): Promise<number> => {
+    const schema = new Schema({
+      int: Schema.number()
+    })
+
+    const taskInt = createTask(schema, {}, async ({ int }) => {
       return int + 5
     })
 
-    const indentity = new Task(async function ({ int }: { int: number }): Promise<number> {
+    const indentity = createTask(schema, {}, async ({ int }) => {
       return int + 5
     })
 
     const runner = new Runner()
     runner.load('int', taskInt)
 
-    const task = runner.getTask<typeof taskInt['_fn']>('int')
+    const task = runner.getTask('int')
 
     let int = 0
     if (task !== undefined) {
