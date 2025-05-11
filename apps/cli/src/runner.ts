@@ -18,6 +18,7 @@ import { remove as removeRunner } from './tasks/runner/remove'
 import { bundle as bundleRunner } from './tasks/runner/bundle'
 import { publish as publishTask } from './tasks/task/publish'
 import { download as downloadTask } from './tasks/task/download'
+import { replay as replayTask } from './tasks/task/replay'
 
 import { add as addProfile } from './tasks/auth/add'
 import { switchProfile } from './tasks/auth/switch'
@@ -48,6 +49,7 @@ runner.load('task:run', taskRunCommand)
 runner.load('task:remove', taskRemoveCommand)
 runner.load('task:publish', publishTask)
 runner.load('task:download', downloadTask)
+runner.load('task:replay', replayTask)
 
 // Runner commands
 runner.load('runner:create', createRunner)
@@ -100,6 +102,13 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
       result = await task.run({
         descriptorName: action,
         uuid
+      })
+    } else if (taskName === 'task:replay') {
+      const { path } = args as { path: string }
+
+      result = await task.run({
+        descriptorName: action,
+        path
       })
     } else if (taskName === 'task:run') {
       result = await task.run({
