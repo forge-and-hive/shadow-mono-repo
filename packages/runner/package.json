@@ -1,6 +1,6 @@
 {
   "name": "@forgehive/runner",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "license": "MIT",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -9,7 +9,7 @@
     "access": "public",
     "dependencies": {
       "@forgehive/schema": "^0.1.4",
-      "@forgehive/task": "^0.1.7"
+      "@forgehive/task": "^0.1.9"
     }
   },
   "scripts": {
