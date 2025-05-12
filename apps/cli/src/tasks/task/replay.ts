@@ -103,17 +103,13 @@ export const replay = createTask(
     const fixture = await readFixture(argv.path)
 
     // Log fixture details
+    console.log('==================================================')
     console.log('UUID:', fixture.fixtureUUID)
     console.log('Name:', fixture.name)
-    console.log('Type:', fixture.type)
     console.log('Context:', fixture.context)
-
-    console.log('Replay with:', {
-      input: fixture.input,
-      output: fixture.output,
-      boundaries: fixture.boundaries,
-    })
-
+    console.log('==================================================')
+    console.log('Replay:', fixture.input)
+    console.log('==================================================')
     // Load forge configuration
     const forge: ForgeConf = await loadConf({})
     const taskName = fixture.name
@@ -141,7 +137,6 @@ export const replay = createTask(
     }
 
     // Prepare paths
-    const logsPath = path.join(logFolderPath, taskName)
     const entryPoint = path.join(process.cwd(), taskDescriptor.path)
     const buildsPath = await ensureBuildsFolder()
     const outputFile = path.join(buildsPath, `${taskName}.js`)
@@ -185,14 +180,11 @@ export const replay = createTask(
       }
     }
 
-    const status = {
-      taskName: fixture.name,
-      replayResult: result,
-      replayError: error ? error.message : null,
-      replayRecord: record
+    if (error) {
+      throw new Error(error.message)
     }
 
-    return status
+    return result
   }
 )
 

@@ -20,6 +20,8 @@ import { publish as publishTask } from './tasks/task/publish'
 import { download as downloadTask } from './tasks/task/download'
 import { replay as replayTask } from './tasks/task/replay'
 
+import { download as downloadFixture } from './tasks/fixture/download'
+
 import { add as addProfile } from './tasks/auth/add'
 import { switchProfile } from './tasks/auth/switch'
 import { list as listProfiles } from './tasks/auth/list'
@@ -55,6 +57,9 @@ runner.load('task:replay', replayTask)
 runner.load('runner:create', createRunner)
 runner.load('runner:remove', removeRunner)
 runner.load('runner:bundle', bundleRunner)
+
+// Fixture commands
+runner.load('fixture:download', downloadFixture)
 
 // Auth commands
 runner.load('auth:add', addProfile)
