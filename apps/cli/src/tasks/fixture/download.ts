@@ -9,7 +9,18 @@ import path from 'path'
 import fs from 'fs/promises'
 import { loadCurrent as loadCurrentProfile } from '../auth/loadCurrent'
 import { load as loadConf } from '../conf/load'
-import { Profile, type ForgeConf } from '../types'
+import { Profile } from '../types'
+
+// Define the Fixture data structure
+interface FixtureData {
+  name: string;
+  [key: string]: unknown;
+}
+
+interface FixtureResponse {
+  fixture: FixtureData;
+  [key: string]: unknown;
+}
 
 const description = 'Download a fixture by UUID to a path based on task descriptor returned from API'
 
@@ -20,7 +31,7 @@ const schema = new Schema({
 const boundaries = {
   loadCurrentProfile: loadCurrentProfile.asBoundary(),
   loadConf: loadConf.asBoundary(),
-  downloadFixture: async (uuid: string, profile: Profile): Promise<any> => {
+  downloadFixture: async (uuid: string, profile: Profile): Promise<FixtureResponse> => {
     const downloadUrl = `${profile.url}/api/fixture/${uuid}`
 
     console.log(`Downloading fixture from ${downloadUrl}...`)
@@ -38,7 +49,7 @@ const boundaries = {
   getCwd: async (): Promise<string> => {
     return process.cwd()
   },
-  persistFixture: async (filePath: string, data: any): Promise<{ path: string }> => {
+  persistFixture: async (filePath: string, data: FixtureData): Promise<{ path: string }> => {
     const dirPath = path.dirname(filePath)
 
     await fs.mkdir(dirPath, { recursive: true })
