@@ -109,16 +109,24 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
         uuid
       })
     } else if (taskName === 'task:replay') {
-      const { path } = args as { path: string }
+      const { path, cache } = args as { path: string, cache: string }
 
       result = await task.run({
         descriptorName: action,
-        path
+        path,
+        cache
       })
     } else if (taskName === 'task:run') {
       result = await task.run({
         descriptorName: action,
         args
+      })
+    } else if (taskName === 'fixture:download') {
+      const { uuid } = args as { uuid: string }
+
+      result = await task.run({
+        descriptorName: action,
+        uuid
       })
     } else if (taskName === 'auth:add') {
       const { apiKey, apiSecret, url } = args as { name: string, apiKey: string, apiSecret: string, url: string }

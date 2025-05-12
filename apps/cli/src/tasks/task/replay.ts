@@ -29,7 +29,8 @@ interface Fixture {
 const description = 'Replay a task execution from a specified path'
 
 const schema = new Schema({
-  path: Schema.string()
+  path: Schema.string(),
+  cache: Schema.string().optional()
 })
 
 const boundaries = {
@@ -102,14 +103,6 @@ export const replay = createTask(
     // Read the file from the provided path
     const fixture = await readFixture(argv.path)
 
-    // Log fixture details
-    console.log('==================================================')
-    console.log('UUID:', fixture.fixtureUUID)
-    console.log('Name:', fixture.name)
-    console.log('Context:', fixture.context)
-    console.log('==================================================')
-    console.log('Replay:', fixture.input)
-    console.log('==================================================')
     // Load forge configuration
     const forge: ForgeConf = await loadConf({})
     const taskName = fixture.name
@@ -159,6 +152,33 @@ export const replay = createTask(
       throw new Error(`Handler "${taskDescriptor.handler}" not found in bundle`)
     }
 
+    // Configure boundaries based on cache parameter if provided
+    const boundaryConfig: Record<string, string> = {}
+
+    if (argv.cache) {
+      // Parse the comma-separated list and trim each item
+      const cacheBoundaries = argv.cache.split(',').map(b => b.trim())
+
+      // Log which boundaries will use cache mode
+      if (cacheBoundaries.length > 0) {
+        // Set each specified boundary to 'replay' mode
+        cacheBoundaries.forEach(boundary => {
+          boundaryConfig[boundary] = 'replay'
+        })
+      }
+    }
+
+    console.log('==================================================')
+    console.log('UUID:', fixture.fixtureUUID)
+    console.log('Name:', fixture.name)
+    console.log('Context:', fixture.context)
+    console.log('==================================================')
+    console.log('Replay:', fixture.input)
+    console.log('Boundaries:', JSON.stringify(fixture.boundaries, null, 2))
+    console.log('==================================================')
+    console.log('Boundary config:', boundaryConfig)
+    console.log('==================================================')
+
     // Perform the replay
     const [result, error, record] = await task.safeReplay(
       {
@@ -167,7 +187,7 @@ export const replay = createTask(
         boundaries: fixture.boundaries,
       },
       {
-        boundaries: {} // Default to using proxy mode for all boundaries
+        boundaries: boundaryConfig // Use configured boundary modes
       }
     )
 
