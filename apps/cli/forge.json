@@ -4,9 +4,9 @@
   },
   "paths": {
     "logs": "logs/",
+    "fixtures": "fixtures",
     "tasks": "src/tasks/",
     "runners": "src/runners/",
-    "fixtures": "src/tests/fixtures",
     "tests": "src/tests/"
   },
   "infra": {
@@ -77,6 +77,14 @@
     "auth:remove": {
       "path": "src/tasks/auth/remove.ts",
       "handler": "remove"
+    },
+    "task:replay": {
+      "path": "src/tasks/task/replay.ts",
+      "handler": "replay"
+    },
+    "fixture:download": {
+      "path": "src/tasks/fixture/download.ts",
+      "handler": "download"
     }
   },
   "runners": {}

@@ -21,7 +21,7 @@ export type BoundaryFunction<TReturn = any> = (...args: any[]) => Promise<TRetur
 export type BoundarySuccessRecord<TInput = unknown[], TOutput = unknown> = {
   input: TInput;
   output: TOutput;
-  error?: undefined;
+  error?: null;
 }
 
 /**
@@ -30,7 +30,7 @@ export type BoundarySuccessRecord<TInput = unknown[], TOutput = unknown> = {
  */
 export type BoundaryErrorRecord<TInput = unknown[]> = {
   input: TInput;
-  output?: undefined;
+  output?: null;
   error: string;
 }
 
@@ -120,7 +120,7 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
         }
 
         // Check if this is an error record by checking if error property exists
-        if (record.error !== undefined) {
+        if (record.error !== undefined && record.error !== null) {
           throw new Error(record.error)
         }
 
