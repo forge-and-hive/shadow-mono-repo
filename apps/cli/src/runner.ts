@@ -76,6 +76,7 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   console.log(`Running: ${taskName} ${action ? action : ''} ${JSON.stringify(args)}`)
   console.log('========================================')
 
+  let silent = false
   const task = runner.getTask(taskName)
   if (!task) {
     throw new Error(`Task "${taskName}" not found`)
@@ -128,6 +129,7 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
         descriptorName: action,
         uuid
       })
+      silent = true
     } else if (taskName === 'auth:add') {
       const { apiKey, apiSecret, url } = args as { name: string, apiKey: string, apiSecret: string, url: string }
 
@@ -146,6 +148,7 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
     }
 
     return {
+      silent,
       outcome: 'Success',
       taskName,
       result

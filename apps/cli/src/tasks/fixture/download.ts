@@ -14,6 +14,7 @@ import { Profile } from '../types'
 // Define the Fixture data structure
 interface FixtureData {
   name: string;
+  boundaries: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -58,14 +59,6 @@ const boundaries = {
     return {
       path: filePath
     }
-  },
-  checkFileExists: async (filePath: string): Promise<boolean> => {
-    try {
-      await fs.access(filePath)
-      return true
-    } catch {
-      return false
-    }
   }
 }
 
@@ -76,12 +69,12 @@ export const download = createTask(
     downloadFixture,
     getCwd,
     persistFixture,
-    checkFileExists,
     loadCurrentProfile,
     loadConf
   }) {
     console.log('==================================================')
     console.log(`Attempting to download fixture with uuid: ${uuid}`)
+    console.log('==================================================')
 
     const profile = await loadCurrentProfile({})
     const cwd = await getCwd()
@@ -102,50 +95,40 @@ export const download = createTask(
       throw new Error('Failed to download fixture')
     }
 
-    // Extract task descriptor from the response
-    console.log('==================================================')
-    console.log('response', response)
-    console.log('==================================================')
-    const taskName = response.fixture.taskName as string
+    const fixture = response.fixture as FixtureData
+    const taskName = fixture.taskName as string
 
     // Determine the output path using forge fixtures path and task descriptor
     const fixturesBasePath = forge.paths.fixtures || 'fixtures'
-
-    console.log('==================================================')
-    console.log('fixturesBasePath', fixturesBasePath)
-    console.log('taskName', taskName)
-    console.log('uuid', uuid)
-    console.log('==================================================')
-
     const fixtureDir = path.join(fixturesBasePath, taskName)
     const fixturePath = path.join(fixtureDir, `${uuid}.json`)
     const filePath = path.resolve(cwd, fixturePath)
 
-    console.log(`Fixture will be saved to: ${filePath}`)
-
-    // Check if file already exists
-    const fileExists = await checkFileExists(filePath)
-    if (fileExists) {
-      console.log(`Fixture will be updated at ${filePath}`)
-    }
-
-    console.log(`
-    ==================================================
-    Starting fixture download!
-    Fixture UUID: ${uuid}
-    Task Name: ${taskName}
-    Saving to: ${filePath}
-    ==================================================
-    Replay with: forge task:replay --path ${filePath}
-    ==================================================
-    `)
-
     // Persist fixture to file
     await persistFixture(filePath, response.fixture)
 
+    // Get the relative path for display in the replay command
+    const shortPath = path.join(taskName, `${uuid}.json`)
+
+    console.log(`
+==================================================
+Fixture download completed!
+==================================================
+Fixture UUID: ${uuid}
+Task Name: ${taskName}
+Saved to: ${filePath}
+==================================================
+Boundaries: ${Object.keys(fixture.boundaries).join(', ')}
+==================================================
+Replay with:
+forge task:replay ${taskName} --path ${shortPath}
+==================================================
+    `)
+
     return {
       status: 'Downloaded',
-      path: filePath
+      path: filePath,
+      shortPath: shortPath
     }
   }
 )
