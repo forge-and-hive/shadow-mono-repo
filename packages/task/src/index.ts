@@ -56,7 +56,7 @@ export interface TaskRecord<InputType = unknown, OutputType = unknown> {
   /** The input arguments passed to the task */
   input: InputType;
   /** The output returned by the task (if successful) */
-  output?: OutputType;
+  output?: OutputType | null;
   /** The error message if the task failed */
   error?: string;
   /** Boundary execution data */
@@ -119,13 +119,13 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   resetMocks: () => void
 
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
-  safeRun: (argv?: Parameters<Func>[0]) => Promise<[ReturnType<Func> | null, Error | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
+  safeRun: (argv?: Parameters<Func>[0]) => Promise<[Awaited<ReturnType<Func>> | null, Error | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
 
   // Method for replaying task execution
   safeReplay: (
     executionLog: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>,
     config: ReplayConfig<B>
-  ) => Promise<[ReturnType<Func> | null, Error | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
+  ) => Promise<[Awaited<ReturnType<Func>> | null, Error | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
 }
 
 // Define a type for the accumulated boundary data
@@ -368,7 +368,7 @@ export const Task = class Task<
   }
 
   async safeRun (argv?: Parameters<Func>[0]): Promise<[
-    ReturnType<Func> | null,
+    Awaited<ReturnType<Func>> | null,
     Error | null,
     ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>
   ]> {
@@ -416,7 +416,7 @@ export const Task = class Task<
       }
     }
 
-    let output: ReturnType<Func> | null = null
+    let output: Awaited<ReturnType<Func>> | null = null
     let error: Error | null = null
 
     try {
@@ -474,7 +474,7 @@ export const Task = class Task<
       boundaries: {}
     }
   ): Promise<[
-    ReturnType<Func> | null,
+    Awaited<ReturnType<Func>> | null,
     Error | null,
     ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>
   ]> {
@@ -538,7 +538,7 @@ export const Task = class Task<
       }
     }
 
-    let output: ReturnType<Func> | null = null
+    let output: Awaited<ReturnType<Func>> | null = null
     let error: Error | null = null
 
     try {

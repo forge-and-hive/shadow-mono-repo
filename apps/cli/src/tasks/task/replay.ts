@@ -18,7 +18,8 @@ import { type ForgeConf, type Profile } from '../types'
 // Define the fixture structure type
 interface Fixture {
   fixtureUUID: string;
-  name: string;
+  taskName: string;
+  projectName: string;
   type: 'success' | 'error';
   input: Record<string, unknown>;
   output: Record<string, unknown>;
@@ -29,6 +30,7 @@ interface Fixture {
 const description = 'Replay a task execution from a specified path'
 
 const schema = new Schema({
+  descriptorName: Schema.string(),
   path: Schema.string(),
   cache: Schema.string().optional()
 })
@@ -97,21 +99,27 @@ const boundaries = {
 export const replay = createTask(
   schema,
   boundaries,
-  async function (argv, { readFixture, loadConf, loadCurrentProfile, bundleCreate, bundleLoad, ensureBuildsFolder, verifyLogFolder, sendLogToAPI }) {
-    console.log('Input path:', argv.path)
-
-    // Read the file from the provided path
-    const fixture = await readFixture(argv.path)
+  async function ({ descriptorName, path: fixturePath, cache }, { readFixture, loadConf, loadCurrentProfile, bundleCreate, bundleLoad, ensureBuildsFolder, verifyLogFolder, sendLogToAPI }) {
+    console.log('Input descriptorName:', descriptorName)
+    console.log('Input path:', fixturePath)
+    console.log('Input cache:', cache)
 
     // Load forge configuration
     const forge: ForgeConf = await loadConf({})
-    const taskName = fixture.name
-    const taskDescriptor = forge.tasks[taskName as keyof typeof forge.tasks]
+    const taskDescriptor = forge.tasks[descriptorName as keyof typeof forge.tasks]
     const projectName = forge.project.name
 
     if (taskDescriptor === undefined) {
-      throw new Error(`Task ${taskName} is not defined in forge.json`)
+      throw new Error(`Task ${descriptorName} is not defined in forge.json`)
     }
+
+    // Resolve the fixture path (check if absolute, if not make it relative to logs folder)
+    const resolvedFixturePath = path.isAbsolute(fixturePath)
+      ? fixturePath
+      : path.join(process.cwd(), forge.paths.fixtures, fixturePath)
+
+    // Read the file from the provided path
+    const fixture = await readFixture(resolvedFixturePath)
 
     // Try to load profile, but continue if not found
     let profile = null
@@ -132,7 +140,7 @@ export const replay = createTask(
     // Prepare paths
     const entryPoint = path.join(process.cwd(), taskDescriptor.path)
     const buildsPath = await ensureBuildsFolder()
-    const outputFile = path.join(buildsPath, `${taskName}.js`)
+    const outputFile = path.join(buildsPath, `${descriptorName}.js`)
 
     // Bundle the task
     await bundleCreate({
@@ -155,14 +163,14 @@ export const replay = createTask(
     // Configure boundaries based on cache parameter if provided
     const boundaryConfig: Record<string, string> = {}
 
-    if (argv.cache) {
+    if (cache) {
       // Parse the comma-separated list and trim each item
-      const cacheBoundaries = argv.cache.split(',').map(b => b.trim())
+      const cacheBoundaries = cache.split(',').map((b: string) => b.trim())
 
       // Log which boundaries will use cache mode
       if (cacheBoundaries.length > 0) {
         // Set each specified boundary to 'replay' mode
-        cacheBoundaries.forEach(boundary => {
+        cacheBoundaries.forEach((boundary: string) => {
           boundaryConfig[boundary] = 'replay'
         })
       }
@@ -170,7 +178,8 @@ export const replay = createTask(
 
     console.log('==================================================')
     console.log('UUID:', fixture.fixtureUUID)
-    console.log('Name:', fixture.name)
+    console.log('Task name:', fixture.taskName)
+    console.log('Project name:', fixture.projectName)
     console.log('Context:', fixture.context)
     console.log('==================================================')
     console.log('Replay:', fixture.input)
@@ -194,7 +203,7 @@ export const replay = createTask(
     // Send the log to API if profile is available
     if (profile) {
       try {
-        await sendLogToAPI(profile, projectName, taskName, record, fixture.fixtureUUID)
+        await sendLogToAPI(profile, projectName, descriptorName, record, fixture.fixtureUUID)
       } catch (e) {
         console.error('Failed to send log to API:', e)
       }
