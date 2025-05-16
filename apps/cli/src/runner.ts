@@ -72,9 +72,9 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   const parsedArgs = runner.parseArguments(data)
   const { taskName, action, args } = parsedArgs
 
-  console.log('========================================')
+  console.log('===============================================')
   console.log(`Running: ${taskName} ${action ? action : ''} ${JSON.stringify(args)}`)
-  console.log('========================================')
+  console.log('===============================================')
 
   let silent = false
   const task = runner.getTask(taskName)

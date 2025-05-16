@@ -13,13 +13,13 @@ type RunnerResult = {
 }
 
 runner.handler(args).then((data) => {
-  const { silent, outcome, taskName, result } = data as RunnerResult
+  const { silent, outcome, result } = data as RunnerResult
   if (silent) {
     return
   }
 
   console.log('===============================================')
-  console.log(`Task ${taskName} outcome: ${outcome}`)
+  console.log(`Outcome: ${outcome}`)
   console.log('===============================================')
   console.log('Result', result)
   console.log('===============================================')
