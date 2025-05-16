@@ -18,7 +18,8 @@ import { type ForgeConf, type Profile } from '../types'
 // Define the fixture structure type
 interface Fixture {
   fixtureUUID: string;
-  name: string;
+  taskName: string;
+  projectName: string;
   type: 'success' | 'error';
   input: Record<string, unknown>;
   output: Record<string, unknown>;
@@ -105,7 +106,7 @@ export const replay = createTask(
 
     // Load forge configuration
     const forge: ForgeConf = await loadConf({})
-    const taskName = fixture.name
+    const taskName = fixture.taskName
     const taskDescriptor = forge.tasks[taskName as keyof typeof forge.tasks]
     const projectName = forge.project.name
 
@@ -170,7 +171,8 @@ export const replay = createTask(
 
     console.log('==================================================')
     console.log('UUID:', fixture.fixtureUUID)
-    console.log('Name:', fixture.name)
+    console.log('Task name:', fixture.taskName)
+    console.log('Project name:', fixture.projectName)
     console.log('Context:', fixture.context)
     console.log('==================================================')
     console.log('Replay:', fixture.input)

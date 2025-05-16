@@ -103,10 +103,20 @@ export const download = createTask(
     }
 
     // Extract task descriptor from the response
-    const taskName = response.fixture.name
+    console.log('==================================================')
+    console.log('response', response)
+    console.log('==================================================')
+    const taskName = response.fixture.taskName as string
 
     // Determine the output path using forge fixtures path and task descriptor
     const fixturesBasePath = forge.paths.fixtures || 'fixtures'
+
+    console.log('==================================================')
+    console.log('fixturesBasePath', fixturesBasePath)
+    console.log('taskName', taskName)
+    console.log('uuid', uuid)
+    console.log('==================================================')
+
     const fixtureDir = path.join(fixturesBasePath, taskName)
     const fixturePath = path.join(fixtureDir, `${uuid}.json`)
     const filePath = path.resolve(cwd, fixturePath)
