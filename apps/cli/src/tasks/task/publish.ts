@@ -13,6 +13,7 @@ import os from 'os'
 import { load as loadConf } from '../conf/load'
 import { create as bundleCreate } from '../bundle/create'
 import { load as bundleLoad } from '../bundle/load'
+import { zip as bundleZip } from '../bundle/zip'
 import { loadCurrent as loadCurrentProfile } from '../auth/loadCurrent'
 import { Profile } from '../types'
 
@@ -28,6 +29,7 @@ const boundaries = {
   loadCurrentProfile: loadCurrentProfile.asBoundary(),
   bundleCreate: bundleCreate.asBoundary(),
   bundleLoad: bundleLoad.asBoundary(),
+  bundleZip: bundleZip.asBoundary(),
   readFileUtf8: async (filePath: string): Promise<string> => {
     return fs.readFile(filePath, 'utf-8')
   },
@@ -88,6 +90,7 @@ export const publish = createTask(
     loadConf,
     bundleCreate,
     bundleLoad,
+    bundleZip,
     readFileUtf8,
     readFileBinary,
     publishTask,
@@ -108,6 +111,7 @@ export const publish = createTask(
     const entryPoint = path.join(cwd, taskDescriptor.path)
     const buildsPath = await ensureBuildsFolder()
     const outputFile = path.join(buildsPath, `${descriptorName}.js`)
+    const zipFile = `${descriptorName}.zip`
 
     // Bundle the task
     await bundleCreate({
@@ -116,6 +120,15 @@ export const publish = createTask(
     })
 
     console.log('Bundle created...')
+
+    // Zip the bundle
+    await bundleZip({
+      dir: buildsPath,
+      input: `${descriptorName}.js`,
+      output: zipFile
+    })
+
+    console.log('Bundle zipped...')
 
     // Load the bundled task
     const bundle = await bundleLoad({
@@ -131,7 +144,9 @@ export const publish = createTask(
 
     // Read the task file content
     const sourceCode = await readFileUtf8(entryPoint)
-    const bundleContent = await readFileBinary(outputFile)
+    // Read the zipped bundle instead of the raw bundle
+    const zipPath = path.join(buildsPath, zipFile)
+    const bundleContent = await readFileBinary(zipPath)
 
     // Get bundle size
     const bundleSize = bundleContent.length
@@ -152,9 +167,9 @@ export const publish = createTask(
     console.log(`Publishing metadata and source code to ${profile.url}...`)
     const publishResponse = await publishTask(data, profile)
 
-    // Upload bundle using the presigned URL
+    // Upload zipped bundle using the presigned URL
     if (publishResponse.bundleUploadUrl) {
-      console.log('Uploading bundle...')
+      console.log('Uploading zipped bundle...')
       await uploadBundleWithPresignedUrl(
         publishResponse.bundleUploadUrl,
         bundleContent

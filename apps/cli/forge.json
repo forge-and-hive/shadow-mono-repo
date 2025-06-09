@@ -85,6 +85,10 @@
     "fixture:download": {
       "path": "src/tasks/fixture/download.ts",
       "handler": "download"
+    },
+    "bundle:zip": {
+      "path": "src/tasks/bundle/zip.ts",
+      "handler": "zip"
     }
   },
   "runners": {}
