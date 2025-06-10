@@ -1,7 +1,7 @@
 // TASK: getPrice
 // Run this task with:
-// shadow-cli task:run stock:getPrice --ticker AAPL
-// shadow-cli task:run stock:getPrice --ticker VOO
+// forge task:run stock:getPrice --ticker AAPL
+// forge task:run stock:getPrice --ticker VOO
 
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
@@ -9,6 +9,8 @@ import { Schema } from '@forgehive/schema'
 const schema = new Schema({
   ticker: Schema.string()
 })
+
+const description = 'Get the price of a stock'
 
 const boundaries = {
   fetchStockPrice: async (ticker: string): Promise<{price:number}> => {
@@ -37,3 +39,5 @@ export const getPrice = createTask(
     }
   }
 )
+
+getPrice.setDescription(description)
