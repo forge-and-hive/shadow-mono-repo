@@ -598,27 +598,21 @@ export const Task = class Task<
     return result as ReturnType<Func>
   }
 
-  handler = async (event: unknown, context?: unknown): Promise<{
+  handler = async (event: unknown, _context?: unknown): Promise<{
     statusCode: number
     body: string
   }> => {
-    console.log('Lambda event:', event)
-    console.log('Lambda context:', context)
-    console.log('Task:', this)
-    console.log('Task safeRun:', this.safeRun)
-
     try {
       // Call the task's safeRun method
-      const eventArgs = (event && typeof event === 'object' && 'args' in event) ? (event as any).args : {}
+      const eventArgs = (event && typeof event === 'object' && 'args' in event) ? (event).args : {}
       const result = await this.safeRun(eventArgs)
-      console.log('Task result:', result)
 
       return {
         statusCode: 200,
         body: JSON.stringify(result)
       }
-    } catch (error) {
-      console.error('Task error:', error)
+    } catch (e: unknown) {
+      const error = e as Error
 
       return {
         statusCode: 500,

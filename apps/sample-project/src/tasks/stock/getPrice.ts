@@ -41,5 +41,3 @@ export const getPrice = createTask(
 )
 
 getPrice.setDescription(description)
-
-console.log('getPrice.handler', getPrice.handler)

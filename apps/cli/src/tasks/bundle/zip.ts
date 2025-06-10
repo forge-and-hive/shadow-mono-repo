@@ -55,12 +55,16 @@ export const zip = createTask(
       throw new Error(`Input file does not exist: ${inputPath}`)
     }
 
-    return new Promise(async (resolve, reject) => {
-      const outStream = await createWriteStream(outputPath)
-      const archive = await createArchiver('zip', {
-        zlib: { level: 9 } // Sets the compression level
-      })
+    // Check if source map exists before creating Promise
+    const mapExists = await fileExists(inputMapPath)
 
+    // Handle async operations outside of Promise constructor
+    const outStream = await createWriteStream(outputPath)
+    const archive = await createArchiver('zip', {
+      zlib: { level: 9 } // Sets the compression level
+    })
+
+    return new Promise((resolve, reject) => {
       archive.on('error', function (err: Error) {
         reject(err)
       })
@@ -93,15 +97,11 @@ export const zip = createTask(
       archive.file(inputPath, { name: 'index.js' })
 
       // Add source map if it exists
-      try {
-        const mapExists = await fileExists(inputMapPath)
-        if (mapExists) {
-          archive.file(inputMapPath, { name: 'index.js.map' })
-        }
-        archive.finalize()
-      } catch (error) {
-        reject(error)
+      if (mapExists) {
+        archive.file(inputMapPath, { name: 'index.js.map' })
       }
+
+      archive.finalize()
     })
   }
 )
