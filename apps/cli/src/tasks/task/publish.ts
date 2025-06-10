@@ -155,6 +155,7 @@ export const publish = createTask(
     const data = {
       ...taskDescriptor,
       taskName: descriptorName,
+      handler: taskDescriptor.handler,
       projectName,
       description,
       schemaDescriptor: JSON.stringify(schemaDescriptor),
@@ -165,7 +166,6 @@ export const publish = createTask(
 
     // Publish metadata to hive api server
     console.log(`Publishing metadata and source code to ${profile.url}...`)
-    console.log('data', data, profile)
     const publishResponse = await publishTask(data, profile)
 
     // Upload zipped bundle using the presigned URL
