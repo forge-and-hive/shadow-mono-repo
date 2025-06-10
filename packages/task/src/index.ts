@@ -126,6 +126,12 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
     executionLog: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>,
     config: ReplayConfig<B>
   ) => Promise<[Awaited<ReturnType<Func>> | null, Error | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
+
+  // Handler method for serverless environments
+  handler: (event: unknown, context?: unknown) => Promise<{
+    statusCode: number
+    body: string
+  }>
 }
 
 // Define a type for the accumulated boundary data
@@ -590,6 +596,38 @@ export const Task = class Task<
     }
 
     return result as ReturnType<Func>
+  }
+
+  handler = async (event: unknown, context?: unknown): Promise<{
+    statusCode: number
+    body: string
+  }> => {
+    console.log('Lambda event:', event)
+    console.log('Lambda context:', context)
+    console.log('Task:', this)
+    console.log('Task safeRun:', this.safeRun)
+
+    try {
+      // Call the task's safeRun method
+      const eventArgs = (event && typeof event === 'object' && 'args' in event) ? (event as any).args : {}
+      const result = await this.safeRun(eventArgs)
+      console.log('Task result:', result)
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify(result)
+      }
+    } catch (error) {
+      console.error('Task error:', error)
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        })
+      }
+    }
   }
 }
 

@@ -165,6 +165,7 @@ export const publish = createTask(
 
     // Publish metadata to hive api server
     console.log(`Publishing metadata and source code to ${profile.url}...`)
+    console.log('data', data, profile)
     const publishResponse = await publishTask(data, profile)
 
     // Upload zipped bundle using the presigned URL
