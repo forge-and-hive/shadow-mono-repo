@@ -677,10 +677,13 @@ export const Task = class Task<
     // eslint-disable-next-line no-console
     console.log('Sending log to Hive:', log)
 
-        return new Promise<void>((resolve) => {
+    return new Promise<void>((resolve) => {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const https = require('https')
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const http = require('http')
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const url = require('url')
 
         const logsUrl = `${host}/api/tasks/log-ingest`
@@ -709,6 +712,7 @@ export const Task = class Task<
 
         const client = parsedUrl.protocol === 'https:' ? https : http
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const req = client.request(options, (res: any) => {
           // eslint-disable-next-line no-console
           console.log('Hive API response status:', res.statusCode)
@@ -717,6 +721,7 @@ export const Task = class Task<
 
           let responseData = ''
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           res.on('data', (chunk: any) => {
             responseData += chunk
           })
