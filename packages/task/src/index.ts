@@ -602,14 +602,50 @@ export const Task = class Task<
     statusCode: number
     body: string
   }> => {
+    const eventArgs = (event && typeof event === 'object' && 'args' in event) ? (event).args : {}
+
+    // Check validation first
+    if (this._schema) {
+      const validation = this._schema.safeParse(eventArgs)
+      if (!validation.success) {
+        const errorDetails = validation.error?.errors.map(err =>
+          `${err.path.join('.')}: ${err.message}`
+        ).join(', ')
+
+        const errorMessage = errorDetails
+          ? `Invalid input on: ${errorDetails}`
+          : 'Invalid input'
+
+        return {
+          statusCode: 422,
+          body: JSON.stringify({
+            error: errorMessage,
+            details: validation.error?.errors
+          })
+        }
+      }
+    }
+
     try {
       // Call the task's safeRun method
-      const eventArgs = (event && typeof event === 'object' && 'args' in event) ? (event).args : {}
-      const result = await this.safeRun(eventArgs)
+      const [outcome, error, log] = await this.safeRun(eventArgs)
+
+      // Send log to Hive if environment variables are present
+      await this._sendToHive(log)
+
+      if (error) {
+        return {
+          statusCode: 500,
+          body: JSON.stringify({
+            error: error.message,
+            stack: error.stack
+          })
+        }
+      }
 
       return {
         statusCode: 200,
-        body: JSON.stringify(result)
+        body: JSON.stringify(outcome)
       }
     } catch (e: unknown) {
       const error = e as Error
@@ -622,6 +658,97 @@ export const Task = class Task<
         })
       }
     }
+  }
+
+  async _sendToHive(log: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>): Promise<void> {
+    const apiKey = process.env.HIVE_API_KEY
+    const apiSecret = process.env.HIVE_API_SECRET
+    const host = process.env.HIVE_HOST
+    const projectName = process.env.HIVE_PROJECT_NAME
+
+
+    // If any required env vars are missing, do nothing
+    if (!apiKey || !apiSecret || !host || !projectName) {
+      // eslint-disable-next-line no-console
+      console.log('Missing required env vars for sending log to Hive:', { apiKey, apiSecret, host, projectName })
+      return
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('Sending log to Hive:', log)
+
+        return new Promise<void>((resolve) => {
+      try {
+        const https = require('https')
+        const http = require('http')
+        const url = require('url')
+
+        const logsUrl = `${host}/api/tasks/log-ingest`
+        // eslint-disable-next-line no-console
+        console.log('logsUrl', logsUrl)
+        const parsedUrl = url.parse(logsUrl)
+        const authToken = `${apiKey}:${apiSecret}`
+
+        const postData = JSON.stringify({
+          projectName,
+          taskName: process.env.HIVE_TASK_NAME || this._fn.name || 'unnamed-task',
+          logItem: JSON.stringify(log)
+        })
+
+        const options = {
+          hostname: parsedUrl.hostname,
+          port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+          path: parsedUrl.path,
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        }
+
+        const client = parsedUrl.protocol === 'https:' ? https : http
+
+        const req = client.request(options, (res: any) => {
+          // eslint-disable-next-line no-console
+          console.log('Hive API response status:', res.statusCode)
+          // eslint-disable-next-line no-console
+          console.log('Hive API response headers:', res.headers)
+
+          let responseData = ''
+
+          res.on('data', (chunk: any) => {
+            responseData += chunk
+          })
+
+          res.on('end', () => {
+            // eslint-disable-next-line no-console
+            console.log('Hive API response body:', responseData)
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              // eslint-disable-next-line no-console
+              console.log('Successfully sent log to Hive')
+            } else {
+              // eslint-disable-next-line no-console
+              console.error('Hive API error - Status:', res.statusCode, 'Body:', responseData)
+            }
+            resolve() // Resolve the promise when request completes
+          })
+        })
+
+        req.on('error', (error: Error) => {
+          // eslint-disable-next-line no-console
+          console.error('Failed to send log to Hive - Request error:', error.message)
+          resolve() // Resolve even on error to not block the handler
+        })
+
+        req.write(postData)
+        req.end()
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to send log to Hive:', error instanceof Error ? error.message : 'Unknown error')
+        resolve() // Resolve even on error to not block the handler
+      }
+    })
   }
 }
 
