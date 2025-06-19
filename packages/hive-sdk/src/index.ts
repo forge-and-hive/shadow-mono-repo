@@ -12,7 +12,7 @@ export class HiveLogClient {
     const host = process.env.HIVE_HOST
 
     if (!apiKey || !apiSecret || !host) {
-      throw new Error('Missing Hive API credentials or host, get them at https://app.forgehive.dev')
+      throw new Error('Missing Hive API credentials or host, get them at https://forgehive.dev')
     }
 
     this.apiKey = apiKey
@@ -27,7 +27,6 @@ export class HiveLogClient {
   async sendLog(taskName: string, logItem: unknown): Promise<boolean> {
     try {
       const logsUrl = `${this.host}/api/tasks/log-ingest`
-      console.log('Sending log:', logsUrl)
 
       const authToken = `${this.apiKey}:${this.apiSecret}`
 
