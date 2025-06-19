@@ -241,4 +241,28 @@ describe('HiveLogClient setQuality', () => {
       )
     })
   })
+
+  describe('silent mode behavior', () => {
+    it('should throw error when credentials are missing', async () => {
+      // Create client without credentials
+      process.env.HIVE_API_KEY = ''
+      process.env.HIVE_API_SECRET = ''
+      process.env.HIVE_HOST = ''
+
+      const silentClient = new HiveLogClient('silent-project')
+
+      const quality: Quality = {
+        score: 8.0,
+        reason: 'Test quality for silent mode',
+        suggestions: 'This should not be processed'
+      }
+
+      await expect(silentClient.setQuality('test-task', 'test-uuid', quality))
+        .rejects
+        .toThrow('Missing Hive API credentials or host, get them at https://forgehive.dev')
+
+      // Verify axios was never called
+      expect(mockedAxios.post).not.toHaveBeenCalled()
+    })
+  })
 })
