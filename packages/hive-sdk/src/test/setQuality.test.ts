@@ -117,8 +117,6 @@ describe('HiveLogClient setQuality', () => {
 
   describe('failed setQuality', () => {
     it('should return false when axios throws an error', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-
       // Mock axios to throw an error
       mockedAxios.post.mockRejectedValueOnce(new Error('Network error'))
 
@@ -131,17 +129,9 @@ describe('HiveLogClient setQuality', () => {
       const result = await client.setQuality('test-task', 'test-uuid', quality)
 
       expect(result).toBe(false)
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to set quality in Hive:',
-        'Network error'
-      )
-
-      consoleSpy.mockRestore()
     })
 
     it('should return false when server returns 404', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-
       // Mock axios to throw a 404 error
       const notFoundError = new Error('Request failed with status code 404')
       mockedAxios.post.mockRejectedValueOnce(notFoundError)
@@ -155,17 +145,9 @@ describe('HiveLogClient setQuality', () => {
       const result = await client.setQuality('non-existent-task', 'non-existent-uuid', quality)
 
       expect(result).toBe(false)
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to set quality in Hive:',
-        'Request failed with status code 404'
-      )
-
-      consoleSpy.mockRestore()
     })
 
     it('should return false when server returns 500', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-
       // Mock axios to throw a server error
       const serverError = new Error('Internal Server Error')
       mockedAxios.post.mockRejectedValueOnce(serverError)
@@ -179,17 +161,9 @@ describe('HiveLogClient setQuality', () => {
       const result = await client.setQuality('test-task', 'test-uuid', quality)
 
       expect(result).toBe(false)
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to set quality in Hive:',
-        'Internal Server Error'
-      )
-
-      consoleSpy.mockRestore()
     })
 
     it('should return false when unauthorized', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-
       // Mock axios to throw an unauthorized error
       const unauthorizedError = new Error('Request failed with status code 401')
       mockedAxios.post.mockRejectedValueOnce(unauthorizedError)
@@ -203,12 +177,6 @@ describe('HiveLogClient setQuality', () => {
       const result = await client.setQuality('test-task', 'test-uuid', quality)
 
       expect(result).toBe(false)
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to set quality in Hive:',
-        'Request failed with status code 401'
-      )
-
-      consoleSpy.mockRestore()
     })
   })
 

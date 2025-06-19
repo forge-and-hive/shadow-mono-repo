@@ -98,27 +98,17 @@ describe('HiveLogClient getLog', () => {
     })
   })
 
-  describe('failed getLog', () => {
+    describe('failed getLog', () => {
     it('should return null when axios throws an error', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-
       // Mock axios to throw an error
       mockedAxios.get.mockRejectedValueOnce(new Error('Network error'))
 
       const result = await client.getLog('test-task', 'test-uuid')
 
       expect(result).toBeNull()
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to fetch log from Hive:',
-        'Network error'
-      )
-
-      consoleSpy.mockRestore()
     })
 
     it('should return null when server returns 404', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-
       // Mock axios to throw a 404 error
       const notFoundError = new Error('Request failed with status code 404')
       mockedAxios.get.mockRejectedValueOnce(notFoundError)
@@ -126,17 +116,9 @@ describe('HiveLogClient getLog', () => {
       const result = await client.getLog('test-task', 'non-existent-uuid')
 
       expect(result).toBeNull()
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to fetch log from Hive:',
-        'Request failed with status code 404'
-      )
-
-      consoleSpy.mockRestore()
     })
 
     it('should return null when server returns 500', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-
       // Mock axios to throw a server error
       const serverError = new Error('Server Error')
       mockedAxios.get.mockRejectedValueOnce(serverError)
@@ -144,12 +126,6 @@ describe('HiveLogClient getLog', () => {
       const result = await client.getLog('test-task', 'test-uuid')
 
       expect(result).toBeNull()
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to fetch log from Hive:',
-        'Server Error'
-      )
-
-      consoleSpy.mockRestore()
     })
   })
 

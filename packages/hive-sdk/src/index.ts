@@ -1,4 +1,7 @@
 import axios from 'axios'
+import debug from 'debug'
+
+const log = debug('hive-sdk')
 
 // API Response Types
 export interface LogApiResponse {
@@ -55,13 +58,13 @@ export class HiveLogClient {
     this.host = host
     this.projectName = projectName
 
-    // eslint-disable-next-line no-console
-    console.log('HiveLogClient initialized', host, projectName)
+    log('HiveLogClient initialized for project "%s" with host "%s"', projectName, host)
   }
 
   async sendLog(taskName: string, logItem: unknown): Promise<boolean> {
     try {
       const logsUrl = `${this.host}/api/tasks/log-ingest`
+      log('Sending log for task "%s" to %s', taskName, logsUrl)
 
       const authToken = `${this.apiKey}:${this.apiSecret}`
 
@@ -76,11 +79,11 @@ export class HiveLogClient {
         }
       })
 
+      log('Success: Sent log for task "%s"', taskName)
       return true
     } catch (e) {
       const error = e as Error
-      // eslint-disable-next-line no-console
-      console.error('Failed to send log to Hive:', error.message)
+      log('Error: Failed to send log for task "%s": %s', taskName, error.message)
       return false
     }
   }
@@ -88,6 +91,7 @@ export class HiveLogClient {
   async getLog(taskName: string, uuid: string): Promise<LogApiResult | null> {
     try {
       const logUrl = `${this.host}/api/tasks/${taskName}/logs/${uuid}`
+      log('Fetching log for task "%s" with uuid "%s" from %s', taskName, uuid, logUrl)
 
       const authToken = `${this.apiKey}:${this.apiSecret}`
 
@@ -98,11 +102,11 @@ export class HiveLogClient {
         }
       })
 
+      log('Success: Fetched log for task "%s" with uuid "%s"', taskName, uuid)
       return response.data as LogApiResult
     } catch (e) {
       const error = e as Error
-      // eslint-disable-next-line no-console
-      console.error('Failed to fetch log from Hive:', error.message)
+      log('Error: Failed to fetch log for task "%s" with uuid "%s": %s', taskName, uuid, error.message)
       return null
     }
   }
@@ -110,6 +114,7 @@ export class HiveLogClient {
   async setQuality(taskName: string, uuid: string, quality: Quality): Promise<boolean> {
     try {
       const qualityUrl = `${this.host}/api/tasks/${taskName}/logs/${uuid}/set-quality`
+      log('Setting quality for task "%s" with uuid "%s" (score: %d) to %s', taskName, uuid, quality.score, qualityUrl)
 
       const authToken = `${this.apiKey}:${this.apiSecret}`
 
@@ -122,16 +127,17 @@ export class HiveLogClient {
         }
       })
 
+      log('Success: Set quality for task "%s" with uuid "%s" (score: %d)', taskName, uuid, quality.score)
       return true
     } catch (e) {
       const error = e as Error
-      // eslint-disable-next-line no-console
-      console.error('Failed to set quality in Hive:', error.message)
+      log('Error: Failed to set quality for task "%s" with uuid "%s": %s', taskName, uuid, error.message)
       return false
     }
   }
 }
 
 export const createHiveLogClient = (projectName: string): HiveLogClient => {
+  log('Creating HiveLogClient for project "%s"', projectName)
   return new HiveLogClient(projectName)
 }

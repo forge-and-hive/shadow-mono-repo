@@ -89,8 +89,6 @@ describe('HiveLogClient sendLog', () => {
 
   describe('failed sendLog', () => {
     it('should return false when axios throws an error', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-
       // Mock axios to throw an error
       mockedAxios.post.mockRejectedValueOnce(new Error('Network error'))
 
@@ -98,17 +96,9 @@ describe('HiveLogClient sendLog', () => {
       const result = await client.sendLog('test-task', logItem)
 
       expect(result).toBe(false)
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to send log to Hive:',
-        'Network error'
-      )
-
-      consoleSpy.mockRestore()
     })
 
     it('should return false when server returns 500', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation()
-
       // Mock axios to throw a server error
       const serverError = new Error('Server Error')
       mockedAxios.post.mockRejectedValueOnce(serverError)
@@ -116,12 +106,6 @@ describe('HiveLogClient sendLog', () => {
       const result = await client.sendLog('test-task', { input: 'test' })
 
       expect(result).toBe(false)
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to send log to Hive:',
-        'Server Error'
-      )
-
-      consoleSpy.mockRestore()
     })
   })
 
