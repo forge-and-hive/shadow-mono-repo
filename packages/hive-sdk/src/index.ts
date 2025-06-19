@@ -31,8 +31,8 @@ export interface Quality {
 }
 
 // Type guard to check if response is an error
-export function isApiError(response: any): response is ApiError {
-  return response && typeof response === 'object' && 'error' in response
+export function isApiError(response: unknown): response is ApiError {
+  return response !== null && typeof response === 'object' && 'error' in response
 }
 
 export class HiveLogClient {
