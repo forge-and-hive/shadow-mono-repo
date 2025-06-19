@@ -38,12 +38,30 @@ const hiveLogger = createHiveLogClient('Personal Knowledge Management System')
 
 ## API Methods
 
-### `sendLog(taskName: string, logItem: unknown): Promise<boolean>`
+### `isActive(): boolean`
+
+Check if the client is properly initialized with credentials.
+
+```typescript
+const hiveLogger = createHiveLogClient('My Project')
+
+if (hiveLogger.isActive()) {
+  console.log('Client is initialized with credentials')
+  // Safe to call getLog and setQuality without try/catch
+} else {
+  console.log('Client is in silent mode')
+  // Only sendLog will work (returns 'silent')
+}
+```
+
+**Returns:** `boolean` - `true` if credentials are available, `false` if in silent mode
+
+### `sendLog(taskName: string, logItem: unknown): Promise<'success' | 'error' | 'silent'>`
 
 Sends a log entry to Hive for a specific task.
 
 ```typescript
-const success = await hiveLogger.sendLog('user-authentication', {
+const status = await hiveLogger.sendLog('user-authentication', {
   input: { username: 'john_doe', timestamp: Date.now() },
   output: { success: true, userId: 12345 },
   boundaries: {
@@ -57,10 +75,16 @@ const success = await hiveLogger.sendLog('user-authentication', {
   }
 })
 
-if (success) {
-  console.log('Log sent successfully')
-} else {
-  console.error('Failed to send log')
+switch (status) {
+  case 'success':
+    console.log('Log sent successfully')
+    break
+  case 'error':
+    console.error('Failed to send log - network or API error')
+    break
+  case 'silent':
+    console.log('Running in silent mode - no credentials configured')
+    break
 }
 ```
 
@@ -68,21 +92,25 @@ if (success) {
 - `taskName`: Name of the task being logged
 - `logItem`: Object containing input, output, error, and boundaries data
 
-**Returns:** `Promise<boolean>` - `true` if successful, `false` if failed
+**Returns:** `Promise<'success' | 'error' | 'silent'>` - Status of the operation
 
 ### `getLog(taskName: string, uuid: string): Promise<LogApiResult | null>`
 
 Retrieves a specific log entry from Hive.
 
 ```typescript
-const logData = await hiveLogger.getLog('user-authentication', 'log-uuid-123')
+try {
+  const logData = await hiveLogger.getLog('user-authentication', 'log-uuid-123')
 
-if (logData && !isApiError(logData)) {
-  console.log('Log retrieved:', logData.logItem)
-} else if (logData && isApiError(logData)) {
-  console.error('API Error:', logData.error)
-} else {
-  console.error('Failed to retrieve log')
+  if (logData && !isApiError(logData)) {
+    console.log('Log retrieved:', logData.logItem)
+  } else if (logData && isApiError(logData)) {
+    console.error('API Error:', logData.error)
+  } else {
+    console.error('Failed to retrieve log')
+  }
+} catch (error) {
+  console.error('Missing credentials:', error.message)
 }
 ```
 
@@ -91,6 +119,7 @@ if (logData && !isApiError(logData)) {
 - `uuid`: Unique identifier of the log entry
 
 **Returns:** `Promise<LogApiResult | null>` - Log data, error object, or `null` if failed
+**Throws:** Error when credentials are missing
 
 ### `setQuality(taskName: string, uuid: string, quality: Quality): Promise<boolean>`
 
@@ -105,12 +134,16 @@ const quality: Quality = {
   suggestions: 'Consider optimizing the database query for better performance'
 }
 
-const success = await hiveLogger.setQuality('user-authentication', 'log-uuid-123', quality)
+try {
+  const success = await hiveLogger.setQuality('user-authentication', 'log-uuid-123', quality)
 
-if (success) {
-  console.log('Quality assessment saved')
-} else {
-  console.error('Failed to save quality assessment')
+  if (success) {
+    console.log('Quality assessment saved')
+  } else {
+    console.error('Failed to save quality assessment')
+  }
+} catch (error) {
+  console.error('Missing credentials:', error.message)
 }
 ```
 
@@ -120,6 +153,7 @@ if (success) {
 - `quality`: Quality assessment object with score (number), reason (string), and suggestions (string)
 
 **Returns:** `Promise<boolean>` - `true` if successful, `false` if failed
+**Throws:** Error when credentials are missing
 
 ## Types
 
@@ -195,10 +229,19 @@ DEBUG=hive-sdk,express:* node your-app.js
 When debugging is enabled, you'll see detailed logs like:
 
 ```
+# Normal mode (with credentials)
 hive-sdk Creating HiveLogClient for project "Personal Knowledge Management System" +0ms
 hive-sdk HiveLogClient initialized for project "Personal Knowledge Management System" with host "https://your-hive-instance.com" +2ms
 hive-sdk Sending log for task "user-authentication" to https://your-hive-instance.com/api/tasks/log-ingest +100ms
 hive-sdk Success: Sent log for task "user-authentication" +250ms
+
+# Silent mode (missing credentials)
+hive-sdk Creating HiveLogClient for project "Personal Knowledge Management System" +0ms
+hive-sdk HiveLogClient in silent mode for project "Personal Knowledge Management System" - missing credentials (get them at https://forgehive.dev) +2ms
+hive-sdk Silent mode: Skipping sendLog for task "user-authentication" - client not initialized +100ms
+hive-sdk Error: getLog for task "user-task" with uuid "some-uuid" - missing credentials +150ms
+
+# Error handling
 hive-sdk Error: Failed to send log for task "another-task": Network timeout +300ms
 ```
 
@@ -206,23 +249,53 @@ hive-sdk Error: Failed to send log for task "another-task": Network timeout +300
 
 The SDK handles errors gracefully:
 
-- **Network errors**: Logged via debug, methods return `false` or `null`
-- **Authentication errors**: Logged via debug, methods return `false` or `null`
+- **Network errors**: Logged via debug, methods return `'error'` or `false`
+- **Authentication errors**: Logged via debug, methods return `'error'` or `false`
 - **API errors**: Returned as `ApiError` objects (for `getLog`) or logged via debug (for other methods)
-- **Missing credentials**: Throws an error during client initialization
+- **Missing credentials**:
+  - `sendLog`: Returns `'silent'` (no errors thrown)
+  - `getLog` and `setQuality`: Throw errors
 
 ```typescript
-try {
-  const hiveLogger = createHiveLogClient('My Project')
+// sendLog works even without credentials (returns 'silent')
+const hiveLogger = createHiveLogClient('My Project')
 
-  const success = await hiveLogger.sendLog('task-name', { data: 'example' })
-  if (!success) {
-    // Handle failed log sending
-    console.error('Log sending failed')
-  }
+const status = await hiveLogger.sendLog('task-name', { data: 'example' })
+if (status === 'error') {
+  console.error('Network or API error')
+} else if (status === 'silent') {
+  console.log('Running in silent mode - no credentials')
+}
+```
+
+### Error Handling Patterns
+
+**Check credentials before API calls:**
+```typescript
+const hiveLogger = createHiveLogClient('My Project')
+
+if (hiveLogger.isActive()) {
+  // Safe to use all methods
+  const logData = await hiveLogger.getLog('task', 'uuid')
+  await hiveLogger.setQuality('task', 'uuid', quality)
+} else {
+  console.log('Running in silent mode')
+}
+```
+
+**sendLog** - Returns status strings (never throws):
+```typescript
+const status = await hiveLogger.sendLog('task', { data: 'test' })
+// Returns: 'success', 'error', or 'silent'
+```
+
+**getLog and setQuality** - Throw errors when credentials missing:
+```typescript
+try {
+  await hiveLogger.getLog('task', 'uuid')
+  await hiveLogger.setQuality('task', 'uuid', quality)
 } catch (error) {
-  // Handle initialization errors (missing credentials)
-  console.error('Failed to initialize Hive client:', error.message)
+  console.error('Missing credentials:', error.message)
 }
 ```
 
@@ -252,23 +325,27 @@ async function main() {
     }
   }
 
-  const sent = await hiveLogger.sendLog('document-search', logData)
-  console.log('Log sent:', sent)
+  const status = await hiveLogger.sendLog('document-search', logData)
+  console.log('Log status:', status)
 
-  // Retrieve a log
-  const retrievedLog = await hiveLogger.getLog('document-search', 'some-uuid')
-  if (retrievedLog && !isApiError(retrievedLog)) {
-    console.log('Retrieved log:', retrievedLog.logItem)
+    // Retrieve a log
+  try {
+    const retrievedLog = await hiveLogger.getLog('document-search', 'some-uuid')
+    if (retrievedLog && !isApiError(retrievedLog)) {
+      console.log('Retrieved log:', retrievedLog.logItem)
 
-    // Set quality assessment
-    const quality: Quality = {
-      score: 9.0,
-      reason: 'Excellent search results with high relevance',
-      suggestions: 'Consider adding result ranking by publication date'
+      // Set quality assessment
+      const quality: Quality = {
+        score: 9.0,
+        reason: 'Excellent search results with high relevance',
+        suggestions: 'Consider adding result ranking by publication date'
+      }
+
+      const qualitySet = await hiveLogger.setQuality('document-search', retrievedLog.uuid, quality)
+      console.log('Quality assessment saved:', qualitySet)
     }
-
-    const qualitySet = await hiveLogger.setQuality('document-search', retrievedLog.uuid, quality)
-    console.log('Quality assessment saved:', qualitySet)
+  } catch (error) {
+    console.error('Missing credentials for getLog/setQuality:', error.message)
   }
 }
 

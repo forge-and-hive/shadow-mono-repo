@@ -98,7 +98,7 @@ describe('HiveLogClient getLog', () => {
     })
   })
 
-    describe('failed getLog', () => {
+  describe('failed getLog', () => {
     it('should return null when axios throws an error', async () => {
       // Mock axios to throw an error
       mockedAxios.get.mockRejectedValueOnce(new Error('Network error'))

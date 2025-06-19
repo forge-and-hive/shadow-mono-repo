@@ -37,7 +37,7 @@ describe('HiveLogClient sendLog', () => {
       const logItem = { input: 'test-input', output: 'test-output' }
       const result = await client.sendLog('test-task', logItem)
 
-      expect(result).toBe(true)
+      expect(result).toBe('success')
       expect(mockedAxios.post).toHaveBeenCalledTimes(1)
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'https://test-host.com/api/tasks/log-ingest',
@@ -69,7 +69,7 @@ describe('HiveLogClient sendLog', () => {
 
       const result = await client.sendLog('complex-task', complexLogItem)
 
-      expect(result).toBe(true)
+      expect(result).toBe('success')
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'https://test-host.com/api/tasks/log-ingest',
         {
@@ -95,7 +95,7 @@ describe('HiveLogClient sendLog', () => {
       const logItem = { input: 'test-input' }
       const result = await client.sendLog('test-task', logItem)
 
-      expect(result).toBe(false)
+      expect(result).toBe('error')
     })
 
     it('should return false when server returns 500', async () => {
@@ -105,7 +105,7 @@ describe('HiveLogClient sendLog', () => {
 
       const result = await client.sendLog('test-task', { input: 'test' })
 
-      expect(result).toBe(false)
+      expect(result).toBe('error')
     })
   })
 
@@ -115,7 +115,7 @@ describe('HiveLogClient sendLog', () => {
 
       const result = await client.sendLog('empty-task', {})
 
-      expect(result).toBe(true)
+      expect(result).toBe('success')
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'https://test-host.com/api/tasks/log-ingest',
         {
@@ -133,7 +133,7 @@ describe('HiveLogClient sendLog', () => {
       const logItem = { input: null, output: undefined, error: 'some error' }
       const result = await client.sendLog('null-task', logItem)
 
-      expect(result).toBe(true)
+      expect(result).toBe('success')
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'https://test-host.com/api/tasks/log-ingest',
         {

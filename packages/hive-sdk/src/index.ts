@@ -39,29 +39,44 @@ export function isApiError(response: unknown): response is ApiError {
 }
 
 export class HiveLogClient {
-  private apiKey: string
-  private apiSecret: string
-  private host: string
+  private apiKey: string | null
+  private apiSecret: string | null
+  private host: string | null
   private projectName: string
+  private isInitialized: boolean
 
   constructor(projectName: string) {
     const apiKey = process.env.HIVE_API_KEY
     const apiSecret = process.env.HIVE_API_SECRET
     const host = process.env.HIVE_HOST
 
-    if (!apiKey || !apiSecret || !host) {
-      throw new Error('Missing Hive API credentials or host, get them at https://forgehive.dev')
-    }
-
-    this.apiKey = apiKey
-    this.apiSecret = apiSecret
-    this.host = host
     this.projectName = projectName
 
-    log('HiveLogClient initialized for project "%s" with host "%s"', projectName, host)
+    if (!apiKey || !apiSecret || !host) {
+      this.apiKey = null
+      this.apiSecret = null
+      this.host = null
+      this.isInitialized = false
+      log('HiveLogClient in silent mode for project "%s" - missing credentials (get them at https://forgehive.dev)', projectName)
+    } else {
+      this.apiKey = apiKey
+      this.apiSecret = apiSecret
+      this.host = host
+      this.isInitialized = true
+      log('HiveLogClient initialized for project "%s" with host "%s"', projectName, host)
+    }
   }
 
-  async sendLog(taskName: string, logItem: unknown): Promise<boolean> {
+  isActive(): boolean {
+    return this.isInitialized
+  }
+
+  async sendLog(taskName: string, logItem: unknown): Promise<'success' | 'error' | 'silent'> {
+    if (!this.isInitialized) {
+      log('Silent mode: Skipping sendLog for task "%s" - client not initialized', taskName)
+      return 'silent'
+    }
+
     try {
       const logsUrl = `${this.host}/api/tasks/log-ingest`
       log('Sending log for task "%s" to %s', taskName, logsUrl)
@@ -80,15 +95,20 @@ export class HiveLogClient {
       })
 
       log('Success: Sent log for task "%s"', taskName)
-      return true
+      return 'success'
     } catch (e) {
       const error = e as Error
       log('Error: Failed to send log for task "%s": %s', taskName, error.message)
-      return false
+      return 'error'
     }
   }
 
   async getLog(taskName: string, uuid: string): Promise<LogApiResult | null> {
+    if (!this.isInitialized) {
+      log('Error: getLog for task "%s" with uuid "%s" - missing credentials', taskName, uuid)
+      throw new Error('Missing Hive API credentials or host, get them at https://forgehive.dev')
+    }
+
     try {
       const logUrl = `${this.host}/api/tasks/${taskName}/logs/${uuid}`
       log('Fetching log for task "%s" with uuid "%s" from %s', taskName, uuid, logUrl)
@@ -112,6 +132,11 @@ export class HiveLogClient {
   }
 
   async setQuality(taskName: string, uuid: string, quality: Quality): Promise<boolean> {
+    if (!this.isInitialized) {
+      log('Error: setQuality for task "%s" with uuid "%s" - missing credentials', taskName, uuid)
+      throw new Error('Missing Hive API credentials or host, get them at https://forgehive.dev')
+    }
+
     try {
       const qualityUrl = `${this.host}/api/tasks/${taskName}/logs/${uuid}/set-quality`
       log('Setting quality for task "%s" with uuid "%s" (score: %d) to %s', taskName, uuid, quality.score, qualityUrl)
