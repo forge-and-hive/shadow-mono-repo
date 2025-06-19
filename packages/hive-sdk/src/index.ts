@@ -23,6 +23,13 @@ export interface LogApiSuccess extends LogApiResponse {}
 
 export type LogApiResult = LogApiSuccess | ApiError
 
+// Quality interface for setQuality method
+export interface Quality {
+  score: number
+  reason: string
+  suggestions: string
+}
+
 // Type guard to check if response is an error
 export function isApiError(response: any): response is ApiError {
   return response && typeof response === 'object' && 'error' in response
@@ -97,6 +104,30 @@ export class HiveLogClient {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch log from Hive:', error.message)
       return null
+    }
+  }
+
+  async setQuality(taskName: string, uuid: string, quality: Quality): Promise<boolean> {
+    try {
+      const qualityUrl = `${this.host}/api/tasks/${taskName}/logs/${uuid}/set-quality`
+
+      const authToken = `${this.apiKey}:${this.apiSecret}`
+
+      await axios.post(qualityUrl, {
+        quality
+      }, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      return true
+    } catch (e) {
+      const error = e as Error
+      // eslint-disable-next-line no-console
+      console.error('Failed to set quality in Hive:', error.message)
+      return false
     }
   }
 }
