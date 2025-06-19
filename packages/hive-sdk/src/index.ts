@@ -1,5 +1,33 @@
 import axios from 'axios'
 
+// API Response Types
+export interface LogApiResponse {
+  uuid: string
+  taskName: string
+  projectName: string
+  logItem: {
+    input: unknown
+    output?: unknown
+    error?: unknown
+    boundaries?: Record<string, Array<{ input: unknown; output: unknown, error: unknown }>>
+  }
+  replayFrom?: string
+  createdAt: string
+}
+
+export interface ApiError {
+  error: string
+}
+
+export interface LogApiSuccess extends LogApiResponse {}
+
+export type LogApiResult = LogApiSuccess | ApiError
+
+// Type guard to check if response is an error
+export function isApiError(response: any): response is ApiError {
+  return response && typeof response === 'object' && 'error' in response
+}
+
 export class HiveLogClient {
   private apiKey: string
   private apiSecret: string
@@ -47,6 +75,28 @@ export class HiveLogClient {
       // eslint-disable-next-line no-console
       console.error('Failed to send log to Hive:', error.message)
       return false
+    }
+  }
+
+  async getLog(taskName: string, uuid: string): Promise<LogApiResult | null> {
+    try {
+      const logUrl = `${this.host}/api/tasks/${taskName}/logs/${uuid}`
+
+      const authToken = `${this.apiKey}:${this.apiSecret}`
+
+      const response = await axios.get(logUrl, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      return response.data as LogApiResult
+    } catch (e) {
+      const error = e as Error
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch log from Hive:', error.message)
+      return null
     }
   }
 }
