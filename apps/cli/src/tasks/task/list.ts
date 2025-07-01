@@ -45,6 +45,10 @@ export const list = createTask(
       console.log(`• ${paddedName} - ${task.path}`)
     })
 
+    console.log('===============================================')
+    console.log('Total tasks: ', taskNames.length)
+    console.log('===============================================')
+
     return {
       taskCount: taskNames.length
     }
