@@ -12,13 +12,15 @@ import { info } from './tasks/conf/info'
 import { createTaskCommand } from './tasks/task/createTask'
 import { run as taskRunCommand } from './tasks/task/run'
 import { remove as taskRemoveCommand } from './tasks/task/remove'
+import { publish as publishTask } from './tasks/task/publish'
+import { download as downloadTask } from './tasks/task/download'
+import { replay as replayTask } from './tasks/task/replay'
+import { list as listTasks } from './tasks/task/list'
+import { describe as describeTask } from './tasks/task/describe'
 
 import { create as createRunner } from './tasks/runner/create'
 import { remove as removeRunner } from './tasks/runner/remove'
 import { bundle as bundleRunner } from './tasks/runner/bundle'
-import { publish as publishTask } from './tasks/task/publish'
-import { download as downloadTask } from './tasks/task/download'
-import { replay as replayTask } from './tasks/task/replay'
 
 import { download as downloadFixture } from './tasks/fixture/download'
 
@@ -52,6 +54,8 @@ runner.load('task:remove', taskRemoveCommand)
 runner.load('task:publish', publishTask)
 runner.load('task:download', downloadTask)
 runner.load('task:replay', replayTask)
+runner.load('task:list', listTasks)
+runner.load('task:describe', describeTask)
 
 // Runner commands
 runner.load('runner:create', createRunner)
@@ -85,11 +89,10 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
   try {
     let result
 
-    const commandsWithDescriptor = ['task:create', 'task:remove', 'task:publish']
+    const commandsWithDescriptor = ['task:create', 'task:remove', 'task:publish', 'task:describe']
     const commandsWithRunner = ['runner:create', 'runner:remove']
 
     if (commandsWithDescriptor.includes(taskName)) {
-      console.log('Running:', taskName, action)
       result = await task.run({ descriptorName: action })
     } else if (commandsWithRunner.includes(taskName)) {
       result = await task.run({
@@ -145,6 +148,10 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
       })
     } else {
       result = await task.run(args)
+    }
+
+    if (taskName === 'task:describe' || taskName === 'task:list') {
+      silent = true
     }
 
     return {

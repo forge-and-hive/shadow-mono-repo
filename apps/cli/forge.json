@@ -89,6 +89,14 @@
     "bundle:zip": {
       "path": "src/tasks/bundle/zip.ts",
       "handler": "zip"
+    },
+    "task:list": {
+      "path": "src/tasks/task/list.ts",
+      "handler": "list"
+    },
+    "task:describe": {
+      "path": "src/tasks/task/describe.ts",
+      "handler": "describe"
     }
   },
   "runners": {}
