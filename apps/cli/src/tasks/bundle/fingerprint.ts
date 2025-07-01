@@ -4,10 +4,10 @@
 
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
-import * as esbuild from 'esbuild'
-import * as fs from 'fs/promises'
-import * as path from 'path'
-import * as os from 'os'
+import esbuild from 'esbuild'
+import fs from 'fs/promises'
+import path from 'path'
+import os from 'os'
 
 import { load as loadConf } from '../conf/load'
 import { analyzeTaskFile, TaskFingerprintOutput } from '../../utils/taskAnalysis'
@@ -20,16 +20,14 @@ interface TaskFingerprint {
     line: number
     column: number
   }
-  inputSchema: {
-    type: string
-    properties: Record<string, any>
-  }
-  outputType: {
-    type: string
-    properties?: Record<string, any>
-  }
+  inputSchema: TaskFingerprintOutput['inputSchema']
+  outputType: TaskFingerprintOutput['outputType']
   boundaries: string[]
   hash: string
+}
+
+interface EsbuildResultWithFingerprints extends esbuild.BuildResult {
+  fingerprints?: TaskFingerprint[]
 }
 
 interface FingerprintResult {
@@ -76,7 +74,7 @@ const boundaries = {
 function taskFingerprintPlugin(): esbuild.Plugin {
   return {
     name: 'task-fingerprint',
-    setup(build) {
+    setup(build): void {
       const fingerprints: TaskFingerprint[] = []
 
       build.onLoad({ filter: /\.ts$/ }, async (args) => {
@@ -107,9 +105,9 @@ function taskFingerprintPlugin(): esbuild.Plugin {
         return null // Let esbuild handle the file normally
       })
 
-      build.onEnd((result) => {
+      build.onEnd((result): void => {
         // Store fingerprints for later use
-        (result as any).fingerprints = fingerprints
+        (result as EsbuildResultWithFingerprints).fingerprints = fingerprints
       })
     }
   }
@@ -172,7 +170,7 @@ export const fingerprint = createTask(
     })
 
     // Extract fingerprints from build result
-    const taskFingerprints = (result as any).fingerprints || []
+    const taskFingerprints = (result as EsbuildResultWithFingerprints).fingerprints || []
 
     // Convert to simplified output format (remove name, location, hash)
     const simplifiedFingerprints: TaskFingerprintOutput[] = taskFingerprints.map((fp: TaskFingerprint) => ({

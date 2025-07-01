@@ -4,9 +4,9 @@
 
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
-import * as fs from 'fs/promises'
-import * as path from 'path'
-import * as os from 'os'
+import fs from 'fs/promises'
+import path from 'path'
+import os from 'os'
 
 import { load as loadConf } from '../conf/load'
 import { analyzeTaskFile, TaskFingerprintOutput } from '../../utils/taskAnalysis'

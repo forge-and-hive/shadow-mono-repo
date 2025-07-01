@@ -14,6 +14,10 @@
     "bucket": ""
   },
   "tasks": {
+    "task:createTask": {
+      "path": "src/tasks/task/createTask.ts",
+      "handler": "createTask"
+    },
     "bundle:create": {
       "path": "src/tasks/bundle/create.ts",
       "handler": "create"

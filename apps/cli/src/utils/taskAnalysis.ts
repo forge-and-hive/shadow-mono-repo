@@ -1,21 +1,33 @@
 import * as ts from 'typescript'
 
+interface TaskLocation {
+  file: string
+  line: number
+  column: number
+}
+
+interface SchemaProperty {
+  type: string
+  optional?: boolean
+  default?: string
+}
+
+interface InputSchema {
+  type: string
+  properties: Record<string, SchemaProperty>
+}
+
+interface OutputType {
+  type: string
+  properties?: Record<string, SchemaProperty>
+}
+
 interface TaskFingerprint {
   name: string
   description?: string
-  location: {
-    file: string
-    line: number
-    column: number
-  }
-  inputSchema: {
-    type: string
-    properties: Record<string, any>
-  }
-  outputType: {
-    type: string
-    properties?: Record<string, any>
-  }
+  location: TaskLocation
+  inputSchema: InputSchema
+  outputType: OutputType
   boundaries: string[]
   hash: string
 }
@@ -23,14 +35,8 @@ interface TaskFingerprint {
 // Simplified interface for filesystem output (excludes name, location, hash)
 export interface TaskFingerprintOutput {
   description?: string
-  inputSchema: {
-    type: string
-    properties: Record<string, any>
-  }
-  outputType: {
-    type: string
-    properties?: Record<string, any>
-  }
+  inputSchema: InputSchema
+  outputType: OutputType
   boundaries: string[]
 }
 
@@ -59,7 +65,7 @@ function extractTaskFingerprints(sourceCode: string, filePath: string): TaskFing
   let boundariesNode: ts.Expression | null = null
 
   // First pass: find schema and boundaries variable declarations
-  function findVariables(node: ts.Node) {
+  function findVariables(node: ts.Node): void {
     if (ts.isVariableStatement(node)) {
       node.declarationList.declarations.forEach(decl => {
         if (ts.isIdentifier(decl.name)) {
@@ -75,7 +81,7 @@ function extractTaskFingerprints(sourceCode: string, filePath: string): TaskFing
   }
 
   // Second pass: find createTask calls
-  function findCreateTask(node: ts.Node) {
+  function findCreateTask(node: ts.Node): void {
     // Look for createTask calls
     if (ts.isCallExpression(node) &&
         ts.isIdentifier(node.expression) &&
@@ -143,7 +149,7 @@ function analyzeCreateTaskCall(
     const args = node.arguments
 
     // Use pre-found schema or fall back to argument analysis
-    let inputSchema = { type: 'object', properties: {} }
+    let inputSchema: InputSchema = { type: 'object', properties: {} }
     if (schemaNode) {
       inputSchema = analyzeSchemaArg(schemaNode, sourceFile)
     } else if (args[0]) {
@@ -159,7 +165,7 @@ function analyzeCreateTaskCall(
     }
 
     // Extract function output type with better detection
-    let outputType: any = { type: 'unknown' }
+    let outputType: OutputType = { type: 'unknown' }
     const functionArg = args[2]
 
     if (functionArg) {
@@ -198,19 +204,19 @@ function analyzeCreateTaskCall(
 }
 
 // Enhanced return type inference with detailed object analysis
-function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction, _sourceFile: ts.SourceFile): any {
-  let returnType: any = { type: 'unknown' }
+function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction, _sourceFile: ts.SourceFile): OutputType {
+  let returnType: OutputType = { type: 'unknown' }
 
-  function visitReturnStatements(node: ts.Node) {
+  function visitReturnStatements(node: ts.Node): void {
     if (ts.isReturnStatement(node) && node.expression) {
       if (ts.isObjectLiteralExpression(node.expression)) {
         // Analyze object literal properties
-        const properties: Record<string, any> = {}
+        const properties: Record<string, SchemaProperty> = {}
         node.expression.properties.forEach(prop => {
           if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
             // Handle explicit property assignments: { propName: value }
             const propName = prop.name.text
-            let propType = 'any'
+            let propType = 'unknown'
 
             // Try to infer property type from the initializer
             if (ts.isStringLiteral(prop.initializer)) {
@@ -226,7 +232,7 @@ function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction,
               propType = inferTypeFromVariableName(varName)
             } else if (ts.isPropertyAccessExpression(prop.initializer)) {
               // Property access like response.handler
-              propType = 'any'
+              propType = 'unknown'
             }
 
             properties[propName] = { type: propType }
@@ -292,10 +298,10 @@ function inferTypeFromVariableName(varName: string): string {
              varName.includes('options') || varName.includes('Options') ||
              varName.includes('data') || varName.includes('result') ||
              varName.includes('response') || varName.includes('error')) {
-    return 'any'
+    return 'unknown'
   }
 
-  return 'any'
+  return 'unknown'
 }
 
 // Clean up type strings (remove Promise wrappers for boundaries)
@@ -308,7 +314,7 @@ function cleanTypeString(typeString: string): string {
   return typeString
 }
 
-function analyzeSchemaArg(node: ts.Expression, sourceFile: ts.SourceFile): any {
+function analyzeSchemaArg(node: ts.Expression, sourceFile: ts.SourceFile): InputSchema {
   // Handle variable references (e.g., when schema is defined as const schema = ...)
   if (ts.isIdentifier(node) && node.text === 'schema') {
     // This case is now handled by pre-finding the schema node
@@ -319,7 +325,7 @@ function analyzeSchemaArg(node: ts.Expression, sourceFile: ts.SourceFile): any {
   if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'Schema') {
     const arg = node.arguments?.[0]
     if (arg && ts.isObjectLiteralExpression(arg)) {
-      const properties: Record<string, any> = {}
+      const properties: Record<string, SchemaProperty> = {}
       arg.properties.forEach(prop => {
         if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
           const propName = prop.name.text
@@ -334,7 +340,7 @@ function analyzeSchemaArg(node: ts.Expression, sourceFile: ts.SourceFile): any {
 }
 
 // Enhanced schema property analysis
-function analyzeSchemaProp(node: ts.Expression, _sourceFile: ts.SourceFile): any {
+function analyzeSchemaProp(node: ts.Expression, _sourceFile: ts.SourceFile): SchemaProperty {
   // Analyze Schema.string(), Schema.number(), etc.
   if (ts.isCallExpression(node)) {
     if (ts.isPropertyAccessExpression(node.expression) &&
@@ -342,7 +348,7 @@ function analyzeSchemaProp(node: ts.Expression, _sourceFile: ts.SourceFile): any
         node.expression.expression.text === 'Schema') {
 
       const methodName = node.expression.name.text
-      let baseType: any = { type: getSchemaTypeFromMethod(methodName) }
+      let baseType: SchemaProperty = { type: getSchemaTypeFromMethod(methodName) }
 
       // Check for chained methods like .optional() or .default()
       let current = node
