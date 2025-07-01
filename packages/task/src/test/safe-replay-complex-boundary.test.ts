@@ -81,10 +81,11 @@ describe('Complex boundary replay tests', () => {
     })
 
     // Create the portfolio value calculation task
-    calculatePortfolioValue = createTask(
+    calculatePortfolioValue = createTask({
+      name: 'calculatePortfolioValue',
       schema,
       boundaries,
-      async ({ userId }, { fetchPortfolio, fetchPrice }) => {
+      fn: async ({ userId }, { fetchPortfolio, fetchPrice }) => {
         // First fetch the portfolio for the user
         const portfolio = await fetchPortfolio(userId)
 
@@ -114,7 +115,7 @@ describe('Complex boundary replay tests', () => {
           stocks: stocksWithValue
         }
       }
-    )
+    })
   })
 
   it('Should calculate portfolio value using multiple boundaries', async () => {

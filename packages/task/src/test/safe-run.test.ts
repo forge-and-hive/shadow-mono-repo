@@ -15,14 +15,15 @@ describe('Task safeRun tests', () => {
     }
 
     // Create the task
-    const successTask = createTask(
+    const successTask = createTask({
+      name: 'successTask',
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Call safeRun with valid input
     const [result, error, record] = await successTask.safeRun({ value: 5 })
@@ -58,14 +59,15 @@ describe('Task safeRun tests', () => {
     }
 
     // Create the task
-    const errorTask = createTask(
+    const errorTask = createTask({
+      name: 'errorTask',
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Call safeRun with problematic input that will cause an error
     const [result, error, record] = await errorTask.safeRun({ value: -5 })
@@ -101,14 +103,15 @@ describe('Task safeRun tests', () => {
     }
 
     // Create the task
-    const validationTask = createTask(
+    const validationTask = createTask({
+      name: 'validationTask',
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Call safeRun with invalid input that will fail schema validation
     const [result, error, record] = await validationTask.safeRun({ value: 0 })
@@ -142,14 +145,15 @@ describe('Task safeRun tests', () => {
     }
 
     // Create the task
-    const listenerTask = createTask(
+    const listenerTask = createTask({
+      name: 'listenerTask',
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return result
       }
-    )
+    })
 
     // Create a mock listener
     const originalListener = jest.fn()
@@ -206,15 +210,16 @@ describe('Task safeRun tests', () => {
     }
 
     // Create a task that uses multiple boundaries
-    const multiBoundaryTask = createTask(
+    const multiBoundaryTask = createTask({
+      name: 'multiBoundaryTask',
       schema,
       boundaries,
-      async function ({ values }, { doubleValue, sumValues }) {
+      fn: async function ({ values }, { doubleValue, sumValues }) {
         const doubled = await Promise.all(values.map(value => doubleValue(value)))
         const total = await sumValues(doubled)
         return { doubled, total }
       }
-    )
+    })
 
     // Call safeRun
     const [result, error, record] = await multiBoundaryTask.safeRun({ values: [1, 2, 3] })

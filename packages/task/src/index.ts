@@ -35,6 +35,8 @@ export type {
 export { Schema }
 
 export interface TaskConfig<B extends Boundaries = Boundaries> {
+  name?: string
+  description?: string
   schema?: Schema<Record<string, SchemaType>>
   mode?: Mode
   boundaries?: B
@@ -90,6 +92,8 @@ export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B ex
 export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B extends Boundaries = Boundaries> {
   version: string
 
+  getName: () => string | undefined
+  setName: (name: string) => void
   getMode: () => Mode
   setMode: (mode: Mode) => void
   setSchema: (base: Schema<Record<string, SchemaType>>) => void
@@ -155,6 +159,7 @@ export const Task = class Task<
   _fn: Func
   _mode: Mode
   _coolDown: number
+  _name?: string
   _description?: string
 
   _boundariesDefinition: B
@@ -168,6 +173,8 @@ export const Task = class Task<
   _listener?: ((record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void) | undefined
 
   constructor (fn: Func, conf: TaskConfig<B> = {
+    name: undefined,
+    description: undefined,
     schema: undefined,
     mode: 'proxy',
     boundaries: undefined,
@@ -181,6 +188,10 @@ export const Task = class Task<
 
     this._mode = conf.mode ?? 'proxy'
     this._boundariesDefinition = conf.boundaries ?? {} as B
+
+    // Set name and description from config
+    this._name = conf.name
+    this._description = conf.description
 
     this._listener = undefined
 
@@ -206,6 +217,14 @@ export const Task = class Task<
         }
       }
     }
+  }
+
+  getName(): string | undefined {
+    return this._name
+  }
+
+  setName(name: string): void {
+    this._name = name
   }
 
   getMode (): Mode {
@@ -758,11 +777,25 @@ export const Task = class Task<
 }
 
 /**
+ * Configuration object for creating a task
+ */
+export interface CreateTaskConfig<
+  S extends Schema<Record<string, SchemaType>>,
+  B extends Boundaries,
+  R
+> {
+  name?: string
+  description?: string
+  schema: S
+  boundaries: B
+  fn: (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>
+  mode?: Mode
+  boundariesData?: BoundaryTapeData
+}
+
+/**
  * Helper function to create a task with proper type inference
- * @param schema The schema to validate input against
- * @param boundaries The boundaries to use
- * @param fn The task function
- * @param config Additional task configuration
+ * @param config Configuration object containing name, description, schema, boundaries, and function
  * @returns A new Task instance with proper type inference
  */
 export function createTask<
@@ -770,17 +803,19 @@ export function createTask<
   B extends Boundaries,
   R
 >(
-  schema: S,
-  boundaries: B,
-  fn: (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>,
-  config?: Omit<TaskConfig<B>, 'schema' | 'boundaries'>
+  config: CreateTaskConfig<S, B, R>
 ): TaskInstanceType<(argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>, B> {
-  return new Task(
-    fn,
+  const task = new Task(
+    config.fn,
     {
-      schema,
-      boundaries,
-      ...config
+      name: config.name,
+      description: config.description,
+      schema: config.schema,
+      boundaries: config.boundaries,
+      mode: config.mode,
+      boundariesData: config.boundariesData
     }
   )
+
+  return task
 }

@@ -38,17 +38,18 @@ describe('safeReplay functionality tests', () => {
     }
 
     // Create the task using createTask
-    getTickerPrice = createTask(
+    getTickerPrice = createTask({
+      name: 'getTickerPrice',
       schema,
       boundaries,
-      async ({ ticker }, { fetchData }) => {
+      fn: async ({ ticker }, { fetchData }) => {
         const price = await fetchData(ticker)
         return {
           ticker,
           price
         }
       }
-    )
+    })
   })
 
   it('Should replay a previous execution using the execution log and replay the fetchData boundary', async () => {
