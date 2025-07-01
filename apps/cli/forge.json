@@ -97,6 +97,14 @@
     "task:describe": {
       "path": "src/tasks/task/describe.ts",
       "handler": "describe"
+    },
+    "task:fingerprint": {
+      "path": "src/tasks/task/fingerprint.ts",
+      "handler": "fingerprint"
+    },
+    "bundle:fingerprint": {
+      "path": "src/tasks/bundle/fingerprint.ts",
+      "handler": "fingerprint"
     }
   },
   "runners": {}
