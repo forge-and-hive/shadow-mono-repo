@@ -14,6 +14,10 @@
     "bucket": ""
   },
   "tasks": {
+    "task:createTask": {
+      "path": "src/tasks/task/createTask.ts",
+      "handler": "createTask"
+    },
     "bundle:create": {
       "path": "src/tasks/bundle/create.ts",
       "handler": "create"
@@ -97,6 +101,14 @@
     "task:describe": {
       "path": "src/tasks/task/describe.ts",
       "handler": "describe"
+    },
+    "task:fingerprint": {
+      "path": "src/tasks/task/fingerprint.ts",
+      "handler": "fingerprint"
+    },
+    "bundle:fingerprint": {
+      "path": "src/tasks/bundle/fingerprint.ts",
+      "handler": "fingerprint"
     }
   },
   "runners": {}
