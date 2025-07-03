@@ -12,7 +12,7 @@ const expectedContent = `// TASK: newTask
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 
-const name = 'newTask'
+const name = 'sample:newTask'
 const description = 'Add task description here'
 
 const schema = new Schema({

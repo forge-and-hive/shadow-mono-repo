@@ -18,7 +18,7 @@ const TASK_TEMPLATE = `// TASK: {{ taskName }}
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 
-const name = '{{ taskName }}'
+const name = '{{ taskDescriptor }}'
 const description = 'Add task description here'
 
 const schema = new Schema({
@@ -134,6 +134,7 @@ export const createTaskCommand = createTask({
     ==================================================
     Starting task creation!
     Creating: ${taskName}
+    Descriptor: ${descriptor}
     Dir:  ${dir ?? ''}
     Into: ${taskPath}
     ==================================================
