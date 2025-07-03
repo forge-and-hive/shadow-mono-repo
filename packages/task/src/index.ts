@@ -413,11 +413,15 @@ export const Task = class Task<
     }
   }
 
-  async safeRun (argv?: Parameters<Func>[0], metadata?: Record<string, string>): Promise<[
+  async safeRun (argv?: Parameters<Func>[0]): Promise<[
     Awaited<ReturnType<Func>> | null,
     Error | null,
     ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>
   ]> {
+    // Metadata is empty at start. Then will be populated on the task execution
+    // Need to implement that task have a ctx and setMetadata({key, value}) boundary
+    const metadata = {} as Record<string, string>
+
     // Initialize log item (without type initially)
     const logItemBase = {
       input: argv as Parameters<Func>[0],
