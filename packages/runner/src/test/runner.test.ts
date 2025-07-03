@@ -34,7 +34,11 @@ describe('Runner', () => {
   it('should run a task', async () => {
     const schema = new Schema({})
 
-    const task = createTask(schema, {}, async () => 'hi five!!!')
+    const task = createTask({
+      schema,
+      boundaries: {},
+      fn: async () => 'hi five!!!'
+    })
 
     const runner = new Runner()
     runner.load('sample', task)
@@ -49,8 +53,12 @@ describe('Runner', () => {
       int: Schema.number()
     })
 
-    const taskInt = createTask(schema, {}, async ({ int }) => {
-      return int + 5
+    const taskInt = createTask({
+      schema,
+      boundaries: {},
+      fn: async ({ int }) => {
+        return int + 5
+      }
     })
 
     const runner = new Runner()
@@ -70,12 +78,20 @@ describe('Runner', () => {
       str: Schema.string()
     })
 
-    const taskInt = createTask(schema, {}, async ({ int }) => {
-      return int + 5
+    const taskInt = createTask({
+      schema,
+      boundaries: {},
+      fn: async ({ int }) => {
+        return int + 5
+      }
     })
 
-    const taskString = createTask(schema2, {}, async ({ str }) => {
-      return str + ' world'
+    const taskString = createTask({
+      schema: schema2,
+      boundaries: {},
+      fn: async ({ str }) => {
+        return str + ' world'
+      }
     })
 
     const runner = new Runner()
@@ -94,12 +110,20 @@ describe('Runner', () => {
       int: Schema.number()
     })
 
-    const taskInt = createTask(schema, {}, async ({ int }) => {
-      return int + 5
+    const taskInt = createTask({
+      schema,
+      boundaries: {},
+      fn: async ({ int }) => {
+        return int + 5
+      }
     })
 
-    const indentity = createTask(schema, {}, async ({ int }) => {
-      return int + 5
+    const indentity = createTask({
+      schema,
+      boundaries: {},
+      fn: async ({ int }) => {
+        return int + 5
+      }
     })
 
     const runner = new Runner()

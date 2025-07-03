@@ -8,8 +8,12 @@ describe('Runner describe', () => {
       value: Schema.number()
     })
 
-    const task = createTask(schema, {}, async ({ value }) => {
-      return value
+    const task = createTask({
+      schema,
+      boundaries: {},
+      fn: async ({ value }) => {
+        return value
+      }
     })
 
     task.setDescription('A test task that processes numbers')
@@ -34,8 +38,12 @@ describe('Runner describe', () => {
     const runner = new Runner()
     const schema = new Schema({})
 
-    const task = createTask(schema, {}, async () => {
-      return 'test'
+    const task = createTask({
+      schema,
+      boundaries: {},
+      fn: async () => {
+        return 'test'
+      }
     })
 
     runner.load('simpleTask', task)
@@ -58,19 +66,23 @@ describe('Runner describe', () => {
       args: Schema.mixedRecord()
     })
 
-    const runTask = createTask(schema, {}, async () => 'running')
+    const runTask = createTask({
+      schema,
+      boundaries: {},
+      fn: async () => 'running'
+    })
 
     runTask.setDescription('Executes the task')
 
-    const createTaskInstance = createTask(
-      new Schema({
+    const createTaskInstance = createTask({
+      schema: new Schema({
         descriptorName: Schema.string()
       }),
-      {},
-      async ({ descriptorName }) => {
+      boundaries: {},
+      fn: async ({ descriptorName }) => {
         return descriptorName
       }
-    )
+    })
 
     createTaskInstance.setDescription('Creates a new task')
 
