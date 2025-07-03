@@ -12,6 +12,7 @@ const expectedContent = `// TASK: newTask
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 
+const name = 'newTask'
 const description = 'Add task description here'
 
 const schema = new Schema({
@@ -24,10 +25,12 @@ const boundaries = {
   // example: readFile: async (path: string) => fs.readFile(path, 'utf-8')
 }
 
-export const newTask = createTask(
+export const newTask = createTask({
+  name,
+  description,
   schema,
   boundaries,
-  async function (argv, boundaries) {
+  fn: async function (argv, boundaries) {
     console.log('input:', argv)
     console.log('boundaries:', boundaries)
     // Your task implementation goes here
@@ -35,9 +38,8 @@ export const newTask = createTask(
 
     return status
   }
-)
+})
 
-newTask.setDescription(description)
 `
 
 describe('Create task', () => {
