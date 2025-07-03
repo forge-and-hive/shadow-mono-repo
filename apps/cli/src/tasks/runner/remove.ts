@@ -32,10 +32,10 @@ const boundaries = {
   }
 }
 
-export const remove = createTask(
+export const remove = createTask({
   schema,
   boundaries,
-  async function ({ runnerName }, {
+  fn: async function ({ runnerName }, {
     loadConf,
     getCwd,
     removeRunner,
@@ -71,4 +71,4 @@ export const remove = createTask(
       runnerName: formattedName
     }
   }
-)
+})

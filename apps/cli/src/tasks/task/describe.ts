@@ -36,10 +36,10 @@ const boundaries = {
   }
 }
 
-export const describe = createTask(
+export const describe = createTask({
   schema,
   boundaries,
-  async function ({ descriptorName }, {
+  fn: async function ({ descriptorName }, {
     loadConf,
     bundleCreate,
     bundleLoad,
@@ -143,6 +143,6 @@ export const describe = createTask(
       boundaries: taskBoundaries ? Object.keys(taskBoundaries) : []
     }
   }
-)
+})
 
 describe.setDescription(description)

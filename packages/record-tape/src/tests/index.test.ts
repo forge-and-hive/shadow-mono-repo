@@ -59,8 +59,8 @@ describe('Base tests', () => {
     }
 
     const tape = new RecordTape<InputType, OutputType>({ path: emptyPath })
-    tape.addLogItem('test', { input: [{name: 'test'}], output: { age: 1 } })
-    tape.addLogItem('test', { input: [{name: 'test'}], error: new Error('test') })
+    tape.addLogRecord({ name: 'test', input: [{name: 'test'}], output: { age: 1 }, type: 'success', boundaries: {} })
+    tape.addLogRecord({ name: 'test', input: [{name: 'test'}], error: 'test', type: 'error', boundaries: {} })
 
     const data = tape.getLog()
     expect(data.length).toBe(2)
@@ -82,7 +82,7 @@ describe('Base tests', () => {
 
     expect(input2).toEqual([{name: 'test'}])
     expect(output2).toBeUndefined()
-    expect(error2).toEqual(new Error('test'))
+    expect(error2).toEqual('test')
     expect(type2).toBe('error')
   })
 })

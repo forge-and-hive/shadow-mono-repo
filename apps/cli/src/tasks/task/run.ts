@@ -1,6 +1,7 @@
 // TASK: run
 // Run this task with:
-// shadow-cli task:run
+// most recursive call on the project
+// forge task:run task:run
 
 import path from 'path'
 import fs from 'fs/promises'
@@ -78,10 +79,10 @@ const boundaries = {
   }
 }
 
-export const run = createTask(
+export const run = createTask({
   schema,
   boundaries,
-  async function ({ descriptorName, args }, {
+  fn: async function ({ descriptorName, args }, {
     loadConf,
     bundleCreate,
     bundleLoad,
@@ -187,4 +188,4 @@ export const run = createTask(
 
     return result
   }
-)
+})

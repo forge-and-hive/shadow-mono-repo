@@ -1,5 +1,5 @@
 import { createTaskCommand } from '../../tasks/task/createTask'
-import { createFsFromVolume, Volume } from 'memfs'
+import { createFsFromVolume, Volume, type IFs } from 'memfs'
 import path from 'path'
 import { createMockBoundary } from '../testUtils'
 import { ForgeConf } from '../../tasks/types'
@@ -12,6 +12,7 @@ const expectedContent = `// TASK: newTask
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 
+const name = 'sample:newTask'
 const description = 'Add task description here'
 
 const schema = new Schema({
@@ -24,10 +25,12 @@ const boundaries = {
   // example: readFile: async (path: string) => fs.readFile(path, 'utf-8')
 }
 
-export const newTask = createTask(
+export const newTask = createTask({
+  name,
+  description,
   schema,
   boundaries,
-  async function (argv, boundaries) {
+  fn: async function (argv, boundaries) {
     console.log('input:', argv)
     console.log('boundaries:', boundaries)
     // Your task implementation goes here
@@ -35,15 +38,13 @@ export const newTask = createTask(
 
     return status
   }
-)
+})
 
-newTask.setDescription(description)
 `
 
 describe('Create task', () => {
   let volume: InstanceType<typeof Volume>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let fs: any
+  let fs: IFs
   let rootDir: string
 
   beforeEach(() => {
@@ -96,11 +97,10 @@ describe('Create task', () => {
 
     // Read the created task file
     const fileContent = await fs.promises.readFile(path.join(rootDir, 'src/tasks/sample', 'newTask.ts'), 'utf-8')
-
     expect(fileContent).toBe(expectedContent)
 
     // Read the updated forge.json
-    const forgeContent = await fs.promises.readFile(path.join(rootDir, 'forge.json'), 'utf-8')
+    const forgeContent = await fs.promises.readFile(path.join(rootDir, 'forge.json'), 'utf-8') as string
     const forgeConf = JSON.parse(forgeContent)
     expect(forgeConf.tasks['sample:newTask']).toBeDefined()
   })

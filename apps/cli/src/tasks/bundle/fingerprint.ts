@@ -113,10 +113,10 @@ function taskFingerprintPlugin(): esbuild.Plugin {
   }
 }
 
-export const fingerprint = createTask(
+export const fingerprint = createTask({
   schema,
   boundaries,
-  async function ({ descriptorName, filePath }, {
+  fn: async function ({ descriptorName, filePath }, {
     getCwd,
     loadConf,
     readFile,
@@ -213,6 +213,6 @@ export const fingerprint = createTask(
       }
     }
   }
-)
+})
 
 fingerprint.setDescription(description)

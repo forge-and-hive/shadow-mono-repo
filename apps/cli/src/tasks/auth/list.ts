@@ -14,10 +14,10 @@ const boundaries = {
   loadProfiles: loadProfiles.asBoundary()
 }
 
-export const list = createTask(
+export const list = createTask({
   schema,
   boundaries,
-  async function (_argv, { loadProfiles }) {
+  fn: async function (_argv, { loadProfiles }) {
     const profiles: Profiles = await loadProfiles({})
 
     if (profiles.profiles.length === 0) {
@@ -40,4 +40,4 @@ export const list = createTask(
       default: profiles.default
     }
   }
-)
+})

@@ -17,14 +17,15 @@ describe('Task boundary mocking', () => {
     }
 
     // Create the task using createTask
-    const multiplyTask = createTask(
+    const multiplyTask = createTask({
+      name: 'multiplyTask',
       schema,
       boundaries,
-      async function ({ value }, { fetchExternalData }) {
+      fn: async function ({ value }, { fetchExternalData }) {
         const result = value * await fetchExternalData(value)
         return result
       }
-    )
+    })
 
     // Create mock for fetchExternalData boundary that returns a specific value
     const mockFetchData = jest.fn().mockResolvedValue(5)
@@ -71,15 +72,16 @@ describe('Task boundary mocking', () => {
     }
 
     // Create the task
-    const calculateTask = createTask(
+    const calculateTask = createTask({
+      name: 'calculateTask',
       schema,
       boundaries,
-      async function ({ value }, { doubleValue, tripleValue }) {
+      fn: async function ({ value }, { doubleValue, tripleValue }) {
         const doubled = await doubleValue(value)
         const tripled = await tripleValue(value)
         return doubled + tripled
       }
-    )
+    })
 
     // Create wrapped mock functions
     const mockDoubleValue = jest.fn().mockResolvedValue(10)

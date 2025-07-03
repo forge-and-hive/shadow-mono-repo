@@ -90,10 +90,10 @@ const boundaries = {
   }
 }
 
-export const download = createTask(
+export const download = createTask({
   schema,
   boundaries,
-  async function ({ descriptorName, uuid }, {
+  fn: async function ({ descriptorName, uuid }, {
     downloadTask,
     getCwd,
     parseTaskName,
@@ -189,4 +189,4 @@ export const download = createTask(
       handler: response.handler
     }
   }
-)
+})

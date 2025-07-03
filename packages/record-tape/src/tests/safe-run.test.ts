@@ -1,4 +1,4 @@
-import { RecordTape, type LogItem } from '../index'
+import { RecordTape } from '../index'
 import { createTask, Schema, type ExecutionRecord, type TaskRecord } from '@forgehive/task'
 
 describe('RecordTape safeRun integration tests', () => {
@@ -16,14 +16,14 @@ describe('RecordTape safeRun integration tests', () => {
     }
 
     // Create the task
-    const task = createTask(
+    const task = createTask({
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Create a record tape
     const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
@@ -70,14 +70,14 @@ describe('RecordTape safeRun integration tests', () => {
     }
 
     // Create the task
-    const task = createTask(
+    const task = createTask({
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Create a record tape
     const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
@@ -93,8 +93,9 @@ describe('RecordTape safeRun integration tests', () => {
         }))
       }
 
-      // Cast the record to LogItem type to satisfy TypeScript
-      tape.addLogItem('test-task', record as unknown as LogItem<{ value: number }, { result: number; success: boolean }>)
+      // Add the record using push method
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tape.push('test-task', record as any)
     })
 
     // Run the task with safeRun
@@ -120,7 +121,9 @@ describe('RecordTape safeRun integration tests', () => {
           output: 10,
           error: null
         }]
-      }
+      },
+      metadata: {},
+      taskName: undefined
     })
   })
 
@@ -141,14 +144,14 @@ describe('RecordTape safeRun integration tests', () => {
     }
 
     // Create the task
-    const task = createTask(
+    const task = createTask({
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Create a record tape
     const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
@@ -164,8 +167,9 @@ describe('RecordTape safeRun integration tests', () => {
         }))
       }
 
-      // Cast the record to LogItem type to satisfy TypeScript
-      tape.addLogItem('test-task', record as unknown as LogItem<{ value: number }, { result: number; success: boolean }>)
+      // Add the record using push method
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tape.push('test-task', record as any)
     })
 
     // Run the task with safeRun with a value that will cause an error
@@ -192,7 +196,10 @@ describe('RecordTape safeRun integration tests', () => {
           error: 'Value cannot be negative',
           output: null
         }]
-      }
+      },
+      metadata: {},
+      output: undefined,
+      taskName: undefined
     })
   })
 
@@ -213,14 +220,14 @@ describe('RecordTape safeRun integration tests', () => {
     }
 
     // Create the task
-    const task = createTask(
+    const task = createTask({
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Create a record tape
     const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
@@ -255,7 +262,10 @@ describe('RecordTape safeRun integration tests', () => {
           output: null,
           error: 'Value cannot be negative'
         }]
-      }
+      },
+      metadata: {},
+      output: undefined,
+      taskName: undefined
     })
   })
 
@@ -267,6 +277,7 @@ describe('RecordTape safeRun integration tests', () => {
     const customRecord: ExecutionRecord<{ value: number }, { result: number }, { fetchData: (n: number) => Promise<number> }> = {
       input: { value: 10 },
       output: { result: 20 },
+      type: 'success',
       boundaries: {
         fetchData: [
           {
@@ -297,7 +308,7 @@ describe('RecordTape safeRun integration tests', () => {
           error: null
         }]
       },
-      context: undefined
+      metadata: {}
     })
   })
 
@@ -310,6 +321,7 @@ describe('RecordTape safeRun integration tests', () => {
     const promiseRecord: ExecutionRecord<{ value: number }, Promise<{ result: number }>, { fetchData: (n: number) => Promise<number> }> = {
       input: { value: 15 },
       output: promiseResult,
+      type: 'success',
       boundaries: {
         fetchData: [
           {
@@ -339,7 +351,8 @@ describe('RecordTape safeRun integration tests', () => {
           output: 30,
           error: null
         }]
-      }
+      },
+      metadata: {}
     })
   })
 })

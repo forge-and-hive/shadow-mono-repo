@@ -24,10 +24,10 @@ const boundaries = {
   }
 }
 
-export const switchProfile = createTask(
+export const switchProfile = createTask({
   schema,
   boundaries,
-  async function ({ profileName }, { loadProfiles, persistProfiles }) {
+  fn: async function ({ profileName }, { loadProfiles, persistProfiles }) {
     // Load profiles
     const profiles = await loadProfiles({})
 
@@ -50,4 +50,4 @@ export const switchProfile = createTask(
       default: profileName
     }
   }
-)
+})

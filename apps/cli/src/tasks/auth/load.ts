@@ -26,10 +26,10 @@ const boundaries = {
   }
 }
 
-export const load = createTask(
+export const load = createTask({
   schema,
   boundaries,
-  async function (argv, { ensureBuildsFolder }) {
+  fn: async function (argv, { ensureBuildsFolder }) {
     const buildsPath = await ensureBuildsFolder()
 
     let profiles: Profiles = {
@@ -48,4 +48,4 @@ export const load = createTask(
 
     return profiles
   }
-)
+})

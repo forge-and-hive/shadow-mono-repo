@@ -20,10 +20,10 @@ const boundaries = {
 }
 
 // Create a task with type inference from schema and boundaries
-export const init = createTask(
+export const init = createTask({
   schema,
   boundaries,
-  async function (argv, { saveFile, getCwd }) {
+  fn: async function (argv, { saveFile, getCwd }) {
     // Handle the dryRun flag
     const isDryRun = Boolean(argv.dryRun)
 
@@ -60,4 +60,4 @@ export const init = createTask(
 
     return config
   }
-)
+})

@@ -25,10 +25,10 @@ const boundaries = {
   }
 }
 
-export const remove = createTask(
+export const remove = createTask({
   schema,
   boundaries,
-  async function ({ descriptorName }, { loadConf, persistConf, deleteFile }) {
+  fn: async function ({ descriptorName }, { loadConf, persistConf, deleteFile }) {
     // Load shadow configuration
     const forge: ForgeConf = await loadConf({})
 
@@ -61,4 +61,4 @@ export const remove = createTask(
       message: `Task '${descriptorName}' has been successfully removed`
     }
   }
-)
+})

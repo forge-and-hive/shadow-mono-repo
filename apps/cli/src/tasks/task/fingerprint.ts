@@ -43,10 +43,10 @@ const boundaries = {
   }
 }
 
-export const fingerprint = createTask(
+export const fingerprint = createTask({
   schema,
   boundaries,
-  async function ({ descriptorName }, {
+  fn: async function ({ descriptorName }, {
     getCwd,
     loadConf,
     readFile,
@@ -102,6 +102,6 @@ export const fingerprint = createTask(
       }
     }
   }
-)
+})
 
 fingerprint.setDescription(description)

@@ -1,12 +1,12 @@
 {
   "project": {
-    "name": "Sample project"
+    "name": "Mono repo sample project"
   },
   "paths": {
     "logs": "logs/",
     "tasks": "src/tasks/",
     "runners": "src/runners/",
-    "fixtures": "src/tests/fixtures",
+    "fixtures": "fixtures",
     "tests": "src/tests/"
   },
   "infra": {
@@ -17,6 +17,10 @@
     "stock:getPrice": {
       "path": "src/tasks/stock/getPrice.ts",
       "handler": "getPrice"
+    },
+    "stock:getPortfolio": {
+      "path": "src/tasks/stock/getPortfolio.ts",
+      "handler": "getPortfolio"
     }
   },
   "runners": {}

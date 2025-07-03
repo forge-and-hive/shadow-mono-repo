@@ -14,14 +14,15 @@ describe('Boundaries tasks tests', () => {
     }
 
     // Create the task using createTask
-    const indentity = createTask(
+    const indentity = createTask({
+      name: 'indentity',
       schema,
       boundaries,
-      async (argv, boundaries) => {
+      fn: async (argv, boundaries) => {
         const externalData = await boundaries.fetchExternalData()
         return { ...externalData, ...argv }
       }
-    )
+    })
 
     const object = await indentity.run({ bar: true })
     const { foo } = await indentity.run({ foo: true })
@@ -43,22 +44,21 @@ describe('Boundaries tasks tests', () => {
     }
 
     // Create the task using createTask with boundariesData
-    const indentity = createTask(
+    const indentity = createTask({
+      name: 'indentity',
       schema,
       boundaries,
-      async (argv, boundaries) => {
+      fn: async (argv, boundaries) => {
         const externalData = await boundaries.fetchExternalData()
         return { ...externalData, ...argv }
       },
-      {
-        boundariesData: {
-          fetchExternalData: [
-            { input: [], output: { foo: false } }
-          ]
-        },
-        mode: 'proxy-pass'
-      }
-    )
+      boundariesData: {
+        fetchExternalData: [
+          { input: [], output: { foo: false } }
+        ]
+      },
+      mode: 'proxy-pass'
+    })
 
     const object = await indentity.run({ bar: true })
     const { foo } = await indentity.run({ foo: true })
@@ -81,14 +81,15 @@ describe('Boundaries tasks tests', () => {
     }
 
     // Create the task using createTask
-    const add = createTask(
+    const add = createTask({
+      name: 'add',
       schema,
       boundaries,
-      async function (argv, boundaries) {
+      fn: async function (argv, boundaries) {
         const externalData: number = await boundaries.fetchExternalData(1)
         return argv.value + externalData
       }
-    )
+    })
 
     const six = await add.run({ value: 4 })
     const seven = await add.run({ value: 5 })
@@ -111,22 +112,21 @@ describe('Boundaries tasks tests', () => {
     }
 
     // Create the task using createTask with boundariesData
-    const add = createTask(
+    const add = createTask({
+      name: 'add',
       schema,
       boundaries,
-      async function (argv, boundaries) {
+      fn: async function (argv, boundaries) {
         const externalData: number = await boundaries.fetchExternalData(argv.value)
         return argv.value + externalData
       },
-      {
-        boundariesData: {
-          fetchExternalData: [
-            { input: [4], output: 2 }
-          ]
-        },
-        mode: 'proxy-pass'
-      }
-    )
+      boundariesData: {
+        fetchExternalData: [
+          { input: [4], output: 2 }
+        ]
+      },
+      mode: 'proxy-pass'
+    })
 
     const six = await add.run({ value: 4 }) // From tape data
     const fifteen = await add.run({ value: 5 })
@@ -163,14 +163,15 @@ describe('Boundaries tasks tests', () => {
     }
 
     // Create the task using createTask
-    const multiplyTask = createTask(
+    const multiplyTask = createTask({
+      name: 'multiplyTask',
       schema,
       boundaries,
-      async function ({ value }, { fetchExternalData}) {
+      fn: async function ({ value }, { fetchExternalData}) {
         const externalData: number = await fetchExternalData(value)
         return value * externalData
       }
-    )
+    })
 
     multiplyTask.addListener((record) => {
       records.push(record)
@@ -238,14 +239,15 @@ describe('Boundaries tasks tests', () => {
     }
 
     // Create the task using createTask
-    const multiplyTask = createTask(
+    const multiplyTask = createTask({
+      name: 'multiplyTask',
       schema,
       boundaries,
-      async function ({ value }, { fetchExternalData }) {
+      fn: async function ({ value }, { fetchExternalData }) {
         const externalData: number = await fetchExternalData(value)
         return value * externalData
       }
-    )
+    })
 
     // Run task with value 2
     await multiplyTask.run({ value: 2 })
@@ -308,18 +310,17 @@ describe('Boundaries tasks tests', () => {
     expect(finalSortedTape[2].output).toBe(8)
 
     // Verify tape can be used for replay in proxy-pass mode
-    const replayTask = createTask(
+    const replayTask = createTask({
+      name: 'replayTask',
       schema,
       boundaries,
-      async function ({ value }, { fetchExternalData }) {
+      fn: async function ({ value }, { fetchExternalData }) {
         const externalData: number = await fetchExternalData(value)
         return value * externalData
       },
-      {
-        boundariesData: boundariesData3 as BoundaryTapeData,
-        mode: 'proxy-pass'
-      }
-    )
+      boundariesData: boundariesData3 as BoundaryTapeData,
+      mode: 'proxy-pass'
+    })
 
     // Run task with all three values from the tape
     const result2 = await replayTask.run({ value: 2 })

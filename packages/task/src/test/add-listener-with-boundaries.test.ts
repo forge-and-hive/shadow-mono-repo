@@ -17,14 +17,15 @@ describe('Listener with boundaries tests', () => {
     }
 
     // Create the task using createTask
-    const task = createTask(
+    const task = createTask({
+      name: 'task',
       schema,
       boundaries,
-      async (argv, boundaries) => {
+      fn: async (argv, boundaries) => {
         const externalData = await boundaries.fetchExternalData()
         return { ...externalData, ...argv }
       }
-    )
+    })
 
     task.addListener<{ value: number }, { value: number, foo: boolean }>((record) => {
       tape.push(record)
@@ -58,14 +59,15 @@ describe('Listener with boundaries tests', () => {
     }
 
     // Create the task using createTask
-    const task = createTask(
+    const task = createTask({
+      name: 'task',
       schema,
       boundaries,
-      async (argv, boundaries) => {
+      fn: async (argv, boundaries) => {
         const externalData = await boundaries.fetchExternalData()
         return { ...externalData, ...argv }
       }
-    )
+    })
 
     task.addListener<{ value: number }, { value: number, foo: boolean }>((record) => {
       tape.push(record)
@@ -109,10 +111,11 @@ describe('Listener with boundaries tests', () => {
     }
 
     // Create the task using createTask
-    const task = createTask(
+    const task = createTask({
+      name: 'task',
       schema,
       boundaries,
-      async (argv, boundaries) => {
+      fn: async (argv, boundaries) => {
         const externalData = await boundaries.fetchExternalData()
         if (typeof argv.value === 'undefined') {
           throw new Error('Value is required')
@@ -120,7 +123,7 @@ describe('Listener with boundaries tests', () => {
 
         return { ...externalData, ...argv as { value: number } }
       }
-    )
+    })
 
     task.addListener<Record<string, unknown>, { value: number, foo: boolean }>((record) => {
       tape.push(record)
@@ -158,10 +161,11 @@ describe('Listener with boundaries tests', () => {
     }
 
     // Create the task using createTask
-    const task = createTask(
+    const task = createTask({
+      name: 'task',
       schema,
       boundaries,
-      async (argv, boundaries) => {
+      fn: async (argv, boundaries) => {
         const externalData = await boundaries.fetchExternalData()
         if (typeof argv.value === 'undefined') {
           throw new Error('Value is required')
@@ -169,7 +173,7 @@ describe('Listener with boundaries tests', () => {
 
         return { ...externalData, ...argv as { value: number } }
       }
-    )
+    })
 
     task.addListener<{ value?: number }, { value: number, foo: boolean }>((record) => {
       tape.push(record)
@@ -216,16 +220,17 @@ describe('Listener with boundaries tests', () => {
     }
 
     // Create the task using createTask
-    const task = createTask(
+    const task = createTask({
+      name: 'task',
       schema,
       boundaries,
-      async (argv, boundaries) => {
+      fn: async (argv, boundaries) => {
         await boundaries.fetchExternalData()
         await boundaries.fetchExternalData()
 
         return { foo: true }
       }
-    )
+    })
 
     task.addListener<{ value: number }, { foo: boolean }>((record) => {
       tape.push(record)
@@ -263,10 +268,11 @@ describe('Listener with boundaries tests', () => {
     }
 
     // Create the task using createTask
-    const task = createTask(
+    const task = createTask({
+      name: 'task',
       schema,
       boundaries,
-      async (argv, boundaries) => {
+      fn: async (argv, boundaries) => {
         let counter = argv.value
 
         counter = await boundaries.add(counter)
@@ -275,7 +281,7 @@ describe('Listener with boundaries tests', () => {
 
         return counter
       }
-    )
+    })
 
     task.addListener<{ value: number }, number>((record) => {
       tape.push(record)

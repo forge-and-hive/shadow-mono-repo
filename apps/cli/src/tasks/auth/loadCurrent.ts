@@ -14,10 +14,10 @@ const boundaries = {
   loadProfiles: loadProfiles.asBoundary()
 }
 
-export const loadCurrent = createTask(
+export const loadCurrent = createTask({
   schema,
   boundaries,
-  async function (_argv, { loadProfiles }): Promise<Profile> {
+  fn: async function (_argv, { loadProfiles }): Promise<Profile> {
     const profiles = await loadProfiles({})
 
     if (!profiles.default || profiles.default === '') {
@@ -32,4 +32,4 @@ export const loadCurrent = createTask(
 
     return { ...defaultProfile, name: profiles.default }
   }
-)
+})

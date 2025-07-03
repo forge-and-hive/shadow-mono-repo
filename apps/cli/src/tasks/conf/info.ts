@@ -16,10 +16,10 @@ const boundaries = {
   loadCurrentProfile: loadCurrentProfile.asBoundary()
 }
 
-export const info = createTask(
+export const info = createTask({
   schema,
   boundaries,
-  async function (_argv, { loadCurrentProfile, readFile }) {
+  fn: async function (_argv, { loadCurrentProfile, readFile }) {
     const packageJsonPath = path.join(__dirname, '../../../package.json')
 
     const packageJsonContent = await readFile(packageJsonPath)
@@ -45,4 +45,4 @@ export const info = createTask(
 
     return info
   }
-)
+})

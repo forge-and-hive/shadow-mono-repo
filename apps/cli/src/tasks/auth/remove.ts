@@ -24,10 +24,10 @@ const boundaries = {
   }
 }
 
-export const remove = createTask(
+export const remove = createTask({
   schema,
   boundaries,
-  async function ({ profileName }, { loadProfiles, persistProfiles }) {
+  fn: async function ({ profileName }, { loadProfiles, persistProfiles }) {
     const profiles = await loadProfiles({})
 
     // Check if profile exists
@@ -63,4 +63,4 @@ export const remove = createTask(
       message: `Profile "${profileName}" has been removed.`
     }
   }
-)
+})
