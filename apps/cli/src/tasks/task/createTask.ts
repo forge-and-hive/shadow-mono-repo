@@ -18,6 +18,7 @@ const TASK_TEMPLATE = `// TASK: {{ taskName }}
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 
+const name = '{{ taskName }}'
 const description = 'Add task description here'
 
 const schema = new Schema({
@@ -30,10 +31,12 @@ const boundaries = {
   // example: readFile: async (path: string) => fs.readFile(path, 'utf-8')
 }
 
-export const {{ taskName }} = createTask(
+export const {{ taskName }} = createTask({
+  name,
+  description,
   schema,
   boundaries,
-  async function (argv, boundaries) {
+  fn: async function (argv, boundaries) {
     console.log('input:', argv)
     console.log('boundaries:', boundaries)
     // Your task implementation goes here
@@ -41,9 +44,8 @@ export const {{ taskName }} = createTask(
 
     return status
   }
-)
+})
 
-{{ taskName }}.setDescription(description)
 `
 
 const schema = new Schema({
@@ -107,10 +109,10 @@ const boundaries = {
   }
 }
 
-export const createTaskCommand = createTask(
+export const createTaskCommand = createTask({
   schema,
   boundaries,
-  async function ({ descriptorName }, {
+  fn: async function ({ descriptorName }, {
     loadTemplate,
     persistTask,
     loadConf,
@@ -159,4 +161,4 @@ export const createTaskCommand = createTask(
 
     return { taskPath, fileName }
   }
-)
+})

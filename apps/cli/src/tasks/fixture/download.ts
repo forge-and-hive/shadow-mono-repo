@@ -62,10 +62,10 @@ const boundaries = {
   }
 }
 
-export const download = createTask(
+export const download = createTask({
   schema,
   boundaries,
-  async function ({ uuid }, {
+  fn: async function ({ uuid }, {
     downloadFixture,
     getCwd,
     persistFixture,
@@ -131,6 +131,6 @@ forge task:replay ${taskName} --path ${shortPath}
       shortPath: shortPath
     }
   }
-)
+})
 
 download.setDescription(description)

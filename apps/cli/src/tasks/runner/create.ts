@@ -69,10 +69,10 @@ const boundaries = {
   }
 }
 
-export const create = createTask(
+export const create = createTask({
   schema,
   boundaries,
-  async function ({ runnerName }, {
+  fn: async function ({ runnerName }, {
     persistRunner,
     loadConf,
     persistConf,
@@ -118,4 +118,4 @@ export const create = createTask(
       runnerName: formattedName
     }
   }
-)
+})

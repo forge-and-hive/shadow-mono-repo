@@ -81,10 +81,10 @@ const boundaries = {
   }
 }
 
-export const publish = createTask(
+export const publish = createTask({
   schema,
   boundaries,
-  async function ({ descriptorName }, {
+  fn: async function ({ descriptorName }, {
     getCwd,
     ensureBuildsFolder,
     loadConf,
@@ -184,4 +184,4 @@ export const publish = createTask(
       throw new Error('Bundle upload failed')
     }
   }
-)
+})

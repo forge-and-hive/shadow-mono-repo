@@ -41,10 +41,10 @@ export const bytesToMB = (bytes: number): string => {
   return `${MB.toFixed(2)} MB`
 }
 
-export const zip = createTask(
+export const zip = createTask({
   schema,
   boundaries,
-  async function ({ dir, input, output }, { createWriteStream, createArchiver, resolvePathDir, fileExists }) {
+  fn: async function ({ dir, input, output }, { createWriteStream, createArchiver, resolvePathDir, fileExists }) {
     const outputPath = await resolvePathDir(dir, output)
     const inputPath = await resolvePathDir(dir, input)
     const inputMapPath = inputPath + '.map'
@@ -104,6 +104,6 @@ export const zip = createTask(
       archive.finalize()
     })
   }
-)
+})
 
 zip.setDescription(description)

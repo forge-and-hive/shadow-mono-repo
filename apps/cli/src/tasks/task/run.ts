@@ -78,10 +78,10 @@ const boundaries = {
   }
 }
 
-export const run = createTask(
+export const run = createTask({
   schema,
   boundaries,
-  async function ({ descriptorName, args }, {
+  fn: async function ({ descriptorName, args }, {
     loadConf,
     bundleCreate,
     bundleLoad,
@@ -187,4 +187,4 @@ export const run = createTask(
 
     return result
   }
-)
+})

@@ -18,10 +18,10 @@ const boundaries = {
   loadConf: loadConf.asBoundary()
 }
 
-export const list = createTask(
+export const list = createTask({
   schema,
   boundaries,
-  async function (argv, { loadConf }) {
+  fn: async function (argv, { loadConf }) {
     // Load forge configuration
     const forge: ForgeConf = await loadConf({})
 
@@ -53,6 +53,6 @@ export const list = createTask(
       taskCount: taskNames.length
     }
   }
-)
+})
 
 list.setDescription(description)

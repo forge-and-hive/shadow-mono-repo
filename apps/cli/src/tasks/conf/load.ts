@@ -14,13 +14,13 @@ const boundaries = {
   }
 }
 
-export const load = createTask(
+export const load = createTask({
   schema,
   boundaries,
-  async function (_, { readFile }) {
+  fn: async function (_, { readFile }) {
     const forgePath = path.join(process.cwd(), 'forge.json')
 
     const content = await readFile(forgePath)
     return JSON.parse(content) as ForgeConf
   }
-)
+})

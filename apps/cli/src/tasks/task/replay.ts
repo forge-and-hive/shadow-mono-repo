@@ -96,10 +96,10 @@ const boundaries = {
   }
 }
 
-export const replay = createTask(
+export const replay = createTask({
   schema,
   boundaries,
-  async function ({ descriptorName, path: fixturePath, cache }, { readFixture, loadConf, loadCurrentProfile, bundleCreate, bundleLoad, ensureBuildsFolder, verifyLogFolder, sendLogToAPI }) {
+  fn: async function ({ descriptorName, path: fixturePath, cache }, { readFixture, loadConf, loadCurrentProfile, bundleCreate, bundleLoad, ensureBuildsFolder, verifyLogFolder, sendLogToAPI }) {
     console.log('Input descriptorName:', descriptorName)
     console.log('Input path:', fixturePath)
     console.log('Input cache:', cache)
@@ -215,6 +215,6 @@ export const replay = createTask(
 
     return result
   }
-)
+})
 
 replay.setDescription(description)

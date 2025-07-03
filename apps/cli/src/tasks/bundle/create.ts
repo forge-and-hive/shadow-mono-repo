@@ -1,6 +1,6 @@
 // TASK: create
 // Run this task with:
-// shadow-cli bundle:create
+// forge task:run bundle:create
 
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
@@ -13,10 +13,10 @@ const schema = new Schema({
 
 const boundaries = {}
 
-export const create = createTask(
+export const create = createTask({
   schema,
   boundaries,
-  async function ({ entryPoint, outputFile }) {
+  fn: async function ({ entryPoint, outputFile }) {
     // Build using esbuild
     await esbuild.build({
       entryPoints: [entryPoint],
@@ -29,4 +29,4 @@ export const create = createTask(
 
     return { outputFile }
   }
-)
+})

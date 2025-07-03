@@ -29,10 +29,10 @@ const boundaries = {
   }
 }
 
-export const bundle = createTask(
+export const bundle = createTask({
   schema,
   boundaries,
-  async function ({ runnerName, targetPath }, { loadConf, getCwd, ensureDir }) {
+  fn: async function ({ runnerName, targetPath }, { loadConf, getCwd, ensureDir }) {
     // Load forge configuration
     const forge: ForgeConf = await loadConf({})
     const cwd = await getCwd()
@@ -76,4 +76,4 @@ export const bundle = createTask(
       outputFile: path.join(targetPath, `${runnerName}.js`)
     }
   }
-)
+})
