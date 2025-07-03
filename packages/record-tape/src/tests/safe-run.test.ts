@@ -267,6 +267,7 @@ describe('RecordTape safeRun integration tests', () => {
     const customRecord: ExecutionRecord<{ value: number }, { result: number }, { fetchData: (n: number) => Promise<number> }> = {
       input: { value: 10 },
       output: { result: 20 },
+      type: 'success',
       boundaries: {
         fetchData: [
           {
@@ -310,6 +311,7 @@ describe('RecordTape safeRun integration tests', () => {
     const promiseRecord: ExecutionRecord<{ value: number }, Promise<{ result: number }>, { fetchData: (n: number) => Promise<number> }> = {
       input: { value: 15 },
       output: promiseResult,
+      type: 'success',
       boundaries: {
         fetchData: [
           {

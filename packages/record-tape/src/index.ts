@@ -4,25 +4,29 @@ import { type ExecutionRecord, type Boundaries } from '@forgehive/task'
 
 export interface LogRecord<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> extends ExecutionRecord<TInput, TOutput, B> {
   name: string
-  type: 'success' | 'error'
-  context?: Record<string, string>
+  // Note: type is now inherited from ExecutionRecord and computed automatically
 }
 
+// Backward compatibility aliases - deprecated, use ExecutionRecord instead
+/** @deprecated Use ExecutionRecord instead */
 export interface SuccessLogItem<TInput = unknown, TOutput = unknown> {
   input: TInput
   output: TOutput
   boundaries?: Record<string, unknown>
 }
 
+/** @deprecated Use ExecutionRecord instead */
 export interface ErrorLogItem<TInput = unknown> {
   input: TInput
   error: unknown
   boundaries?: Record<string, unknown>
 }
 
+/** @deprecated Use ExecutionRecord instead */
 export type LogItem<TInput = unknown, TOutput = unknown> = SuccessLogItem<TInput, TOutput> | ErrorLogItem<TInput>
 
 // Additional type to handle TaskRecord compatibility
+/** @deprecated Use ExecutionRecord instead */
 export type TaskLogItem<TInput = unknown, TOutput = unknown> = LogItem<TInput, TOutput> | {
   input: TInput;
   output?: TOutput;
@@ -62,7 +66,7 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     this._mode = mode
   }
 
-  addLogItem(name: string, logItem: LogItem<TInput, TOutput>): void {
+  addLogItem(name: string, logItem: LogItem<TInput, TOutput> | ExecutionRecord<TInput, TOutput>): void {
     if (this._mode === 'replay') {
       return
     }
@@ -91,29 +95,39 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
       }
     }
 
-    // Handle LogItem interface - need to type cast to access properties safely
-    const typedLogItem = logItem as (SuccessLogItem<TInput, TOutput> | ErrorLogItem<TInput>)
-
-    if ('output' in typedLogItem && typedLogItem.output !== undefined) {
-      const { input, output } = typedLogItem
+    // Check if it's an ExecutionRecord (has type field) or legacy LogItem
+    if ('type' in logItem && logItem.type) {
+      // Handle ExecutionRecord - use the computed type and preserve all fields
       this._log.push({
         name,
-        type: 'success',
-        input,
-        output,
-        boundaries: formattedBoundaries
-      } as LogRecord<TInput, TOutput, B>)
-    } else if ('error' in typedLogItem && typedLogItem.error !== undefined) {
-      const { input, error } = typedLogItem
-      this._log.push({
-        name,
-        type: 'error',
-        input,
-        error,
+        ...logItem,
         boundaries: formattedBoundaries
       } as LogRecord<TInput, TOutput, B>)
     } else {
-      throw new Error('invalid log item')
+      // Handle legacy LogItem interface for backward compatibility
+      const typedLogItem = logItem as (SuccessLogItem<TInput, TOutput> | ErrorLogItem<TInput>)
+
+      if ('output' in typedLogItem && typedLogItem.output !== undefined) {
+        const { input, output } = typedLogItem
+        this._log.push({
+          name,
+          type: 'success',
+          input,
+          output,
+          boundaries: formattedBoundaries
+        } as LogRecord<TInput, TOutput, B>)
+      } else if ('error' in typedLogItem && typedLogItem.error !== undefined) {
+        const { input, error } = typedLogItem
+        this._log.push({
+          name,
+          type: 'error',
+          input,
+          error,
+          boundaries: formattedBoundaries
+        } as LogRecord<TInput, TOutput, B>)
+      } else {
+        throw new Error('invalid log item')
+      }
     }
   }
 
@@ -143,36 +157,27 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
 
     let logRecord: LogRecord<TInput, TOutput, B>
 
-    if ('output' in record && record.output !== undefined) {
-      const input = record.input
-      // Handle Promise outputs by setting to null in the log
-      const output = record.output instanceof Promise ? null : record.output
+    // Use the type from ExecutionRecord if available, otherwise derive it
+    const recordType = ('type' in record && record.type) ? record.type : 
+      (record.output !== undefined && record.output !== null) ? 'success' : 
+      (record.error !== undefined) ? 'error' : 'pending'
 
-      logRecord = {
-        name,
-        type: 'success',
-        input,
-        output,
-        boundaries: formattedBoundaries,
-        context
-      } as LogRecord<TInput, TOutput, B>
-      this._log.push(logRecord)
-    } else if ('error' in record && record.error !== undefined) {
-      const input = record.input
-      const error = record.error
+    // Handle Promise outputs by setting to null in the log
+    const output = record.output instanceof Promise ? null : record.output
 
-      logRecord = {
-        name,
-        type: 'error',
-        input,
-        error,
-        boundaries: formattedBoundaries,
-        context
-      } as LogRecord<TInput, TOutput, B>
-      this._log.push(logRecord)
-    } else {
-      throw new Error('invalid record type')
-    }
+    // Merge context from record and parameter (parameter takes precedence)
+    const mergedContext = { ...record.context, ...context }
+
+    logRecord = {
+      name,
+      ...record,
+      type: recordType,
+      output,
+      boundaries: formattedBoundaries,
+      context: Object.keys(mergedContext).length > 0 ? mergedContext : undefined
+    } as LogRecord<TInput, TOutput, B>
+    
+    this._log.push(logRecord)
 
     return logRecord
   }

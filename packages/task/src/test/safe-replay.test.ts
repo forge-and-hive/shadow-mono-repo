@@ -1,7 +1,15 @@
 import { Schema } from '@forgehive/schema'
-import { createTask, ExecutionRecord } from '../index'
+import { createTask, ExecutionRecord, getExecutionRecordType } from '../index'
 
 describe('safeReplay functionality tests', () => {
+  // Helper function to create ExecutionRecord with computed type
+  function createExecutionRecord<T, U>(partial: Omit<ExecutionRecord<T, U>, 'type'>): ExecutionRecord<T, U> {
+    return {
+      ...partial,
+      type: getExecutionRecordType(partial)
+    }
+  }
+
   // Common variables
   let prices: Record<string, number>
   let boundaries: {
@@ -54,7 +62,7 @@ describe('safeReplay functionality tests', () => {
 
   it('Should replay a previous execution using the execution log and replay the fetchData boundary', async () => {
     // Create a manual execution log
-    const executionLog: ExecutionRecord = {
+    const executionLog: ExecutionRecord = createExecutionRecord({
       input: { ticker: 'AAPL' },
       output: {
         ticker: 'AAPL',
@@ -68,7 +76,7 @@ describe('safeReplay functionality tests', () => {
           }
         ]
       }
-    }
+    })
 
     // No safeReplay method yet, this will be implemented later
     // This will be our test for that functionality
@@ -102,7 +110,7 @@ describe('safeReplay functionality tests', () => {
 
   it('Should execute with mixed boundaries modes', async () => {
     // Create a manual execution log for testing
-    const executionLog: ExecutionRecord = {
+    const executionLog: ExecutionRecord = createExecutionRecord({
       input: { ticker: 'AAPL' },
       output: {
         ticker: 'AAPL',
@@ -116,7 +124,7 @@ describe('safeReplay functionality tests', () => {
           }
         ]
       }
-    }
+    })
 
     // Use mixed mode - replay for fetchData but execute logAccess
     const [replayResult, replayError, replayLog] = await getTickerPrice.safeReplay(
@@ -154,7 +162,7 @@ describe('safeReplay functionality tests', () => {
 
   it('Should properly handle errors in boundary replay mode', async () => {
     // Create a manual execution log with an error in the boundary
-    const executionLog: ExecutionRecord = {
+    const executionLog: ExecutionRecord = createExecutionRecord({
       input: { ticker: 'AAPL' },
       output: null,
       error: 'API error: Rate limit exceeded',
@@ -166,7 +174,7 @@ describe('safeReplay functionality tests', () => {
           }
         ]
       }
-    }
+    })
 
     // Use replay mode for fetchData
     const [replayResult, replayError, replayLog] = await getTickerPrice.safeReplay(
@@ -190,7 +198,7 @@ describe('safeReplay functionality tests', () => {
 
   it('Should handle boundaries with both output and error as null', async () => {
     // Create a manual execution log with null output and error in the boundary
-    const executionLog: ExecutionRecord = {
+    const executionLog: ExecutionRecord = createExecutionRecord({
       input: { ticker: 'AAPL' },
       output: { ticker: 'AAPL', price: 160.23 },
       boundaries: {
@@ -202,7 +210,7 @@ describe('safeReplay functionality tests', () => {
           }
         ]
       }
-    }
+    })
 
     // Use replay mode for fetchData
     const [replayResult, replayError, replayLog] = await getTickerPrice.safeReplay(

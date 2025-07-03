@@ -1,7 +1,14 @@
 import { Schema } from '@forgehive/schema'
-import { createTask, ExecutionRecord } from '../index'
+import { createTask, ExecutionRecord, getExecutionRecordType } from '../index'
 
 describe('Complex boundary replay tests', () => {
+  // Helper function to create ExecutionRecord with computed type
+  function createExecutionRecord<T, U>(partial: Omit<ExecutionRecord<T, U>, 'type'>): ExecutionRecord<T, U> {
+    return {
+      ...partial,
+      type: getExecutionRecordType(partial)
+    }
+  }
   // Define types for our portfolio data
   type Stock = {
     ticker: string;
@@ -159,7 +166,7 @@ describe('Complex boundary replay tests', () => {
 
   it('Should replay portfolio calculation from an execution log', async () => {
     // First create a portfolio value calculation execution log
-    const executionLog: ExecutionRecord = {
+    const executionLog: ExecutionRecord = createExecutionRecord({
       input: { userId: 'user1' },
       output: {
         id: 'portfolio1',
@@ -201,7 +208,7 @@ describe('Complex boundary replay tests', () => {
           }
         ]
       }
-    }
+    })
 
     // Use replay mode for all boundaries
     const [replayResult, replayError, replayLog] = await calculatePortfolioValue.safeReplay(
@@ -236,7 +243,7 @@ describe('Complex boundary replay tests', () => {
 
   it('Should handle errors during replay', async () => {
     // Create an execution log with an error in one of the price fetches
-    const executionLog: ExecutionRecord = {
+    const executionLog: ExecutionRecord = createExecutionRecord({
       input: { userId: 'user1' },
       error: 'Price data not available for ticker: GOOGL',
       boundaries: {
@@ -269,7 +276,7 @@ describe('Complex boundary replay tests', () => {
           }
         ]
       }
-    }
+    })
 
     // Use replay mode for all boundaries
     const [replayResult, replayError, replayLog] = await calculatePortfolioValue.safeReplay(
@@ -304,7 +311,7 @@ describe('Complex boundary replay tests', () => {
     priceData['AAPL'] = 195.00 // Different from replay data
 
     // Create an execution log with historical data
-    const executionLog: ExecutionRecord = {
+    const executionLog: ExecutionRecord = createExecutionRecord({
       input: { userId: 'user1' },
       output: {
         id: 'portfolio1',
@@ -346,7 +353,7 @@ describe('Complex boundary replay tests', () => {
           }
         ]
       }
-    }
+    })
 
     // Use replay mode for portfolio but proxy mode for prices
     const [replayResult, replayError, replayLog] = await calculatePortfolioValue.safeReplay(

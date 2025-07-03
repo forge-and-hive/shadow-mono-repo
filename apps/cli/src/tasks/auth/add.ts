@@ -27,10 +27,10 @@ const boundaries = {
   }
 }
 
-export const add = createTask(
+export const add = createTask({
   schema,
   boundaries,
-  async function ({ name, apiKey, apiSecret, url }, { loadProfiles, persistProfiles }) {
+  fn: async function ({ name, apiKey, apiSecret, url }, { loadProfiles, persistProfiles }) {
     const profiles = await loadProfiles({})
 
     // Check if profile with same name already exists
@@ -54,4 +54,4 @@ export const add = createTask(
       message: `Profile '${name}' added and set as default`
     }
   }
-)
+})

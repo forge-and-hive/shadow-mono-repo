@@ -87,6 +87,12 @@ export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B ex
   error?: string
   /** Boundary execution data */
   boundaries: BoundaryLogsFor<B>
+  /** The name of the task (if set) */
+  taskName?: string
+  /** Additional context metadata */
+  context?: Record<string, string>
+  /** The type of execution record - computed from output/error state */
+  type: 'success' | 'error' | 'pending'
 }
 
 export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B extends Boundaries = Boundaries> {
@@ -123,7 +129,7 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   resetMocks: () => void
 
   run: (argv?: Parameters<Func>[0]) => Promise<ReturnType<Func>>
-  safeRun: (argv?: Parameters<Func>[0]) => Promise<[Awaited<ReturnType<Func>> | null, Error | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
+  safeRun: (argv?: Parameters<Func>[0], context?: Record<string, string>) => Promise<[Awaited<ReturnType<Func>> | null, Error | null, ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>]>
 
   // Method for replaying task execution
   safeReplay: (
@@ -149,6 +155,21 @@ export type InferSchemaType<S> = S extends Schema<any> ? InferSchema<S> : Record
 export type TaskFunction<S, B extends Boundaries> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<any>;
+
+/**
+ * Utility function to compute the execution record type based on output and error state
+ */
+export function getExecutionRecordType<InputType = unknown, OutputType = unknown, B extends Boundaries = Boundaries>(
+  record: Omit<ExecutionRecord<InputType, OutputType, B>, 'type'>
+): 'success' | 'error' | 'pending' {
+  if (record.error !== undefined && record.error !== null) {
+    return 'error'
+  }
+  if (record.output !== undefined && record.output !== null) {
+    return 'success'
+  }
+  return 'pending'
+}
 
 export const Task = class Task<
   B extends Boundaries = Boundaries,
@@ -392,15 +413,23 @@ export const Task = class Task<
     }
   }
 
-  async safeRun (argv?: Parameters<Func>[0]): Promise<[
+  async safeRun (argv?: Parameters<Func>[0], context?: Record<string, string>): Promise<[
     Awaited<ReturnType<Func>> | null,
     Error | null,
     ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>
   ]> {
-    // Initialize log item
-    const logItem: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B> = {
+    // Initialize log item (without type initially)
+    const logItemBase = {
       input: argv as Parameters<Func>[0],
-      boundaries: {} as BoundaryLogsFor<B>
+      boundaries: {} as BoundaryLogsFor<B>,
+      taskName: this._name,
+      context
+    }
+    
+    // Create the log item with computed type
+    const logItem: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B> = {
+      ...logItemBase,
+      type: getExecutionRecordType(logItemBase)
     }
 
     // Create fresh boundaries for this execution
@@ -429,6 +458,7 @@ export const Task = class Task<
           : 'Invalid input'
 
         logItem.error = errorMessage
+        logItem.type = 'error'
         logItem.boundaries = {} as BoundaryLogsFor<B>
 
         // Add boundary elements empty
@@ -452,9 +482,11 @@ export const Task = class Task<
       )
 
       logItem.output = output
+      logItem.type = 'success'
     } catch (caughtError) {
       const errorMessage = caughtError instanceof Error ? caughtError.message : String(caughtError)
       logItem.error = errorMessage
+      logItem.type = 'error'
       error = new Error(errorMessage)
     }
 
@@ -506,10 +538,18 @@ export const Task = class Task<
     // Extract the input from the execution log
     const argv = executionLog.input
 
-    // Initialize log item for this replay
-    const logItem: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B> = {
+    // Initialize log item for this replay (without type initially)
+    const logItemBase = {
       input: argv,
-      boundaries: {} as BoundaryLogsFor<B>
+      boundaries: {} as BoundaryLogsFor<B>,
+      taskName: this._name,
+      context: executionLog.context
+    }
+    
+    // Create the log item with computed type
+    const logItem: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B> = {
+      ...logItemBase,
+      type: getExecutionRecordType(logItemBase)
     }
 
     // Create boundaries for this replay execution with custom modes based on config
@@ -553,6 +593,7 @@ export const Task = class Task<
           : 'Invalid input'
 
         logItem.error = errorMessage
+        logItem.type = 'error'
         logItem.output = executionLog.output // Keep the original output
 
         // Copy the boundary data from the execution log
@@ -574,9 +615,11 @@ export const Task = class Task<
       )
 
       logItem.output = output
+      logItem.type = 'success'
     } catch (caughtError) {
       const errorMessage = caughtError instanceof Error ? caughtError.message : String(caughtError)
       logItem.error = errorMessage
+      logItem.type = 'error'
       error = new Error(errorMessage)
     }
 
@@ -795,7 +838,7 @@ export interface CreateTaskConfig<
 
 /**
  * Helper function to create a task with proper type inference
- * @param config Configuration object containing name, description, schema, boundaries, and function
+ * @param config Configuration object containing schema, boundaries, and function
  * @returns A new Task instance with proper type inference
  */
 export function createTask<
@@ -816,6 +859,5 @@ export function createTask<
       boundariesData: config.boundariesData
     }
   )
-
   return task
 }
