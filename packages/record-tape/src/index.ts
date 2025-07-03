@@ -30,41 +30,7 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     return this._log
   }
 
-  getMode(): Mode {
-    return this._mode
-  }
-
-  setMode(mode: Mode): void {
-    this._mode = mode
-  }
-
-  addExecutionRecord(name: string, record: ExecutionRecord<TInput, TOutput, B>): void {
-    if (this._mode === 'replay') {
-      return
-    }
-
-    // Format boundaries to ensure consistent structure
-    const formattedBoundaries: Record<string, unknown> = {}
-    if (record.boundaries) {
-      for (const key in record.boundaries) {
-        const boundaryEntries = record.boundaries[key] as Array<Record<string, unknown>>
-        formattedBoundaries[key] = boundaryEntries.map(entry => ({
-          input: entry.input,
-          output: entry.output ?? null,
-          error: entry.error ?? null
-        }))
-      }
-    }
-
-    this._log.push({
-      name,
-      ...record,
-      boundaries: formattedBoundaries
-    } as LogRecord<TInput, TOutput, B>)
-  }
-
   push(
-    name: string,
     record: ExecutionRecord<TInput, unknown, B>,
     metadata?: Record<string, string>
   ): LogRecord<TInput, TOutput, B> {
@@ -99,7 +65,7 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     const mergedMetadata = { ...record.metadata, ...metadata }
 
     const logRecord = {
-      name,
+      name: record.taskName || 'unnamed-task',
       ...record,
       type: recordType,
       output,
@@ -110,13 +76,6 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     this._log.push(logRecord)
 
     return logRecord
-  }
-
-  addLogRecord(logRecord: LogRecord<TInput, TOutput, B>): void {
-    if (this._mode === 'replay') {
-      return
-    }
-    this._log.push(logRecord)
   }
 
   stringify(): string {
@@ -160,8 +119,8 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     // Add listener for ExecutionRecord
     task._listener = async (executionRecord: ExecutionRecord<TInput, TOutput, B>, _boundaries: Record<string, unknown>): Promise<void> => {
       // Only update if mode is record
-      if (this.getMode() === 'record') {
-        this.addExecutionRecord(name, executionRecord)
+      if (this._mode === 'record') {
+        this.push(executionRecord)
       }
     }
 
@@ -219,6 +178,7 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     return this._log
   }
 
+  // Save functions
   async save(): Promise<void> {
     if (typeof this._path === 'undefined') { return }
 

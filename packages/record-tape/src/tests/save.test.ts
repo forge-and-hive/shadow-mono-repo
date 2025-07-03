@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { RecordTape } from '../index'
 
-const logFileData = '{"name":"name","input":true,"output":true,"boundaries":{},"type":"success"}\n{"name":"name","input":true,"error":"invalid data","boundaries":{},"type":"error"}\n'
+const logFileData = '{"name":"name","input":true,"output":true,"boundaries":{},"type":"success","taskName":"name","metadata":{}}\n{"name":"name","input":true,"error":"invalid data","boundaries":{},"type":"error","taskName":"name","metadata":{}}\n'
 
 describe('Save to file async', () => {
   it('Save async to existing file(should add new logs)', async () => {
@@ -19,8 +19,8 @@ describe('Save to file async', () => {
 
     const tape = new RecordTape<InputType, OutputType>({ path: tapeFilePath })
     await tape.load()
-    tape.addLogRecord({ name: 'name', input: true, output: true, boundaries: {}, type: 'success' })
-    tape.addLogRecord({ name: 'name', input: true, error: 'invalid data', boundaries: {}, type: 'error' })
+    tape.push({ input: true, output: true, boundaries: {}, type: 'success', taskName: 'name' })
+    tape.push({ input: true, error: 'invalid data', boundaries: {}, type: 'error', taskName: 'name' })
     await tape.save()
 
     const content = await fs.promises.readFile(tapeFilePath + '.log', 'utf8')
@@ -37,8 +37,8 @@ describe('Save to file async', () => {
     const tapeFilePath = path.resolve(__dirname, './nowhere/nop')
 
     const tape = new RecordTape<InputType, OutputType>({ path: tapeFilePath })
-    tape.addLogRecord({ name: 'name', input: true, output: true, boundaries: {}, type: 'success' })
-    tape.addLogRecord({ name: 'name', input: true, error: 'invalid data', boundaries: {}, type: 'error' })
+    tape.push({ input: true, output: true, boundaries: {}, type: 'success', taskName: 'name' })
+    tape.push({ input: true, error: 'invalid data', boundaries: {}, type: 'error', taskName: 'name' })
 
     await expect(tape.save()).rejects.toThrow('Folder doesn\'t exists')
   })
@@ -56,8 +56,8 @@ describe('Save to file async', () => {
     }
 
     const tape = new RecordTape<InputType, OutputType>({ path: tapeFilePath })
-    tape.addLogRecord({ name: 'name', input: true, output: true, boundaries: {}, type: 'success' })
-    tape.addLogRecord({ name: 'name', input: true, error: 'invalid data', boundaries: {}, type: 'error' })
+    tape.push({ input: true, output: true, boundaries: {}, type: 'success', taskName: 'name' })
+    tape.push({ input: true, error: 'invalid data', boundaries: {}, type: 'error', taskName: 'name' })
     await tape.save()
 
     const content = await fs.promises.readFile(tapeFilePath + '.log', 'utf8')
@@ -80,8 +80,8 @@ describe('Save to file sync', () => {
     }
 
     const tape = new RecordTape<InputType, OutputType>({ path: tapeFilePath })
-    tape.addLogRecord({ name: 'name', input: true, output: true, boundaries: {}, type: 'success' })
-    tape.addLogRecord({ name: 'name', input: true, error: 'invalid data', boundaries: {}, type: 'error' })
+    tape.push({ input: true, output: true, boundaries: {}, type: 'success', taskName: 'name' })
+    tape.push({ input: true, error: 'invalid data', boundaries: {}, type: 'error', taskName: 'name' })
     tape.saveSync()
 
     const content = fs.readFileSync(tapeFilePath + '.log', 'utf8')
@@ -96,8 +96,8 @@ describe('Save to file sync', () => {
     const tapeFilePath = path.resolve(__dirname, './nowhere/nop')
 
     const tape = new RecordTape<InputType, OutputType>({ path: tapeFilePath })
-    tape.addLogRecord({ name: 'name', input: true, output: true, boundaries: {}, type: 'success' })
-    tape.addLogRecord({ name: 'name', input: true, error: 'invalid data', boundaries: {}, type: 'error' })
+    tape.push({ input: true, output: true, boundaries: {}, type: 'success', taskName: 'name' })
+    tape.push({ input: true, error: 'invalid data', boundaries: {}, type: 'error', taskName: 'name' })
 
     expect(() => tape.saveSync()).toThrow('Folder doesn\'t exists')
   })
@@ -116,8 +116,8 @@ describe('Save to file sync', () => {
     }
 
     const tape = new RecordTape<InputType, OutputType>({ path: tapeFilePath })
-    tape.addLogRecord({ name: 'name', input: true, output: true, boundaries: {}, type: 'success' })
-    tape.addLogRecord({ name: 'name', input: true, error: 'invalid data', boundaries: {}, type: 'error' })
+    tape.push({ input: true, output: true, boundaries: {}, type: 'success', taskName: 'name' })
+    tape.push({ input: true, error: 'invalid data', boundaries: {}, type: 'error', taskName: 'name' })
     tape.saveSync()
 
     const content = fs.readFileSync(tapeFilePath + '.log', 'utf8')

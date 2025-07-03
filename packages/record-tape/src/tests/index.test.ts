@@ -59,8 +59,8 @@ describe('Base tests', () => {
     }
 
     const tape = new RecordTape<InputType, OutputType>({ path: emptyPath })
-    tape.addLogRecord({ name: 'test', input: [{name: 'test'}], output: { age: 1 }, type: 'success', boundaries: {} })
-    tape.addLogRecord({ name: 'test', input: [{name: 'test'}], error: 'test', type: 'error', boundaries: {} })
+    tape.push({ input: [{name: 'test'}], output: { age: 1 }, type: 'success', boundaries: {}, taskName: 'test' })
+    tape.push({ input: [{name: 'test'}], error: 'test', type: 'error', boundaries: {}, taskName: 'test' })
 
     const data = tape.getLog()
     expect(data.length).toBe(2)

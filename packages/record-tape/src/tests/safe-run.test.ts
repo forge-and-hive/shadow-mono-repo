@@ -30,7 +30,8 @@ describe('RecordTape safeRun integration tests', () => {
 
     // Run the task with safeRun and directly use the logItem
     const [result, error, record] = await task.safeRun({ value: 5 })
-    tape.push('test-task', record)
+    record.taskName = 'test-task'
+    tape.push(record)
 
     // Verify the execution was successful
     expect(error).toBeNull()
@@ -95,7 +96,8 @@ describe('RecordTape safeRun integration tests', () => {
 
       // Add the record using push method
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tape.push('test-task', record as any)
+      const recordWithTaskName = { ...record, taskName: 'test-task' } as any
+      tape.push(recordWithTaskName)
     })
 
     // Run the task with safeRun
@@ -123,7 +125,7 @@ describe('RecordTape safeRun integration tests', () => {
         }]
       },
       metadata: {},
-      taskName: undefined
+      taskName: 'test-task'
     })
   })
 
@@ -169,7 +171,8 @@ describe('RecordTape safeRun integration tests', () => {
 
       // Add the record using push method
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tape.push('test-task', record as any)
+      const recordWithTaskName = { ...record, taskName: 'test-task' } as any
+      tape.push(recordWithTaskName)
     })
 
     // Run the task with safeRun with a value that will cause an error
@@ -199,7 +202,7 @@ describe('RecordTape safeRun integration tests', () => {
       },
       metadata: {},
       output: undefined,
-      taskName: undefined
+      taskName: 'test-task'
     })
   })
 
@@ -234,9 +237,8 @@ describe('RecordTape safeRun integration tests', () => {
 
     // Run the task with safeRun with a value that will cause an error
     const [result, error, record] = await task.safeRun({ value: -5 })
-
-    // Push the error record directly with type parameter
-    tape.push('test-error', record)
+    record.taskName = 'test-error'
+    tape.push(record)
 
     // Verify the execution failed as expected
     expect(result).toBeNull()
@@ -265,7 +267,7 @@ describe('RecordTape safeRun integration tests', () => {
       },
       metadata: {},
       output: undefined,
-      taskName: undefined
+      taskName: 'test-error'
     })
   })
 
@@ -288,8 +290,9 @@ describe('RecordTape safeRun integration tests', () => {
       }
     }
 
-    // Push the custom record
-    tape.push('custom-record', customRecord)
+    // Push the custom record to the tape with custom metadata
+    customRecord.taskName = 'custom-record'
+    tape.push(customRecord)
 
     // Get the recorded log from the tape
     const recordedLog = tape.getLog()
@@ -308,7 +311,8 @@ describe('RecordTape safeRun integration tests', () => {
           error: null
         }]
       },
-      metadata: {}
+      metadata: {},
+      taskName: 'custom-record'
     })
   })
 
@@ -332,8 +336,9 @@ describe('RecordTape safeRun integration tests', () => {
       }
     }
 
-    // Push the record with Promise output using type parameter
-    tape.push('promise-record', promiseRecord)
+    // Record the promise-based record
+    promiseRecord.taskName = 'promise-record'
+    tape.push(promiseRecord)
 
     // Get the recorded log from the tape
     const recordedLog = tape.getLog()
@@ -352,7 +357,8 @@ describe('RecordTape safeRun integration tests', () => {
           error: null
         }]
       },
-      metadata: {}
+      metadata: {},
+      taskName: 'promise-record'
     })
   })
 })
