@@ -214,12 +214,11 @@ describe('Task execution log record', () => {
         }
       })
 
-      const context = { userId: 'user123', requestId: 'req456' }
-      const [result, error, record] = await task.safeRun({ value: 5 }, context)
+      const [result, error, record] = await task.safeRun({ value: 5 })
 
       expect(error).toBeNull()
       expect(result).toEqual({ result: 10 })
-      expect(record.metadata).toEqual(context)
+      expect(record.metadata).toEqual({})
       expect(record.taskName).toBe('context-task')
     })
 
