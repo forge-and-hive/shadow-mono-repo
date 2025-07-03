@@ -1,5 +1,5 @@
 import { createTaskCommand } from '../../tasks/task/createTask'
-import { createFsFromVolume, Volume } from 'memfs'
+import { createFsFromVolume, Volume, type IFs } from 'memfs'
 import path from 'path'
 import { createMockBoundary } from '../testUtils'
 import { ForgeConf } from '../../tasks/types'
@@ -44,8 +44,7 @@ export const newTask = createTask({
 
 describe('Create task', () => {
   let volume: InstanceType<typeof Volume>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let fs: any
+  let fs: IFs
   let rootDir: string
 
   beforeEach(() => {
@@ -98,11 +97,10 @@ describe('Create task', () => {
 
     // Read the created task file
     const fileContent = await fs.promises.readFile(path.join(rootDir, 'src/tasks/sample', 'newTask.ts'), 'utf-8')
-
     expect(fileContent).toBe(expectedContent)
 
     // Read the updated forge.json
-    const forgeContent = await fs.promises.readFile(path.join(rootDir, 'forge.json'), 'utf-8')
+    const forgeContent = await fs.promises.readFile(path.join(rootDir, 'forge.json'), 'utf-8') as string
     const forgeConf = JSON.parse(forgeContent)
     expect(forgeConf.tasks['sample:newTask']).toBeDefined()
   })

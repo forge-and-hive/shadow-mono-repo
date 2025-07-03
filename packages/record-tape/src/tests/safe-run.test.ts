@@ -94,6 +94,7 @@ describe('RecordTape safeRun integration tests', () => {
       }
 
       // Add the record using push method
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tape.push('test-task', record as any)
     })
 
@@ -167,6 +168,7 @@ describe('RecordTape safeRun integration tests', () => {
       }
 
       // Add the record using push method
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tape.push('test-task', record as any)
     })
 

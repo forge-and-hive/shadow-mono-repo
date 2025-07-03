@@ -18,6 +18,7 @@ describe('Task listener', () => {
         ? { input: record.input, error: record.error, boundaries: record.boundaries || {}, type: 'error' as const }
         : { input: record.input, output: record.output as OutputType, boundaries: record.boundaries || {}, type: 'success' as const }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tape.push('test', executionRecord as any)
     })
 
@@ -46,6 +47,7 @@ describe('Task listener', () => {
         ? { input: record.input, error: record.error, boundaries: record.boundaries || {}, type: 'error' as const }
         : { input: record.input, output: record.output as { result: number }, boundaries: record.boundaries || {}, type: 'success' as const }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tape.push('test', executionRecord as any)
     })
 
@@ -98,6 +100,7 @@ describe('Task listener', () => {
         ? { input: record.input, error: record.error, boundaries: record.boundaries || {}, type: 'error' as const }
         : { input: record.input, output: record.output as OutputType, boundaries: record.boundaries || {}, type: 'success' as const }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tape.push('test', executionRecord as any)
     })
 
@@ -150,6 +153,7 @@ describe('Task listener', () => {
         ? { input: record.input, error: record.error, boundaries: record.boundaries || {}, type: 'error' as const }
         : { input: record.input, output: record.output as OutputType, boundaries: record.boundaries || {}, type: 'success' as const }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tape.push('test', executionRecord as any)
     })
 
