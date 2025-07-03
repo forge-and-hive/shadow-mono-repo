@@ -16,14 +16,14 @@ describe('RecordTape safeRun integration tests', () => {
     }
 
     // Create the task
-    const task = createTask(
+    const task = createTask({
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Create a record tape
     const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
@@ -70,14 +70,14 @@ describe('RecordTape safeRun integration tests', () => {
     }
 
     // Create the task
-    const task = createTask(
+    const task = createTask({
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Create a record tape
     const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
@@ -141,14 +141,14 @@ describe('RecordTape safeRun integration tests', () => {
     }
 
     // Create the task
-    const task = createTask(
+    const task = createTask({
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Create a record tape
     const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
@@ -213,14 +213,14 @@ describe('RecordTape safeRun integration tests', () => {
     }
 
     // Create the task
-    const task = createTask(
+    const task = createTask({
       schema,
       boundaries,
-      async function ({ value }, { fetchData }) {
+      fn: async function ({ value }, { fetchData }) {
         const result = await fetchData(value)
         return { result, success: true }
       }
-    )
+    })
 
     // Create a record tape
     const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()

@@ -79,14 +79,14 @@ describe('Task listener', () => {
     }
 
     // Create the task using createTask
-    const task = createTask(
+    const task = createTask({
       schema,
       boundaries,
-      async (input, { multiply }) => {
+      fn: async (input, { multiply }) => {
         const result = await multiply(input.value)
         return { result }
       }
-    )
+    })
 
     type InputType = typeof schema
     type OutputType = Awaited<ReturnType<typeof task.run>>
@@ -135,14 +135,14 @@ describe('Task listener', () => {
     }
 
     // Create the task using createTask
-    const task = createTask(
+    const task = createTask({
       schema,
       boundaries,
-      async (input, { multiply }) => {
+      fn: async (input, { multiply }) => {
         const result = await multiply(input.value)
         return { result }
       }
-    )
+    })
 
     task.addListener<InputType, OutputType>((record) => {
       const logItem: LogItem<InputType, OutputType> = record.error
