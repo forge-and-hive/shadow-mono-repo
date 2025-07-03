@@ -17,7 +17,7 @@ Creates a bundled JavaScript file using esbuild.
 
 **Example Usage:**
 ```bash
-shadow-cli bundle:create --entryPoint=src/index.ts --outputFile=dist/bundle.js
+forge task:run bundle:create --entryPoint=src/index.ts --outputFile=dist/bundle.js
 ```
 
 **Implementation Details:**
@@ -38,7 +38,7 @@ Dynamically loads a JavaScript bundle and returns its default export.
 
 **Example Usage:**
 ```bash
-shadow-cli bundle:load --bundlePath=dist/bundle.js
+forge task:run bundle:load --bundlePath=dist/bundle.js
 ```
 
 **Implementation Details:**
@@ -51,10 +51,10 @@ shadow-cli bundle:load --bundlePath=dist/bundle.js
 
 ```bash
 # First, create the bundle
-shadow-cli bundle:create --entryPoint=src/index.ts --outputFile=dist/bundle.js
+forge task:run bundle:create --entryPoint=src/index.ts --outputFile=dist/bundle.js
 
 # Then, load the bundle
-shadow-cli bundle:load --bundlePath=dist/bundle.js
+forge task:run bundle:load --bundlePath=dist/bundle.js
 ```
 
 ### Using in Scripts
@@ -71,13 +71,13 @@ async function buildAndLoad() {
     entryPoint: 'src/index.ts',
     outputFile: 'dist/bundle.js'
   })
-  
+
   // Load bundle
   const bundleExport = await loadBundle({
     bundlePath: 'dist/bundle.js'
   })
-  
+
   // Use the loaded bundle
   return bundleExport
 }
-``` 
+```

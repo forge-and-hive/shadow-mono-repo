@@ -1,6 +1,6 @@
 // TASK: load
 // Run this task with:
-// shadow-cli bundle:load
+// forge task:run bundle:load
 
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'

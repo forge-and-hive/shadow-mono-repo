@@ -1,6 +1,7 @@
 // TASK: run
 // Run this task with:
-// shadow-cli task:run
+// most recursive call on the project
+// forge task:run task:run
 
 import path from 'path'
 import fs from 'fs/promises'

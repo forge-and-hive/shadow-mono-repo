@@ -1,6 +1,6 @@
-# Shadow CLI Task Guidelines
+# Forge CLI Task Guidelines
 
-This document outlines the standard patterns and best practices for creating tasks in the Shadow CLI.
+This document outlines the standard patterns and best practices for creating tasks in the Forge CLI.
 
 ## Task Structure
 
@@ -9,10 +9,10 @@ All tasks should follow this standard structure:
 ```typescript
 // TASK: [task_name]
 // Run this task with:
-// shadow-cli [namespace]:[task_name]
+// forge task:run [namespace]:[task_name]
 
-import { createTask } from '@shadow/task'
-import { Schema } from '@shadow/schema'
+import { createTask } from '@forgehive/task'
+import { Schema } from '@forgehive/schema'
 // Import any additional dependencies
 
 // Define the schema for task arguments
@@ -33,7 +33,7 @@ export const taskName = createTask(
   boundaries,
   async function ({ /* destructured parameters */ }) {
     // Task implementation
-    
+
     // Return appropriate result
     return result
   }
@@ -45,8 +45,8 @@ export const taskName = createTask(
 ### Bundle Creation Task
 
 ```typescript
-import { createTask } from '@shadow/task'
-import { Schema } from '@shadow/schema'
+import { createTask } from '@forgehive/task'
+import { Schema } from '@forgehive/schema'
 import esbuild from 'esbuild'
 
 const schema = new Schema({
@@ -80,8 +80,8 @@ export const create = createTask(
 ### Bundle Loading Task
 
 ```typescript
-import { createTask } from '@shadow/task'
-import { Schema } from '@shadow/schema'
+import { createTask } from '@forgehive/task'
+import { Schema } from '@forgehive/schema'
 
 const schema = new Schema({
   bundlePath: Schema.string()
@@ -129,11 +129,11 @@ Common schema types include:
 Tasks can be run using the CLI:
 
 ```bash
-shadow-cli [namespace]:[task_name] --paramName=value
+forge task:run [namespace]:[task_name] --paramName=value
 ```
 
 For example:
 
 ```bash
-shadow-cli bundle:create --entryPoint=src/index.ts --outputFile=dist/bundle.js
-``` 
+forge task:run bundle:create --entryPoint=src/index.ts --outputFile=dist/bundle.js
+```
