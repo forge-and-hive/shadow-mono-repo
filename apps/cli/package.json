@@ -10,10 +10,10 @@
   "publishConfig": {
     "access": "public",
     "dependencies": {
-      "@forgehive/record-tape": "^0.1.4",
-      "@forgehive/runner": "^0.1.10",
+      "@forgehive/record-tape": "^0.2.0",
+      "@forgehive/runner": "^0.2.0",
       "@forgehive/schema": "^0.1.4",
-      "@forgehive/task": "^0.1.13",
+      "@forgehive/task": "^0.2.0",
       "esbuild": "^0.25.0",
       "handlebars": "^4.7.8",
       "minimist": "^1.2.8"
