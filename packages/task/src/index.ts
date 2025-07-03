@@ -90,7 +90,7 @@ export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B ex
   /** The name of the task (if set) */
   taskName?: string
   /** Additional context metadata */
-  context?: Record<string, string>
+  metadata?: Record<string, string>
   /** The type of execution record - computed from output/error state */
   type: 'success' | 'error' | 'pending'
 }
@@ -413,7 +413,7 @@ export const Task = class Task<
     }
   }
 
-  async safeRun (argv?: Parameters<Func>[0], context?: Record<string, string>): Promise<[
+  async safeRun (argv?: Parameters<Func>[0], metadata?: Record<string, string>): Promise<[
     Awaited<ReturnType<Func>> | null,
     Error | null,
     ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>
@@ -423,9 +423,9 @@ export const Task = class Task<
       input: argv as Parameters<Func>[0],
       boundaries: {} as BoundaryLogsFor<B>,
       taskName: this._name,
-      context
+      metadata: metadata || {}
     }
-    
+
     // Create the log item with computed type
     const logItem: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B> = {
       ...logItemBase,
@@ -543,9 +543,9 @@ export const Task = class Task<
       input: argv,
       boundaries: {} as BoundaryLogsFor<B>,
       taskName: this._name,
-      context: executionLog.context
+      metadata: executionLog.metadata || {}
     }
-    
+
     // Create the log item with computed type
     const logItem: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B> = {
       ...logItemBase,

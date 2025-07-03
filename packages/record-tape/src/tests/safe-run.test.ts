@@ -1,4 +1,4 @@
-import { RecordTape, type LogItem } from '../index'
+import { RecordTape } from '../index'
 import { createTask, Schema, type ExecutionRecord, type TaskRecord } from '@forgehive/task'
 
 describe('RecordTape safeRun integration tests', () => {
@@ -93,8 +93,8 @@ describe('RecordTape safeRun integration tests', () => {
         }))
       }
 
-      // Cast the record to LogItem type to satisfy TypeScript
-      tape.addLogItem('test-task', record as unknown as LogItem<{ value: number }, { result: number; success: boolean }>)
+      // Add the record using push method
+      tape.push('test-task', record as any)
     })
 
     // Run the task with safeRun
@@ -120,7 +120,9 @@ describe('RecordTape safeRun integration tests', () => {
           output: 10,
           error: null
         }]
-      }
+      },
+      metadata: {},
+      taskName: undefined
     })
   })
 
@@ -164,8 +166,8 @@ describe('RecordTape safeRun integration tests', () => {
         }))
       }
 
-      // Cast the record to LogItem type to satisfy TypeScript
-      tape.addLogItem('test-task', record as unknown as LogItem<{ value: number }, { result: number; success: boolean }>)
+      // Add the record using push method
+      tape.push('test-task', record as any)
     })
 
     // Run the task with safeRun with a value that will cause an error
@@ -192,7 +194,10 @@ describe('RecordTape safeRun integration tests', () => {
           error: 'Value cannot be negative',
           output: null
         }]
-      }
+      },
+      metadata: {},
+      output: undefined,
+      taskName: undefined
     })
   })
 
@@ -255,7 +260,10 @@ describe('RecordTape safeRun integration tests', () => {
           output: null,
           error: 'Value cannot be negative'
         }]
-      }
+      },
+      metadata: {},
+      output: undefined,
+      taskName: undefined
     })
   })
 
@@ -298,7 +306,7 @@ describe('RecordTape safeRun integration tests', () => {
           error: null
         }]
       },
-      context: undefined
+      metadata: {}
     })
   })
 
@@ -341,7 +349,8 @@ describe('RecordTape safeRun integration tests', () => {
           output: 30,
           error: null
         }]
-      }
+      },
+      metadata: {}
     })
   })
 })

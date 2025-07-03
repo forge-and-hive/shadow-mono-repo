@@ -1,48 +1,36 @@
 import { RecordTape } from '../index'
 
-const baseTapeData = [
-  {
-    name: 'name',
-    type: 'success',
-    input: [true],
-    output: true,
-    boundaries: {}
-  },
-  {
-    name: 'name',
-    type: 'error',
-    input: [true],
-    error: 'invalid data',
-    boundaries: {}
-  }
-]
-
-const logFileData = '{"name":"name","type":"success","input":[true],"output":true,"boundaries":{}}\n{"name":"name","type":"error","input":[true],"error":"invalid data","boundaries":{}}\n'
-
-describe('Log format', () => {
-  it('Should ensure format', () => {
-    type InputType = boolean[]
+describe('Test log item formating', () => {
+  it('Should format a log items into valid JSON', async () => {
+    type InputType = boolean
     type OutputType = boolean
 
     const tape = new RecordTape<InputType, OutputType>({})
+    tape.addLogRecord({ name: 'name', input: true, output: true, boundaries: {}, type: 'success' })
+    tape.addLogRecord({ name: 'name', input: true, error: 'invalid data', boundaries: {}, type: 'error' })
 
-    tape.addLogItem('name', { input: [true], output: true, boundaries: {} })
-    tape.addLogItem('name', { input: [true], error: 'invalid data', boundaries: {} })
+    const str = tape.stringify()
 
-    expect(tape.getLog()).toEqual(baseTapeData)
+    expect(str).toEqual(`{"name":"name","input":true,"output":true,"boundaries":{},"type":"success"}
+{"name":"name","input":true,"error":"invalid data","boundaries":{},"type":"error"}
+`)
   })
 
-  it('Should serialize to one line per item', () => {
-    type InputType = boolean[]
+  it('Should parse the string to a list of records', async () => {
+    type InputType = boolean
     type OutputType = boolean
 
     const tape = new RecordTape<InputType, OutputType>({})
+    tape.addLogRecord({ name: 'name', input: true, output: true, boundaries: {}, type: 'success' })
+    tape.addLogRecord({ name: 'name', input: true, error: 'invalid data', boundaries: {}, type: 'error' })
 
-    tape.addLogItem('name', { input: [true], output: true, boundaries: {} })
-    tape.addLogItem('name', { input: [true], error: 'invalid data', boundaries: {} })
+    const str = tape.stringify()
+    const tape2 = new RecordTape<InputType, OutputType>({})
+    const records = tape2.parse(str)
 
-    const logFile = tape.stringify()
-
-    expect(logFile).toBe(logFileData)
+    expect(records).toEqual([
+      { name: 'name', input: true, output: true, boundaries: {}, type: 'success' },
+      { name: 'name', input: true, error: 'invalid data', boundaries: {}, type: 'error' }
+    ])
   })
 })
