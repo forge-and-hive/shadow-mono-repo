@@ -12,17 +12,13 @@ interface Config<TInput = unknown, TOutput = unknown, B extends Boundaries = Bou
   boundaries?: Record<string, unknown>
 }
 
-export type Mode = 'record' | 'replay'
-
 export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> {
   private _path: fs.PathLike | undefined
-  private _mode: Mode
   private _log: LogRecord<TInput, TOutput, B>[]
 
   constructor(config: Config<TInput, TOutput, B> = {}) {
     this._path = typeof config.path === 'string' ? `${config.path}.log` : undefined
     this._log = config.log ?? []
-    this._mode = 'record'
   }
 
   // Data functions
@@ -34,10 +30,6 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     record: ExecutionRecord<TInput, unknown, B>,
     metadata?: Record<string, string>
   ): LogRecord<TInput, TOutput, B> {
-    if (this._mode === 'replay') {
-      return {} as LogRecord<TInput, TOutput, B>
-    }
-
     // For safeRun records, always include both error and output fields
     const formattedBoundaries: Record<string, unknown> = {}
     if (record.boundaries) {
@@ -115,17 +107,11 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     return cache
   }
 
-  recordFrom(name: string, task: { _listener?: unknown; setBoundariesData: (data: Record<string, unknown>) => void }): void {
+  recordFrom(task: { _listener?: unknown }): void {
     // Add listener for ExecutionRecord
-    task._listener = async (executionRecord: ExecutionRecord<TInput, TOutput, B>, _boundaries: Record<string, unknown>): Promise<void> => {
-      // Only update if mode is record
-      if (this._mode === 'record') {
-        this.push(executionRecord)
-      }
+    task._listener = async (executionRecord: ExecutionRecord<TInput, TOutput, B>): Promise<void> => {
+      this.push(executionRecord)
     }
-
-    // Add cache
-    task.setBoundariesData(this.compileCache())
   }
 
   // Load save functions
