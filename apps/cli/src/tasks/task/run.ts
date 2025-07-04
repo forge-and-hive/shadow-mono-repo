@@ -150,7 +150,7 @@ export const run = createTask({
       await tape.load()
 
       // Maintain a maximum log length by removing old records
-      const maxLogLength = 9
+      const maxLogLength = 10
 
       // Remove records from the beginning until we're within the limit
       while (tape.getLength() >= maxLogLength) {
