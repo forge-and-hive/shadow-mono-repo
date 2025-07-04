@@ -141,7 +141,7 @@ export const run = createTask({
     }
 
     // Setup record tape
-    let tape = new RecordTape({
+    const tape = new RecordTape({
       path: logsPath
     })
 
@@ -149,19 +149,12 @@ export const run = createTask({
     try {
       await tape.load()
 
-      // Need to figure out how to handle the log length
-      // and other options for the RecordTape
-      // For now, we'll just keep the implementation simple
+      // Maintain a maximum log length by removing old records
       const maxLogLength = 9
-      const log = tape.getLog()
 
-      if (log.length > maxLogLength) {
-        const newTape = new RecordTape({
-          path: logsPath,
-          log: log.slice(-maxLogLength)
-        })
-
-        tape = newTape
+      // Remove records from the beginning until we're within the limit
+      while (tape.getLength() >= maxLogLength) {
+        tape.shift()
       }
     } catch (_error) {
       // if the tape is not found, create a new one on saving

@@ -26,6 +26,14 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     return this._log
   }
 
+  getLength(): number {
+    return this._log.length
+  }
+
+  shift(): LogRecord<TInput, TOutput, B> | undefined {
+    return this._log.shift()
+  }
+
   push(
     record: ExecutionRecord<TInput, unknown, B>,
     metadata?: Record<string, string>
