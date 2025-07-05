@@ -46,6 +46,12 @@ describe('RecordTape safeRun integration tests', () => {
     expect(logItem.type).toEqual('success')
     expect(logItem.input).toEqual({ value: 5 })
     expect(logItem.output).toEqual({ result: 10, success: true })
+    expect(logItem.boundaries).toEqual({
+      fetchData: [{
+        input: [5],
+        output: 10
+      }]
+    })
   })
 
   it('should record log items from safeRun successfully', async () => {
