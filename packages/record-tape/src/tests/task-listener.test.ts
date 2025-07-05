@@ -3,23 +3,18 @@ import { RecordTape } from '../index'
 
 describe('Task listener', () => {
   it('Should listen to task events', async () => {
-    type InputType = Record<string, unknown>
-    type OutputType = { value: number, foo: boolean }
-
-    const tape = new RecordTape<InputType, OutputType>({})
-    const task = new Task(
-      async (_input: InputType): Promise<OutputType> => {
+    const tape = new RecordTape({})
+    const task = createTask({
+      name: 'test',
+      schema: new Schema({}),
+      boundaries: {},
+      fn: async (_input) => {
         return { value: 1, foo: true }
       }
-    )
+    })
 
-    task.addListener<InputType, OutputType>((record) => {
-      const executionRecord = record.error
-        ? { input: record.input, error: record.error, boundaries: record.boundaries || {}, type: 'error' as const, taskName: 'test' }
-        : { input: record.input, output: record.output as OutputType, boundaries: record.boundaries || {}, type: 'success' as const, taskName: 'test' }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tape.push(executionRecord as any)
+    task.addListener((record) => {
+      tape.push(record)
     })
 
     await task.run({})
@@ -42,13 +37,9 @@ describe('Task listener', () => {
 
     const tape = new RecordTape<{ value: number }, { result: number }>({})
 
+    task.setName('test')
     task.addListener<{ value: number }, { result: number }>((record) => {
-      const executionRecord = record.error
-        ? { input: record.input, error: record.error, boundaries: record.boundaries || {}, type: 'error' as const, taskName: 'test' }
-        : { input: record.input, output: record.output as { result: number }, boundaries: record.boundaries || {}, type: 'success' as const, taskName: 'test' }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tape.push(executionRecord as any)
+      tape.push(record)
     })
 
     try {
@@ -96,12 +87,7 @@ describe('Task listener', () => {
     const tape = new RecordTape<InputType, OutputType>({})
 
     task.addListener<InputType, OutputType>((record) => {
-      const executionRecord = record.error
-        ? { input: record.input, error: record.error, boundaries: record.boundaries || {}, type: 'error' as const, taskName: 'test' }
-        : { input: record.input, output: record.output as OutputType, boundaries: record.boundaries || {}, type: 'success' as const, taskName: 'test' }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tape.push(executionRecord as any)
+      tape.push(record)
     })
 
     await task.run({ value: 5 })
@@ -115,7 +101,7 @@ describe('Task listener', () => {
           multiply: [{ input: [5], output: 10 }]
         },
         metadata: {},
-        taskName: 'test'
+        taskName: undefined
       }
     ])
   })
@@ -149,12 +135,7 @@ describe('Task listener', () => {
     })
 
     task.addListener<InputType, OutputType>((record) => {
-      const executionRecord = record.error
-        ? { input: record.input, error: record.error, boundaries: record.boundaries || {}, type: 'error' as const, taskName: 'test' }
-        : { input: record.input, output: record.output as OutputType, boundaries: record.boundaries || {}, type: 'success' as const, taskName: 'test' }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tape.push(executionRecord as any)
+      tape.push(record)
     })
 
     await task.run({ value: 5 })
@@ -168,7 +149,7 @@ describe('Task listener', () => {
           multiply: [{ input: [5], output: 10 }]
         },
         metadata: {},
-        taskName: 'test'
+        taskName: undefined
       }
     ])
   })

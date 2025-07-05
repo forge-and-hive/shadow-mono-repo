@@ -356,6 +356,30 @@ const replayTask = new Task(myFunction, {
 })
 ```
 
+## Migration Guide
+
+### Recent API Changes
+
+**Interface Rename**: `LogRecord` → `GenericExecutionRecord`
+- The main interface has been renamed to better reflect its generic nature
+- All method signatures now use `GenericExecutionRecord`
+- The "Generic" prefix indicates the tape can store logs from different task types
+
+**Simplified API**:
+- Removed deprecated `setMode()`, `getMode()`, `addLogRecord()`, `addExecutionRecord()` methods
+- Simplified `push()` method with automatic type inference
+- Removed redundant `name` field (use `taskName` instead)
+
+**New Queue Methods**:
+- Added `getLength()` - returns number of records
+- Added `shift()` - removes and returns first record (FIFO)
+- These enable efficient log management and processing
+
+**Task Integration**:
+- Direct ExecutionRecord compatibility with Task package
+- Simplified listener setup with automatic record forwarding
+- No conversion needed between task records and tape records
+
 ## License
 
 MIT License - see LICENSE file for details.
