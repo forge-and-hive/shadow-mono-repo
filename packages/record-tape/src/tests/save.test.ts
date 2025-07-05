@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { RecordTape } from '../index'
 
-const logFileData = '{"name":"name","input":true,"output":true,"boundaries":{},"type":"success","taskName":"name","metadata":{}}\n{"name":"name","input":true,"error":"invalid data","boundaries":{},"type":"error","taskName":"name","metadata":{}}\n'
+const logFileData = '{"input":true,"output":true,"boundaries":{},"type":"success","taskName":"name","metadata":{}}\n{"input":true,"error":"invalid data","boundaries":{},"type":"error","taskName":"name","metadata":{}}\n'
 
 describe('Save to file async', () => {
   it('Save async to existing file(should add new logs)', async () => {

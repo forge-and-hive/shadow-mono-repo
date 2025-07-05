@@ -1,6 +1,6 @@
 # @forgehive/record-tape
 
-A lightweight TypeScript library for recording and persisting task execution logs with boundary data support.
+A lightweight TypeScript library for recording and persisting task execution logs with boundary data support. Works generically with any task type without requiring compile-time type knowledge.
 
 ## Features
 
@@ -10,6 +10,7 @@ A lightweight TypeScript library for recording and persisting task execution log
 - 🔄 **Serialization**: Built-in JSON serialization support
 - 🎨 **TypeScript**: Full type safety with generics
 - 🚀 **Boundary Support**: Record external API calls and dependencies
+- 🔧 **Generic Design**: Works with any task type without compile-time type requirements
 
 ## Installation
 
@@ -72,7 +73,7 @@ Get all recorded execution logs.
 
 ```typescript
 const logs = tape.getLog()
-// Returns: LogRecord<TInput, TOutput, B>[]
+// Returns: GenericExecutionRecord<TInput, TOutput, B>[]
 ```
 
 #### `getLength()`
@@ -88,7 +89,7 @@ Remove and return the first record from the tape.
 
 ```typescript
 const firstRecord = tape.shift()
-// Returns: LogRecord<TInput, TOutput, B> | undefined
+// Returns: GenericExecutionRecord<TInput, TOutput, B> | undefined
 ```
 
 #### `push(record, metadata?)`
@@ -102,7 +103,7 @@ const logRecord = tape.push(executionRecord, { userId: '123' })
 - `record` - ExecutionRecord with input, output, taskName, boundaries, etc.
 - `metadata?` - Optional additional metadata to attach
 
-**Returns:** The created LogRecord
+**Returns:** The created GenericExecutionRecord
 
 #### `recordFrom(task)`
 Set up automatic recording from a task instance.
@@ -126,6 +127,7 @@ Parse string content back into log records.
 
 ```typescript
 const logs = tape.parse(logString)
+// Returns: GenericExecutionRecord<TInput, TOutput, B>[]
 ```
 
 ### Persistence Methods
@@ -136,9 +138,11 @@ Load execution logs from file.
 ```typescript
 // Async version
 const logs = await tape.load()
+// Returns: GenericExecutionRecord<TInput, TOutput, B>[]
 
 // Sync version
 const logs = tape.loadSync()
+// Returns: GenericExecutionRecord<TInput, TOutput, B>[]
 ```
 
 #### `save()` / `saveSync()`
@@ -164,14 +168,20 @@ const boundaryCache = tape.compileCache()
 
 ## Types
 
-### LogRecord
-Extends ExecutionRecord with a `name` field:
+### GenericExecutionRecord
+A generic version of ExecutionRecord that can store execution data from any task without knowing the specific types at compile time:
 
 ```typescript
-interface LogRecord<TInput, TOutput, B extends Boundaries> extends ExecutionRecord<TInput, TOutput, B> {
-  name: string
+interface GenericExecutionRecord<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> extends ExecutionRecord<TInput, TOutput, B> {
 }
 ```
+
+The "Generic" prefix indicates that RecordTape can store logs from different tasks with varying input/output types. The default type parameters (`unknown`) allow the tape to work with any task execution without requiring specific type knowledge.
+
+**Why Generic?**
+- **Mixed Task Logs**: Store logs from multiple different tasks in the same tape
+- **Runtime Flexibility**: Add logs without knowing task types at compile time
+- **Type Safety**: Still maintains TypeScript type safety when types are known
 
 ### ExecutionRecord
 Core execution data structure:
@@ -318,8 +328,8 @@ const boundaryCache = tape.compileCache()
 The tape saves logs in a simple text format with one JSON object per line:
 
 ```
-{"name":"getUser","input":{"userId":123},"output":{"name":"John"},"type":"success","boundaries":{},"metadata":{}}
-{"name":"getUser","input":{"userId":999},"error":"User not found","type":"error","boundaries":{},"metadata":{}}
+{"input":{"userId":123},"output":{"name":"John"},"type":"success","boundaries":{},"metadata":{},"taskName":"getUser"}
+{"input":{"userId":999},"error":"User not found","type":"error","boundaries":{},"metadata":{},"taskName":"getUser"}
 ```
 
 ## Advanced Usage

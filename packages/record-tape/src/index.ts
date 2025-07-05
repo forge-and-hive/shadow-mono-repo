@@ -2,19 +2,18 @@ import fs from 'fs'
 import path from 'path'
 import { type ExecutionRecord, type Boundaries } from '@forgehive/task'
 
-export interface LogRecord<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> extends ExecutionRecord<TInput, TOutput, B> {
-  name: string
+export interface GenericExecutionRecord<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> extends ExecutionRecord<TInput, TOutput, B> {
 }
 
 interface Config<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> {
   path?: fs.PathLike
-  log?: LogRecord<TInput, TOutput, B>[]
+  log?: GenericExecutionRecord<TInput, TOutput, B>[]
   boundaries?: Record<string, unknown>
 }
 
 export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundaries = Boundaries> {
   private _path: fs.PathLike | undefined
-  private _log: LogRecord<TInput, TOutput, B>[]
+  private _log: GenericExecutionRecord<TInput, TOutput, B>[]
 
   constructor(config: Config<TInput, TOutput, B> = {}) {
     this._path = typeof config.path === 'string' ? `${config.path}.log` : undefined
@@ -22,7 +21,7 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
   }
 
   // Data functions
-  getLog(): LogRecord<TInput, TOutput, B>[] {
+  getLog(): GenericExecutionRecord<TInput, TOutput, B>[] {
     return this._log
   }
 
@@ -30,48 +29,27 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     return this._log.length
   }
 
-  shift(): LogRecord<TInput, TOutput, B> | undefined {
+  shift(): GenericExecutionRecord<TInput, TOutput, B> | undefined {
     return this._log.shift()
   }
 
   push(
     record: ExecutionRecord<TInput, unknown, B>,
     metadata?: Record<string, string>
-  ): LogRecord<TInput, TOutput, B> {
-    // For safeRun records, always include both error and output fields
-    const formattedBoundaries: Record<string, unknown> = {}
-    if (record.boundaries) {
-      for (const key in record.boundaries) {
-        const boundaryArray = record.boundaries[key] as Array<Record<string, unknown>>
-        formattedBoundaries[key] = boundaryArray.map(entry => {
-          return {
-            input: entry.input,
-            output: entry.output ?? null,
-            error: entry.error ?? null
-          }
-        })
-      }
-    }
-
-    // Use the type from ExecutionRecord if available, otherwise derive it
+  ): GenericExecutionRecord<TInput, TOutput, B> {
+    // Add type if missing
     const recordType = ('type' in record && record.type) ? record.type :
       (record.output !== undefined && record.output !== null) ? 'success' :
         (record.error !== undefined) ? 'error' : 'pending'
-
-    // Handle Promise outputs by setting to null in the log
-    const output = record.output instanceof Promise ? null : record.output
 
     // Merge metadata from record and parameter (parameter takes precedence)
     const mergedMetadata = { ...record.metadata, ...metadata }
 
     const logRecord = {
-      name: record.taskName || 'unnamed-task',
       ...record,
       type: recordType,
-      output,
-      boundaries: formattedBoundaries,
       metadata: mergedMetadata
-    } as LogRecord<TInput, TOutput, B>
+    } as GenericExecutionRecord<TInput, TOutput, B>
 
     this._log.push(logRecord)
 
@@ -87,12 +65,12 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     return log
   }
 
-  parse(content: string): LogRecord<TInput, TOutput, B>[] {
+  parse(content: string): GenericExecutionRecord<TInput, TOutput, B>[] {
     const items = content.split('\n')
-    const log: LogRecord<TInput, TOutput, B>[] = []
+    const log: GenericExecutionRecord<TInput, TOutput, B>[] = []
     for (const item of items) {
       if (item !== '') {
-        const data = JSON.parse(item) as LogRecord<TInput, TOutput, B>
+        const data = JSON.parse(item) as GenericExecutionRecord<TInput, TOutput, B>
         log.push(data)
       }
     }
@@ -123,7 +101,7 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
   }
 
   // Load save functions
-  async load(): Promise<LogRecord<TInput, TOutput, B>[]> {
+  async load(): Promise<GenericExecutionRecord<TInput, TOutput, B>[]> {
     if (typeof this._path === 'undefined') {
       return []
     }
@@ -153,7 +131,7 @@ export class RecordTape<TInput = unknown, TOutput = unknown, B extends Boundarie
     return this._log
   }
 
-  loadSync(): LogRecord<TInput, TOutput, B>[] {
+  loadSync(): GenericExecutionRecord<TInput, TOutput, B>[] {
     if (typeof this._path === 'undefined') { return [] }
 
     const dirpath = path.dirname(this._path.toString())

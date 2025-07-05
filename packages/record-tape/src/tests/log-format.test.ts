@@ -11,8 +11,8 @@ describe('Test log item formating', () => {
 
     const str = tape.stringify()
 
-    expect(str).toEqual(`{"name":"name","input":true,"output":true,"boundaries":{},"type":"success","taskName":"name","metadata":{}}
-{"name":"name","input":true,"error":"invalid data","boundaries":{},"type":"error","taskName":"name","metadata":{}}
+    expect(str).toEqual(`{"input":true,"output":true,"boundaries":{},"type":"success","taskName":"name","metadata":{}}
+{"input":true,"error":"invalid data","boundaries":{},"type":"error","taskName":"name","metadata":{}}
 `)
   })
 
@@ -29,8 +29,8 @@ describe('Test log item formating', () => {
     const records = tape2.parse(str)
 
     expect(records).toEqual([
-      { name: 'name', input: true, output: true, boundaries: {}, type: 'success', taskName: 'name', metadata: {} },
-      { name: 'name', input: true, error: 'invalid data', boundaries: {}, type: 'error', taskName: 'name', metadata: {} }
+      { input: true, output: true, boundaries: {}, type: 'success', taskName: 'name', metadata: {} },
+      { input: true, error: 'invalid data', boundaries: {}, type: 'error', taskName: 'name', metadata: {} }
     ])
   })
 })

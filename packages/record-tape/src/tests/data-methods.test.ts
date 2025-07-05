@@ -86,7 +86,7 @@ describe('RecordTape Data Methods', () => {
 
       // Should return the first record
       expect(shiftedRecord).toEqual(expect.objectContaining({
-        name: 'getUser',
+        taskName: 'getUser',
         input: { userId: 1 },
         output: { name: 'John' },
         type: 'success'
@@ -95,7 +95,7 @@ describe('RecordTape Data Methods', () => {
       // Should have removed the first record
       expect(tape.getLength()).toBe(1)
       expect(tape.getLog()[0]).toEqual(expect.objectContaining({
-        name: 'getUser',
+        taskName: 'getUser',
         input: { userId: 2 },
         output: { name: 'Jane' },
         type: 'success'
