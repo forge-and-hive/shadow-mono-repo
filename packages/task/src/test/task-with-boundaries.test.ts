@@ -1,4 +1,4 @@
-import { createTask, Schema, TaskRecord, BoundaryTapeData } from '../index'
+import { createTask, Schema, ExecutionRecord, BoundaryTapeData } from '../index'
 
 // Need to add proxy cache mode to the boundaries
 describe('Boundaries tasks tests', () => {
@@ -148,7 +148,7 @@ describe('Boundaries tasks tests', () => {
     }
 
     // Use the correct type definition for records
-    const records: TaskRecord<{value: number}, Promise<number>>[] = []
+    const records: ExecutionRecord[] = []
 
     // Create a schema for the task that accepts a number
     const schema = new Schema({
@@ -192,7 +192,7 @@ describe('Boundaries tasks tests', () => {
     expect(records.length).toBe(3)
 
     // Sort records by input value for consistent testing
-    const sortedRecords = [...records].sort((a, b) => a.input.value - b.input.value)
+    const sortedRecords = [...records].sort((a, b) => (a.input as {value: number}).value - (b.input as {value: number}).value)
 
     // Check record for first task (value: 2)
     expect(sortedRecords[0].input).toEqual({ value: 2 })

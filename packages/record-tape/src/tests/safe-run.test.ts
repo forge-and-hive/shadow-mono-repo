@@ -1,334 +1,170 @@
+import { createTask, Schema } from '@forgehive/task'
 import { RecordTape } from '../index'
-import { createTask, Schema, type ExecutionRecord, type TaskRecord } from '@forgehive/task'
 
-describe('RecordTape safeRun integration tests', () => {
-  it('should record log items directly from safeRun result', async () => {
-    // Create a schema
-    const schema = new Schema({
-      value: Schema.number()
-    })
+describe('Safe run', () => {
+  it('Should run a simple task with no boundaries and register to a tape', async () => {
+    const tape = new RecordTape<{ value: number }, { doubled: number }>({})
 
-    // Define the boundaries
-    const boundaries = {
-      fetchData: async (value: number): Promise<number> => {
-        return value * 2
-      }
-    }
-
-    // Create the task
     const task = createTask({
-      schema,
-      boundaries,
-      fn: async function ({ value }, { fetchData }) {
-        const result = await fetchData(value)
-        return { result, success: true }
+      name: 'simple-task',
+      schema: new Schema({
+        value: Schema.number()
+      }),
+      boundaries: {},
+      fn: async ({ value }) => {
+        return { doubled: value * 2 }
       }
     })
 
-    // Create a record tape
-    const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
-
-    // Run the task with safeRun
-    const [, , record] = await task.safeRun({ value: 5 })
-
-    // Add task name and push to tape
-    record.taskName = 'test-task'
-    tape.push(record)
-
-    // Get the recorded log from the tape
-    const recordedLog = tape.getLog()
-
-    // Verify the log contains one item
-    expect(recordedLog).toHaveLength(1)
-
-    const logItem = recordedLog[0]
-    expect(logItem.taskName).toEqual('test-task')
-    expect(logItem.type).toEqual('success')
-    expect(logItem.input).toEqual({ value: 5 })
-    expect(logItem.output).toEqual({ result: 10, success: true })
-    expect(logItem.boundaries).toEqual({
-      fetchData: [{
-        input: [5],
-        output: 10
-      }]
-    })
-  })
-
-  it('should record log items from safeRun successfully', async () => {
-    // Create a schema
-    const schema = new Schema({
-      value: Schema.number()
+    task.addListener((record) => {
+      tape.push(record)
     })
 
-    // Define the boundaries
-    const boundaries = {
-      fetchData: async (value: number): Promise<number> => {
-        return value * 2
-      }
-    }
-
-    // Create the task
-    const task = createTask({
-      schema,
-      boundaries,
-      fn: async function ({ value }, { fetchData }) {
-        const result = await fetchData(value)
-        return { result, success: true }
-      }
-    })
-
-    // Create a record tape
-    const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
-
-    // Add listener to record the log items
-    task.addListener((record: TaskRecord<{ value: number }, { result: number; success: boolean }>) => {
-      // Add the record using push method
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const recordWithTaskName = { ...record, taskName: 'test-task' } as any
-      tape.push(recordWithTaskName)
-    })
-
-    // Run the task with safeRun
+    // Test simple execution
     const [result, error] = await task.safeRun({ value: 5 })
 
-    // Verify the execution was successful
-    expect(result).not.toBeNull()
     expect(error).toBeNull()
+    expect(result).toEqual({ doubled: 10 })
 
-    if (result) {
-      expect(result).toEqual({ result: 10, success: true })
-    }
-
-    // Get the recorded log from the tape
-    const recordedLog = tape.getLog()
-
-    // Verify the log was recorded correctly
-    expect(recordedLog).toHaveLength(1)
-    expect(recordedLog[0]).toEqual({
+    const log = tape.getLog()
+    expect(log).toHaveLength(1)
+    expect(log[0]).toEqual({
       type: 'success',
       input: { value: 5 },
-      output: { result: 10, success: true },
-      boundaries: {
-        fetchData: [{
-          input: [5],
-          output: 10
-        }]
-      },
+      output: { doubled: 10 },
+      boundaries: {},
       metadata: {},
-      taskName: 'test-task'
+      taskName: 'simple-task'
     })
   })
 
-  it('should record error log items from safeRun', async () => {
-    // Create a schema
-    const schema = new Schema({
-      value: Schema.number()
-    })
+  it('Should run a task with boundaries and register to a tape', async () => {
+    const tape = new RecordTape<{ value: number }, { result: number; success: boolean }>({})
 
-    // Define the boundaries with a function that will throw an error
-    const boundaries = {
-      fetchData: async (value: number): Promise<number> => {
-        if (value < 0) {
-          throw new Error('Value cannot be negative')
-        }
-        return value * 2
-      }
-    }
-
-    // Create the task
     const task = createTask({
-      schema,
-      boundaries,
-      fn: async function ({ value }, { fetchData }) {
-        const result = await fetchData(value)
-        return { result, success: true }
-      }
-    })
-
-    // Create a record tape
-    const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
-
-    // Add listener to record the log items
-    task.addListener((record: TaskRecord<{ value: number }, { result: number; success: boolean }>) => {
-      // Add the record using push method
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const recordWithTaskName = { ...record, taskName: 'test-task' } as any
-      tape.push(recordWithTaskName)
-    })
-
-    // Run the task with safeRun with a value that will cause an error
-    const [result, error] = await task.safeRun({ value: -5 })
-
-    // Verify the execution failed as expected
-    expect(result).toBeNull()
-    expect(error).not.toBeNull()
-    expect(error?.message).toContain('Value cannot be negative')
-
-    // Get the recorded log from the tape
-    const recordedLog = tape.getLog()
-
-    // Verify the error log was recorded correctly
-    expect(recordedLog).toHaveLength(1)
-    expect(recordedLog[0]).toEqual({
-      type: 'error',
-      input: { value: -5 },
-      error: 'Value cannot be negative',
+      name: 'test',
+      schema: new Schema({
+        value: Schema.number().min(10).max(20)
+      }),
       boundaries: {
-        fetchData: [{
-          input: [-5],
-          error: 'Value cannot be negative'
-        }]
-      },
-      metadata: {},
-      taskName: 'test-task'
-    })
-  })
-
-  it('should handle error records directly with push', async () => {
-    // Create a schema
-    const schema = new Schema({
-      value: Schema.number()
-    })
-
-    // Define the boundaries with a function that will throw an error
-    const boundaries = {
-      fetchData: async (value: number): Promise<number> => {
-        if (value < 0) {
-          throw new Error('Value cannot be negative')
+        multiply: async (value: number): Promise<number> => {
+          return value * 2
         }
-        return value * 2
-      }
-    }
-
-    // Create the task
-    const task = createTask({
-      schema,
-      boundaries,
-      fn: async function ({ value }, { fetchData }) {
-        const result = await fetchData(value)
-        return { result, success: true }
+      },
+      fn: async ({ value }, { multiply }) => {
+        const result = await multiply(value)
+        return { result, success: result > 10 }
       }
     })
 
-    // Create a record tape
-    const tape = new RecordTape<{ value: number }, { result: number; success: boolean }, typeof boundaries>()
+    task.addListener((record) => {
+      tape.push(record)
+    })
 
-    // Run the task with safeRun with a value that will cause an error
-    const [result, error, record] = await task.safeRun({ value: -5 })
-    record.taskName = 'test-error'
-    tape.push(record)
+    // Test invalid input
+    let [result, error] = await task.safeRun({ value: 5 })
 
-    // Verify the execution failed as expected
-    expect(result).toBeNull()
-    expect(error).not.toBeNull()
-    expect(error instanceof Error).toBe(true)
-    if (error instanceof Error) {
-      expect(error.message).toContain('Value cannot be negative')
-    }
+    expect(error).toBeDefined()
+    expect(error?.message).toContain('Invalid input')
 
-    // Get the recorded log from the tape
-    const recordedLog = tape.getLog()
+    // Test valid input
+    ;[result, error] = await task.safeRun({ value: 15 })
+    expect(error).toBeNull()
+    expect(result).toEqual({ result: 30, success: true })
 
-    // Verify the error log was recorded correctly
-    expect(recordedLog).toHaveLength(1)
-    expect(recordedLog[0]).toEqual({
+    const log = tape.getLog()
+    expect(log).toHaveLength(2)
+    expect(log[0]).toEqual({
       type: 'error',
-      input: { value: -5 },
-      error: 'Value cannot be negative',
+      input: { value: 5 },
+      error: 'Invalid input on: value: Number must be greater than or equal to 10',
       boundaries: {
-        fetchData: [{
-          input: [-5],
-          error: 'Value cannot be negative'
-        }]
+        multiply: []
       },
       metadata: {},
-      taskName: 'test-error'
+      taskName: 'test'
     })
-  })
 
-  it('should handle custom execution records with push', async () => {
-    // Create a record tape
-    const tape = new RecordTape<{ value: number }, { result: number }, { fetchData: (n: number) => Promise<number> }>()
-
-    // Create a custom execution record
-    const customRecord: ExecutionRecord<{ value: number }, { result: number }, { fetchData: (n: number) => Promise<number> }> = {
-      input: { value: 10 },
-      output: { result: 20 },
-      type: 'success',
-      boundaries: {
-        fetchData: [
-          {
-            input: [10],
-            output: 20
-          }
-        ]
-      }
-    }
-
-    // Push the custom record to the tape with custom metadata
-    customRecord.taskName = 'custom-record'
-    tape.push(customRecord)
-
-    // Get the recorded log from the tape
-    const recordedLog = tape.getLog()
-
-    // Verify the log was recorded correctly
-    expect(recordedLog).toHaveLength(1)
-    expect(recordedLog[0]).toEqual({
-      type: 'success',
-      input: { value: 10 },
-      output: { result: 20 },
-      boundaries: {
-        fetchData: [{
-          input: [10],
-          output: 20
-        }]
-      },
-      metadata: {},
-      taskName: 'custom-record'
-    })
-  })
-
-  it('should handle execution records with Promise outputs correctly', async () => {
-    // Create a record tape that accepts Promise outputs
-    const tape = new RecordTape<{ value: number }, Promise<{ result: number }>, { fetchData: (n: number) => Promise<number> }>()
-
-    // Create a custom execution record with a Promise output
-    const customRecord: ExecutionRecord<{ value: number }, Promise<{ result: number }>, { fetchData: (n: number) => Promise<number> }> = {
-      input: { value: 15 },
-      output: Promise.resolve({ result: 30 }),
-      type: 'success',
-      boundaries: {
-        fetchData: [
-          {
-            input: [15],
-            output: 30
-          }
-        ]
-      }
-    }
-
-    // Push the custom record to the tape
-    customRecord.taskName = 'promise-record'
-    tape.push(customRecord)
-
-    // Get the recorded log from the tape
-    const recordedLog = tape.getLog()
-
-    // Verify the log was recorded correctly, with Promise output preserved
-    expect(recordedLog).toHaveLength(1)
-    expect(recordedLog[0]).toEqual({
+    expect(log[1]).toEqual({
       type: 'success',
       input: { value: 15 },
-      output: Promise.resolve({ result: 30 }),
+      output: { result: 30, success: true },
       boundaries: {
-        fetchData: [{
+        multiply: [{
           input: [15],
           output: 30
         }]
       },
       metadata: {},
-      taskName: 'promise-record'
+      taskName: 'test'
+    })
+  })
+
+  it('Should run a task with boundaries and register errors to a tape', async () => {
+    const tape = new RecordTape<{ value: number }, { result: number }>({})
+
+    const task = createTask({
+      name: 'test',
+      schema: new Schema({
+        value: Schema.number()
+      }),
+      boundaries: {
+        divide: async (value: number): Promise<number> => {
+          if (value === 0) {
+            throw new Error('Division by zero')
+          }
+          return 100 / value
+        }
+      },
+      fn: async ({ value }, { divide }) => {
+        const result = await divide(value)
+        return { result }
+      }
+    })
+
+    task.addListener((record) => {
+      tape.push(record)
+    })
+
+    // Test division by zero
+    const [, error] = await task.safeRun({ value: 0 })
+
+    expect(error).toBeDefined()
+    expect(error?.message).toBe('Division by zero')
+
+    // Test valid input
+    const [secondResult, secondError] = await task.safeRun({ value: 10 })
+    expect(secondError).toBeNull()
+    expect(secondResult).toEqual({ result: 10 })
+
+    const log = tape.getLog()
+    expect(log).toHaveLength(2)
+    expect(log[0]).toEqual({
+      type: 'error',
+      input: { value: 0 },
+      error: 'Division by zero',
+      boundaries: {
+        divide: [{
+          input: [0],
+          error: 'Division by zero'
+        }]
+      },
+      metadata: {},
+      taskName: 'test'
+    })
+
+    expect(log[1]).toEqual({
+      type: 'success',
+      input: { value: 10 },
+      output: { result: 10 },
+      boundaries: {
+        divide: [{
+          input: [10],
+          output: 10
+        }]
+      },
+      metadata: {},
+      taskName: 'test'
     })
   })
 })

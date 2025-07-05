@@ -1,28 +1,31 @@
-import { Task, type TaskRecord } from '../index'
-import { Schema, type InferSchema } from '@forgehive/schema'
+import { Task, type ExecutionRecord } from '../index'
 
-describe('Listener tests', () => {
-  it('Should record one item', async () => {
-    const tape: TaskRecord<{ value: number }, { value: number }>[] = []
-    const task = new Task(function (_argv: { value: number }) {
-      return _argv
+describe('Add listener', () => {
+  it('Should add a listener to the task', async () => {
+    const tape: ExecutionRecord[] = []
+    const task = new Task(async (argv: { value: number }) => {
+      return { value: argv.value }
     })
 
     task.addListener((record) => {
       tape.push(record)
     })
 
-    await task.run({ value: 5 })
-
-    expect(tape.length).toBe(1)
-    expect(tape[0].input).toEqual({ value: 5 })
-    expect(tape[0].output).toEqual({ value: 5 })
+    await task.run({ value: 1 })
+    expect(tape).toEqual([{
+      input: { value: 1 },
+      output: { value: 1 },
+      boundaries: {},
+      taskName: undefined,
+      metadata: {},
+      type: 'success'
+    }])
   })
 
-  it('Should record execution error', async () => {
-    const tape: TaskRecord<{ value: number }, never>[] = []
-    const task = new Task(function (_argv: { value: number }) {
-      throw new Error('This should happen')
+  it('Should add a listener to the task and catch error', async () => {
+    const tape: ExecutionRecord[] = []
+    const task = new Task(async (_argv: { value: number }) => {
+      throw new Error('Test error')
     })
 
     task.addListener((record) => {
@@ -30,83 +33,106 @@ describe('Listener tests', () => {
     })
 
     try {
-      await task.run({ value: 5 })
-    } catch (e) {
-      // Error is expected
+      await task.run({ value: 1 })
+    } catch (error) {
+      // Expected error
     }
 
-    expect(tape.length).toBe(1)
-    expect(tape[0].input).toEqual({ value: 5 })
-    expect(tape[0].error).toBe('This should happen')
+    expect(tape).toEqual([{
+      input: { value: 1 },
+      error: 'Test error',
+      boundaries: {},
+      taskName: undefined,
+      metadata: {},
+      type: 'error'
+    }])
   })
 
-  it('Should record validation error', async () => {
-    const tape: TaskRecord<{ value: number | null }, { value: number }>[] = []
-    const schema = new Schema({
-      value: Schema.number().min(5)
+  it('Should add a listener to the task and catch error with null input', async () => {
+    const tape: ExecutionRecord[] = []
+    const task = new Task(async (argv: { value: number | null }) => {
+      if (argv.value === null) {
+        throw new Error('Value is null')
+      }
+      return { value: argv.value }
     })
 
-    const task = new Task(function (_argv: InferSchema<typeof schema>) {
-      return _argv
-    }, {
-      schema
-    })
-
-    task.addListener<{ value: number | null }, { value: number }>((record) => {
+    task.addListener((record) => {
       tape.push(record)
     })
 
     try {
-      await task.run({ value: 3 })
-    } catch (e) {
-      // Error is expected
+      await task.run({ value: null })
+    } catch (error) {
+      // Expected error
     }
 
-    expect(tape.length).toBe(1)
-    expect(tape[0].input).toEqual({ value: 3 })
-    expect(tape[0].error).toContain('Invalid input on:')
-    expect(tape[0].error).toContain('value:')
-    expect(tape[0].error).toContain('Number must be greater than or equal to 5')
+    expect(tape).toEqual([{
+      input: { value: null },
+      error: 'Value is null',
+      boundaries: {},
+      taskName: undefined,
+      metadata: {},
+      type: 'error'
+    }])
   })
 
-  it('Should record multiple records', async () => {
-    const tape: TaskRecord<{ value: number }, { value: number }>[] = []
-    const task = new Task(function (_argv: { value: number }) {
-      return _argv
+  it('Should add a listener to the task and call twice', async () => {
+    const tape: ExecutionRecord[] = []
+    const task = new Task(async (argv: { value: number }) => {
+      return { value: argv.value }
     })
 
     task.addListener((record) => {
       tape.push(record)
     })
 
-    await task.run({ value: 5 })
-    await task.run({ value: 6 })
+    await task.run({ value: 1 })
+    await task.run({ value: 2 })
 
-    expect(tape.length).toBe(2)
-    expect(tape[0].input).toEqual({ value: 5 })
-    expect(tape[0].output).toEqual({ value: 5 })
-
-    expect(tape[1].input).toEqual({ value: 6 })
-    expect(tape[1].output).toEqual({ value: 6 })
+    expect(tape).toEqual([
+      {
+        input: { value: 1 },
+        output: { value: 1 },
+        boundaries: {},
+        taskName: undefined,
+        metadata: {},
+        type: 'success'
+      },
+      {
+        input: { value: 2 },
+        output: { value: 2 },
+        boundaries: {},
+        taskName: undefined,
+        metadata: {},
+        type: 'success'
+      }
+    ])
   })
 
-  it('Should stop recording', async () => {
-    const tape: TaskRecord<{ value: number }, { value: number }>[] = []
-    const task = new Task(function (_argv: { value: number }) {
-      return _argv
+  it('Should add a listener and remove it', async () => {
+    const tape: ExecutionRecord[] = []
+    const task = new Task(async (argv: { value: number }) => {
+      return { value: argv.value }
     })
 
     task.addListener((record) => {
       tape.push(record)
     })
 
-    await task.run({ value: 5 })
+    await task.run({ value: 1 })
 
     task.removeListener()
-    await task.run({ value: 6 })
 
-    expect(tape.length).toBe(1)
-    expect(tape[0].input).toEqual({ value: 5 })
-    expect(tape[0].output).toEqual({ value: 5 })
+    await task.run({ value: 2 })
+
+    expect(tape).toEqual([{
+      input: { value: 1 },
+      output: { value: 1 },
+      boundaries: {},
+      taskName: undefined,
+      metadata: {},
+      type: 'success'
+    }])
   })
 })

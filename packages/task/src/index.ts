@@ -51,19 +51,7 @@ export interface ReplayConfig<B extends Boundaries = Boundaries> {
 }
 
 // ToDo: Add a type for the boundaries data
-/**
- * Represents the record passed to task listeners
- */
-export interface TaskRecord<InputType = unknown, OutputType = unknown> {
-  /** The input arguments passed to the task */
-  input: InputType;
-  /** The output returned by the task (if successful) */
-  output?: OutputType | null;
-  /** The error message if the task failed */
-  error?: string;
-  /** Boundary execution data */
-  boundaries?: Record<string, unknown>;
-}
+
 
 // Make BoundaryLog generic
 export type BoundaryLog<I extends unknown[] = unknown[], O = unknown> = BoundaryRecord<I, O>;
