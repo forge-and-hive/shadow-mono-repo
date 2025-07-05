@@ -51,19 +51,7 @@ export interface ReplayConfig<B extends Boundaries = Boundaries> {
 }
 
 // ToDo: Add a type for the boundaries data
-/**
- * Represents the record passed to task listeners
- */
-export interface TaskRecord<InputType = unknown, OutputType = unknown> {
-  /** The input arguments passed to the task */
-  input: InputType;
-  /** The output returned by the task (if successful) */
-  output?: OutputType | null;
-  /** The error message if the task failed */
-  error?: string;
-  /** Boundary execution data */
-  boundaries?: Record<string, unknown>;
-}
+
 
 // Make BoundaryLog generic
 export type BoundaryLog<I extends unknown[] = unknown[], O = unknown> = BoundaryRecord<I, O>;
@@ -113,9 +101,9 @@ export interface TaskInstanceType<Func extends BaseFunction = BaseFunction, B ex
   isValid: <T extends Record<string, unknown> = Parameters<Func>[0]>(argv?: T) => boolean
 
   // Listener methods
-  addListener: <I = Parameters<Func>[0], O = ReturnType<Func>>(fn: (record: TaskRecord<I, O>) => void) => void
+  addListener: <I = Parameters<Func>[0], O = ReturnType<Func>>(fn: (record: ExecutionRecord<I, O, B>) => void) => void
   removeListener: () => void
-  emit: (data: Partial<TaskRecord>) => void
+  emit: (data: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>) => void
 
   // Boundary methods
   asBoundary: () => (args: Parameters<Func>[0]) => Promise<ReturnType<Func>>
@@ -191,7 +179,7 @@ export const Task = class Task<
   _boundaryMocks: Record<string, WrappedBoundaryFunction> = {}
 
   _schema: Schema<Record<string, SchemaType>> | undefined
-  _listener?: ((record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void) | undefined
+  _listener?: ((record: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>) => void) | undefined
 
   constructor (fn: Func, conf: TaskConfig<B> = {
     name: undefined,
@@ -296,8 +284,8 @@ export const Task = class Task<
   }
 
   // Posible improvement to handle multiple listeners, but so far its not needed
-  addListener<I = Parameters<Func>[0], O = ReturnType<Func>>(fn: (record: TaskRecord<I, O>) => void): void {
-    this._listener = fn as (record: TaskRecord<Parameters<Func>[0], ReturnType<Func>>) => void
+  addListener<I = Parameters<Func>[0], O = ReturnType<Func>>(fn: (record: ExecutionRecord<I, O, B>) => void): void {
+    this._listener = fn as (record: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>) => void
   }
 
   removeListener (): void {
@@ -308,10 +296,10 @@ export const Task = class Task<
     The listener get the input/outout of the call
     Plus all the boundary data
   */
-  emit (data: Partial<TaskRecord>): void {
+  emit (data: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>): void {
     if (typeof this._listener === 'undefined') { return }
 
-    this._listener(data as TaskRecord<Parameters<Func>[0], ReturnType<Func>>)
+    this._listener(data)
   }
 
   getBoundaries (): WrappedBoundaries<B> {
