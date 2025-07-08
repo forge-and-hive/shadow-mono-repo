@@ -142,7 +142,7 @@ export type InferSchemaType<S> = S extends Schema<any> ? InferSchema<S> : Record
 // Helper type for task function with proper typing
 export type TaskFunction<S, B extends Boundaries> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<any>;
+  (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B> & { setMetadata: (key: string, value: string) => Promise<void> }) => Promise<any>;
 
 /**
  * Utility function to compute the execution record type based on output and error state
@@ -431,9 +431,20 @@ export const Task = class Task<
       mode: this._mode
     })
 
+    // Inject the setMetadata boundary that allows modifying metadata from within the task
+    const setMetadataBoundary = createBoundary(async (...args: unknown[]): Promise<void> => {
+      const [key, value] = args as [string, string]
+      metadata[key] = value
+    })
+
+    const boundariesWithMetadata = {
+      ...executionBoundaries,
+      setMetadata: setMetadataBoundary
+    }
+
     // Start run for each boundary
-    for (const name in executionBoundaries) {
-      const boundary = executionBoundaries[name]
+    for (const name in boundariesWithMetadata) {
+      const boundary = boundariesWithMetadata[name]
       boundary.startRun()
     }
 
@@ -470,7 +481,7 @@ export const Task = class Task<
       // Execute the task function
       output = await this._fn(
         argv as Parameters<Func>[0],
-        executionBoundaries as unknown as Parameters<Func>[1]
+        boundariesWithMetadata as unknown as Parameters<Func>[1]
       )
 
       logItem.output = output
@@ -506,6 +517,9 @@ export const Task = class Task<
         this._accumulatedBoundariesData[name] = [...currentData, ...(runData as BoundaryData)]
       }
     }
+
+    // Filter out setMetadata boundary calls from the logs (they should not appear in execution record)
+    // Note: setMetadata is not part of the original boundaries definition, so it won't be in boundariesRunLog anyway
 
     // Set boundaries in log item before emitting
     logItem.boundaries = boundariesRunLog
@@ -566,11 +580,25 @@ export const Task = class Task<
       boundaryModes: config.boundaries
     })
 
+    // Inject the setMetadata boundary that allows modifying metadata from within the task
+    const replayMetadata = logItem.metadata || {}
+    const setMetadataBoundary = createBoundary(async (...args: unknown[]): Promise<void> => {
+      const [key, value] = args as [string, string]
+      replayMetadata[key] = value
+    })
+    const boundariesWithMetadata = {
+      ...executionBoundaries,
+      setMetadata: setMetadataBoundary
+    }
+
     // Start run for each boundary
     for (const name in executionBoundaries) {
       const boundary = executionBoundaries[name]
       boundary.startRun()
     }
+
+    // Start run for the metadata boundary as well
+    setMetadataBoundary.startRun()
 
     // Handle schema validation - reusing the input from the execution log
     if (this._schema) {
@@ -603,7 +631,7 @@ export const Task = class Task<
       // Execute the task function with replay boundaries
       output = await this._fn(
         argv,
-        executionBoundaries as unknown as Parameters<Func>[1]
+        boundariesWithMetadata as unknown as Parameters<Func>[1]
       )
 
       logItem.output = output
@@ -631,6 +659,9 @@ export const Task = class Task<
         boundariesRunLog[name as keyof B] = runData as unknown as BoundaryLogsFor<B>[typeof name]
       }
     }
+
+    // Filter out setMetadata boundary calls from the logs (they should not appear in execution record)
+    // Note: setMetadata is not part of the original boundaries definition, so it won't be in boundariesRunLog anyway
 
     // Set boundaries in log item before emitting
     logItem.boundaries = boundariesRunLog
@@ -829,7 +860,7 @@ export interface CreateTaskConfig<
   description?: string
   schema: S
   boundaries: B
-  fn: (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>
+  fn: (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B> & { setMetadata: (key: string, value: string) => Promise<void> }) => Promise<R>
   mode?: Mode
   boundariesData?: BoundaryTapeData
 }

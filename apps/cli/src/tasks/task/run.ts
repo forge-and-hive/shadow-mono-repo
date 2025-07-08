@@ -72,8 +72,19 @@ const boundaries = {
 
       return true
     } catch (e) {
-      const error = e as Error
-      console.error('Failed to send log to API:', error.message)
+      console.error('Failed to send log to API:', profile.url)
+
+      if (axios.isAxiosError(e)) {
+        if (e.response) {
+          console.error('Axios Error:', e.response.status, e.response.statusText)
+        } else {
+          console.error('Axios Error: No response received from server')
+        }
+      } else {
+        const error = e as Error
+        console.error('Non-axios error:', error.message)
+      }
+
       return false
     }
   }

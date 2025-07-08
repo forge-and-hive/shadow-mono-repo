@@ -33,8 +33,11 @@ export const getPrice = createTask({
   description,
   schema,
   boundaries,
-  fn: async function ({ ticker }, { fetchStockPrice }): Promise<{ ticker: string, price: number }> {
+  fn: async function ({ ticker }, { fetchStockPrice, setMetadata }): Promise<{ ticker: string, price: number }> {
     const { price } = await fetchStockPrice(ticker as string)
+
+    setMetadata('environment', 'hive-lambda')
+    setMetadata('ticker', ticker)
 
     return {
       ticker,
