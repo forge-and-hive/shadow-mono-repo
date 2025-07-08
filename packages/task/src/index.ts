@@ -684,6 +684,12 @@ export const Task = class Task<
       // Call the task's safeRun method
       const [outcome, error, log] = await this.safeRun(eventArgs)
 
+      // Extend log metadata with environment info
+      log.metadata = {
+        ...log.metadata,
+        environment: 'hive-lambda'
+      }
+
       // Send log to Hive if environment variables are present
       await this._sendToHive(log)
 
