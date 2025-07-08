@@ -44,7 +44,7 @@ describe('HiveLogClient sendLog', () => {
         {
           projectName: 'test-project',
           taskName: 'test-task',
-          logItem: JSON.stringify(logItem)
+          logItem: JSON.stringify({ ...logItem, metadata: {} })
         },
         {
           headers: {
@@ -75,7 +75,7 @@ describe('HiveLogClient sendLog', () => {
         {
           projectName: 'test-project',
           taskName: 'complex-task',
-          logItem: JSON.stringify(complexLogItem)
+          logItem: JSON.stringify({ ...complexLogItem, metadata: {} })
         },
         {
           headers: {
@@ -121,7 +121,7 @@ describe('HiveLogClient sendLog', () => {
         {
           projectName: 'test-project',
           taskName: 'empty-task',
-          logItem: JSON.stringify({})
+          logItem: JSON.stringify({ metadata: {} })
         },
         expect.any(Object)
       )
@@ -139,7 +139,7 @@ describe('HiveLogClient sendLog', () => {
         {
           projectName: 'test-project',
           taskName: 'null-task',
-          logItem: JSON.stringify(logItem)
+          logItem: JSON.stringify({ ...logItem, metadata: {} })
         },
         expect.any(Object)
       )

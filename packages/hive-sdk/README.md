@@ -33,10 +33,43 @@ You can get your API credentials at [https://forgehive.dev](https://forgehive.de
 ```typescript
 import { createHiveLogClient } from '@forgehive/hive-sdk'
 
+// Create client without metadata
 const hiveLogger = createHiveLogClient('Personal Knowledge Management System')
+
+// Create client with base metadata
+const hiveLoggerWithMetadata = createHiveLogClient('Personal Knowledge Management System', {
+  environment: 'production',
+  version: '1.2.0',
+  team: 'backend'
+})
 ```
 
 ## API Methods
+
+### `createHiveLogClient(projectName: string, baseMetadata?: Metadata): HiveLogClient`
+
+Creates a new Hive log client instance with optional base metadata.
+
+```typescript
+import { createHiveLogClient, Metadata } from '@forgehive/hive-sdk'
+
+// Without metadata
+const client = createHiveLogClient('My Project')
+
+// With base metadata
+const baseMetadata: Metadata = {
+  environment: 'production',
+  version: '2.1.0',
+  datacenter: 'us-east-1'
+}
+const clientWithMetadata = createHiveLogClient('My Project', baseMetadata)
+```
+
+**Parameters:**
+- `projectName`: Name of your project
+- `baseMetadata` (optional): Base metadata that will be included with every log
+
+**Returns:** `HiveLogClient` - Configured client instance
 
 ### `isActive(): boolean`
 
@@ -56,9 +89,9 @@ if (hiveLogger.isActive()) {
 
 **Returns:** `boolean` - `true` if credentials are available, `false` if in silent mode
 
-### `sendLog(taskName: string, logItem: unknown): Promise<'success' | 'error' | 'silent'>`
+### `sendLog(taskName: string, logItem: unknown, metadata?: Metadata): Promise<'success' | 'error' | 'silent'>`
 
-Sends a log entry to Hive for a specific task.
+Sends a log entry to Hive for a specific task with optional metadata.
 
 ```typescript
 const status = await hiveLogger.sendLog('user-authentication', {
@@ -73,6 +106,10 @@ const status = await hiveLogger.sendLog('user-authentication', {
       }
     ]
   }
+}, {
+  // This metadata has highest priority
+  requestId: 'req-123',
+  userId: 'user-456'
 })
 
 switch (status) {
@@ -91,6 +128,7 @@ switch (status) {
 **Parameters:**
 - `taskName`: Name of the task being logged
 - `logItem`: Object containing input, output, error, and boundaries data
+- `metadata` (optional): Additional metadata for this specific log
 
 **Returns:** `Promise<'success' | 'error' | 'silent'>` - Status of the operation
 
@@ -104,6 +142,7 @@ try {
 
   if (logData && !isApiError(logData)) {
     console.log('Log retrieved:', logData.logItem)
+    console.log('Log metadata:', logData.logItem.metadata)
   } else if (logData && isApiError(logData)) {
     console.error('API Error:', logData.error)
   } else {
@@ -155,7 +194,101 @@ try {
 **Returns:** `Promise<boolean>` - `true` if successful, `false` if failed
 **Throws:** Error when credentials are missing
 
+## Metadata System
+
+The Hive SDK supports a flexible metadata system that allows you to attach contextual information to your logs. Metadata can be provided at three levels with a clear priority system.
+
+### Metadata Priority System
+
+Metadata is merged using the following priority order (highest to lowest):
+
+1. **sendLog metadata** - Metadata passed directly to the `sendLog` method
+2. **logItem metadata** - Metadata already present in the `logItem` object
+3. **Client base metadata** - Metadata set when creating the client
+
+```typescript
+// Create client with base metadata
+const client = createHiveLogClient('My Project', {
+  environment: 'production',
+  version: '1.0.0',
+  team: 'backend'
+})
+
+// logItem with metadata
+const logItem = {
+  input: 'test input',
+  output: 'test output',
+  metadata: {
+    sessionId: 'session-123',
+    version: '1.1.0'  // This overrides client version
+  }
+}
+
+// Send log with additional metadata
+await client.sendLog('task-name', logItem, {
+  requestId: 'req-456',
+  version: '1.2.0'  // This overrides both logItem and client version
+})
+
+// Final metadata sent will be:
+// {
+//   environment: 'production',  // from client
+//   team: 'backend',            // from client
+//   sessionId: 'session-123',   // from logItem
+//   version: '1.2.0',           // from sendLog (highest priority)
+//   requestId: 'req-456'        // from sendLog
+// }
+```
+
+### Metadata Usage Examples
+
+**Base metadata for all logs:**
+```typescript
+const client = createHiveLogClient('My Service', {
+  environment: process.env.NODE_ENV,
+  version: process.env.APP_VERSION,
+  datacenter: 'us-west-2'
+})
+```
+
+**Request-specific metadata:**
+```typescript
+app.post('/api/users', async (req, res) => {
+  const result = await client.sendLog('create-user', {
+    input: req.body,
+    output: newUser
+  }, {
+    requestId: req.headers['x-request-id'],
+    userId: req.user?.id,
+    ipAddress: req.ip
+  })
+})
+```
+
+**logItem with embedded metadata:**
+```typescript
+const logItem = {
+  input: { query: 'search term' },
+  output: { results: [...] },
+  metadata: {
+    searchDuration: 245,  // ms
+    resultCount: 15,
+    algorithm: 'fuzzy-v2'
+  }
+}
+
+await client.sendLog('search', logItem)
+```
+
 ## Types
+
+### `Metadata`
+
+```typescript
+interface Metadata {
+  [key: string]: unknown
+}
+```
 
 ### `LogApiResponse`
 
@@ -169,6 +302,7 @@ interface LogApiResponse {
     output?: unknown
     error?: unknown
     boundaries?: Record<string, Array<{ input: unknown; output: unknown, error: unknown }>>
+    metadata?: Metadata
   }
   replayFrom?: string
   createdAt: string
@@ -304,16 +438,27 @@ try {
 ### Complete Example
 
 ```typescript
-import { createHiveLogClient, isApiError, Quality } from '@forgehive/hive-sdk'
+import { createHiveLogClient, isApiError, Quality, Metadata } from '@forgehive/hive-sdk'
 
 async function main() {
-  // Initialize the client
-  const hiveLogger = createHiveLogClient('Personal Knowledge Management System')
+  // Initialize the client with base metadata
+  const baseMetadata: Metadata = {
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+    service: 'document-search-service'
+  }
 
-  // Send a log
+  const hiveLogger = createHiveLogClient('Personal Knowledge Management System', baseMetadata)
+
+  // Send a log with logItem containing metadata
   const logData = {
     input: { query: 'search for AI papers', userId: 123 },
     output: { results: ['paper1.pdf', 'paper2.pdf'], count: 2 },
+    metadata: {
+      searchAlgorithm: 'semantic-search-v2',
+      processingTime: 245, // ms
+      cacheHit: false
+    },
     boundaries: {
       search_engine: [
         {
@@ -325,7 +470,12 @@ async function main() {
     }
   }
 
-  const status = await hiveLogger.sendLog('document-search', logData)
+  // Send log with additional high-priority metadata
+  const status = await hiveLogger.sendLog('document-search', logData, {
+    requestId: 'req-123456',
+    userId: 'user-789',
+    sessionId: 'sess-abc123'
+  })
   console.log('Log status:', status)
 
     // Retrieve a log
@@ -333,6 +483,7 @@ async function main() {
     const retrievedLog = await hiveLogger.getLog('document-search', 'some-uuid')
     if (retrievedLog && !isApiError(retrievedLog)) {
       console.log('Retrieved log:', retrievedLog.logItem)
+      console.log('Log metadata:', retrievedLog.logItem.metadata)
 
       // Set quality assessment
       const quality: Quality = {

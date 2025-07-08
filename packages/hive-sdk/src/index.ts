@@ -3,6 +3,11 @@ import debug from 'debug'
 
 const log = debug('hive-sdk')
 
+// Metadata interface
+export interface Metadata {
+  [key: string]: unknown
+}
+
 // API Response Types
 export interface LogApiResponse {
   uuid: string
@@ -13,6 +18,7 @@ export interface LogApiResponse {
     output?: unknown
     error?: unknown
     boundaries?: Record<string, Array<{ input: unknown; output: unknown, error: unknown }>>
+    metadata?: Metadata
   }
   replayFrom?: string
   createdAt: string
@@ -43,14 +49,16 @@ export class HiveLogClient {
   private apiSecret: string | null
   private host: string | null
   private projectName: string
+  private baseMetadata: Metadata
   private isInitialized: boolean
 
-  constructor(projectName: string) {
+  constructor(projectName: string, baseMetadata?: Metadata) {
     const apiKey = process.env.HIVE_API_KEY
     const apiSecret = process.env.HIVE_API_SECRET
     const host = process.env.HIVE_HOST
 
     this.projectName = projectName
+    this.baseMetadata = baseMetadata || {}
 
     if (!apiKey || !apiSecret || !host) {
       this.apiKey = null
@@ -71,7 +79,27 @@ export class HiveLogClient {
     return this.isInitialized
   }
 
-  async sendLog(taskName: string, logItem: unknown): Promise<'success' | 'error' | 'silent'> {
+  private mergeMetadata(logItem: unknown, sendLogMetadata?: Metadata): Metadata {
+    // Start with base metadata from client
+    let finalMetadata = { ...this.baseMetadata }
+
+    // Merge with logItem metadata if it exists
+    if (logItem && typeof logItem === 'object' && 'metadata' in logItem) {
+      const logItemMetadata = (logItem as { metadata: unknown }).metadata
+      if (logItemMetadata && typeof logItemMetadata === 'object') {
+        finalMetadata = { ...finalMetadata, ...(logItemMetadata as Metadata) }
+      }
+    }
+
+    // Merge with sendLog metadata (highest priority)
+    if (sendLogMetadata) {
+      finalMetadata = { ...finalMetadata, ...sendLogMetadata }
+    }
+
+    return finalMetadata
+  }
+
+  async sendLog(taskName: string, logItem: unknown, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
     if (!this.isInitialized) {
       log('Silent mode: Skipping sendLog for task "%s" - client not initialized', taskName)
       return 'silent'
@@ -83,10 +111,19 @@ export class HiveLogClient {
 
       const authToken = `${this.apiKey}:${this.apiSecret}`
 
+      // Merge metadata with priority: sendLog > logItem > client
+      const finalMetadata = this.mergeMetadata(logItem, metadata)
+
+      // Create enhanced logItem with merged metadata
+      const enhancedLogItem = {
+        ...(typeof logItem === 'object' && logItem !== null ? logItem : { data: logItem }),
+        metadata: finalMetadata
+      }
+
       await axios.post(logsUrl, {
         projectName: this.projectName,
         taskName,
-        logItem: JSON.stringify(logItem)
+        logItem: JSON.stringify(enhancedLogItem)
       }, {
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -162,7 +199,7 @@ export class HiveLogClient {
   }
 }
 
-export const createHiveLogClient = (projectName: string): HiveLogClient => {
+export const createHiveLogClient = (projectName: string, baseMetadata?: Metadata): HiveLogClient => {
   log('Creating HiveLogClient for project "%s"', projectName)
-  return new HiveLogClient(projectName)
+  return new HiveLogClient(projectName, baseMetadata)
 }
