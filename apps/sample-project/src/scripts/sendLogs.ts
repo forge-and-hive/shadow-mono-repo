@@ -7,7 +7,7 @@ import { getPrice } from '../tasks/stock/getPrice'
 dotenv.config()
 
 // Use the project name from forge.json
-const client = createHiveLogClient('Mono repo sample project')
+const client = createHiveLogClient({ projectName: 'Mono repo sample project' })
 
 async function main(): Promise<void> {
 

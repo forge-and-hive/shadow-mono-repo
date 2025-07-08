@@ -40,6 +40,9 @@ importers:
 
   apps/cli:
     dependencies:
+      '@forgehive/hive-sdk':
+        specifier: workspace:*
+        version: link:../../packages/hive-sdk
       '@forgehive/record-tape':
         specifier: workspace:*
         version: link:../../packages/record-tape

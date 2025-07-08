@@ -18,7 +18,7 @@ describe('Hive SDK', () => {
       process.env.HIVE_API_SECRET = 'test-secret'
       process.env.HIVE_HOST = 'https://test.com'
 
-      expect(() => new HiveLogClient('test-project')).not.toThrow()
+      expect(() => new HiveLogClient({ projectName: 'test-project' })).not.toThrow()
     })
 
     it('should create client in silent mode when HIVE_API_SECRET is missing', () => {
@@ -26,7 +26,7 @@ describe('Hive SDK', () => {
       delete process.env.HIVE_API_SECRET
       process.env.HIVE_HOST = 'https://test.com'
 
-      expect(() => new HiveLogClient('test-project')).not.toThrow()
+      expect(() => new HiveLogClient({ projectName: 'test-project' })).not.toThrow()
     })
 
     it('should create client in silent mode when HIVE_HOST is missing', () => {
@@ -34,7 +34,7 @@ describe('Hive SDK', () => {
       process.env.HIVE_API_SECRET = 'test-secret'
       delete process.env.HIVE_HOST
 
-      expect(() => new HiveLogClient('test-project')).not.toThrow()
+      expect(() => new HiveLogClient({ projectName: 'test-project' })).not.toThrow()
     })
 
     it('should create client in silent mode when all environment variables are missing', () => {
@@ -42,7 +42,7 @@ describe('Hive SDK', () => {
       delete process.env.HIVE_API_SECRET
       delete process.env.HIVE_HOST
 
-      expect(() => new HiveLogClient('test-project')).not.toThrow()
+      expect(() => new HiveLogClient({ projectName: 'test-project' })).not.toThrow()
     })
 
     it('should create client successfully when all environment variables are present', () => {
@@ -50,7 +50,7 @@ describe('Hive SDK', () => {
       process.env.HIVE_API_SECRET = 'test-secret'
       process.env.HIVE_HOST = 'https://test.com'
 
-      expect(() => new HiveLogClient('test-project')).not.toThrow()
+      expect(() => new HiveLogClient({ projectName: 'test-project' })).not.toThrow()
     })
   })
 
@@ -60,7 +60,7 @@ describe('Hive SDK', () => {
       delete process.env.HIVE_API_SECRET
       delete process.env.HIVE_HOST
 
-      const client = new HiveLogClient('test-project')
+      const client = new HiveLogClient({ projectName: 'test-project' })
       expect(client.isActive()).toBe(false)
     })
 
@@ -69,7 +69,7 @@ describe('Hive SDK', () => {
       process.env.HIVE_API_SECRET = 'test-secret'
       process.env.HIVE_HOST = 'https://test.com'
 
-      const client = new HiveLogClient('test-project')
+      const client = new HiveLogClient({ projectName: 'test-project' })
       expect(client.isActive()).toBe(true)
     })
   })
@@ -80,7 +80,7 @@ describe('Hive SDK', () => {
       process.env.HIVE_API_SECRET = 'test-secret'
       process.env.HIVE_HOST = 'https://test.com'
 
-      const client = createHiveLogClient('test-project')
+      const client = createHiveLogClient({ projectName: 'test-project' })
 
       expect(client).toBeInstanceOf(HiveLogClient)
     })
@@ -90,7 +90,7 @@ describe('Hive SDK', () => {
       delete process.env.HIVE_API_SECRET
       delete process.env.HIVE_HOST
 
-      expect(() => createHiveLogClient('test-project')).not.toThrow()
+      expect(() => createHiveLogClient({ projectName: 'test-project' })).not.toThrow()
     })
   })
 
@@ -102,7 +102,7 @@ describe('Hive SDK', () => {
       delete process.env.HIVE_API_SECRET
       delete process.env.HIVE_HOST
 
-      silentClient = new HiveLogClient('silent-project')
+      silentClient = new HiveLogClient({ projectName: 'silent-project' })
     })
 
     it('should return "silent" for sendLog in silent mode', async () => {

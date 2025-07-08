@@ -6,11 +6,11 @@
 import path from 'path'
 import fs from 'fs/promises'
 import os from 'os'
-import axios from 'axios'
 
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 import { RecordTape } from '@forgehive/record-tape'
+import { HiveLogClient } from '@forgehive/hive-sdk'
 
 import { create as bundleCreate } from '../bundle/create'
 import { load as bundleLoad } from '../bundle/load'
@@ -53,38 +53,31 @@ const boundaries = {
   },
   sendLogToAPI: async (profile: Profile, projectName: string, taskName: string, logItem: unknown): Promise<boolean> => {
     try {
-      const logsUrl = `${profile.url}/api/tasks/log-ingest`
-      const authToken = `${profile.apiKey}:${profile.apiSecret}`
-
-      await axios.post(logsUrl, {
+      const config = {
         projectName,
-        taskName,
-        logItem: JSON.stringify(logItem)
-      }, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
+        apiKey: profile.apiKey,
+        apiSecret: profile.apiSecret,
+        host: profile.url,
+        metadata: {
+          environment: 'cli'
         }
-      })
-
-      console.log('===============================================')
-      console.log('Log sent to API... ', profile.name, profile.url)
-
-      return true
-    } catch (e) {
-      console.error('Failed to send log to API:', profile.url)
-
-      if (axios.isAxiosError(e)) {
-        if (e.response) {
-          console.error('Axios Error:', e.response.status, e.response.statusText)
-        } else {
-          console.error('Axios Error: No response received from server')
-        }
-      } else {
-        const error = e as Error
-        console.error('Non-axios error:', error.message)
       }
 
+      const client = new HiveLogClient(config)
+      const result = await client.sendLog(taskName, logItem)
+
+      if (result === 'success') {
+        console.log('===============================================')
+        console.log('Log sent to API... ', profile.name, profile.url)
+        return true
+      } else {
+        console.error('Failed to send log to API:', profile.url)
+        return false
+      }
+    } catch (e) {
+      console.error('Failed to send log to API:', profile.url)
+      const error = e as Error
+      console.error('Error:', error.message)
       return false
     }
   }

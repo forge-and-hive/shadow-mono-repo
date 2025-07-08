@@ -9,17 +9,18 @@ describe('HiveLogClient setQuality', () => {
   const originalEnv = process.env
   let client: HiveLogClient
 
+  const testConfig = {
+    projectName: 'test-project',
+    apiKey: 'test-api-key',
+    apiSecret: 'test-api-secret',
+    host: 'https://test-host.com'
+  }
+
   beforeEach(() => {
     jest.resetModules()
-    process.env = { ...originalEnv }
 
-    // Set up environment variables
-    process.env.HIVE_API_KEY = 'test-api-key'
-    process.env.HIVE_API_SECRET = 'test-api-secret'
-    process.env.HIVE_HOST = 'https://test-host.com'
-
-    // Create client instance
-    client = new HiveLogClient('test-project')
+    // Create client instance with config
+    client = new HiveLogClient(testConfig)
 
     // Clear all mocks
     jest.clearAllMocks()
@@ -245,11 +246,7 @@ describe('HiveLogClient setQuality', () => {
   describe('silent mode behavior', () => {
     it('should throw error when credentials are missing', async () => {
       // Create client without credentials
-      process.env.HIVE_API_KEY = ''
-      process.env.HIVE_API_SECRET = ''
-      process.env.HIVE_HOST = ''
-
-      const silentClient = new HiveLogClient('silent-project')
+      const silentClient = new HiveLogClient({ projectName: 'silent-project' })
 
       const quality: Quality = {
         score: 8.0,

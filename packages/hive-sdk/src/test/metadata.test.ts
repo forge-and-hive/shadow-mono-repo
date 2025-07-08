@@ -8,15 +8,15 @@ const mockedAxios = axios as jest.Mocked<typeof axios>
 describe('HiveLogClient Metadata', () => {
   const originalEnv = process.env
 
+  const testConfig = {
+    projectName: 'test-project',
+    apiKey: 'test-api-key',
+    apiSecret: 'test-api-secret',
+    host: 'https://test-host.com'
+  }
+
   beforeEach(() => {
     jest.resetModules()
-    process.env = { ...originalEnv }
-
-    // Set up environment variables
-    process.env.HIVE_API_KEY = 'test-api-key'
-    process.env.HIVE_API_SECRET = 'test-api-secret'
-    process.env.HIVE_HOST = 'https://test-host.com'
-
     // Clear all mocks
     jest.clearAllMocks()
   })
@@ -27,7 +27,7 @@ describe('HiveLogClient Metadata', () => {
 
   describe('Constructor with base metadata', () => {
     it('should create client without base metadata', () => {
-      const client = new HiveLogClient('test-project')
+      const client = new HiveLogClient(testConfig)
       expect(client).toBeInstanceOf(HiveLogClient)
       expect(client.isActive()).toBe(true)
     })
@@ -39,19 +39,19 @@ describe('HiveLogClient Metadata', () => {
         service: 'test-service'
       }
 
-      const client = new HiveLogClient('test-project', baseMetadata)
+      const client = new HiveLogClient({ ...testConfig, metadata: baseMetadata })
       expect(client).toBeInstanceOf(HiveLogClient)
       expect(client.isActive()).toBe(true)
     })
 
     it('should handle empty base metadata object', () => {
-      const client = new HiveLogClient('test-project', {})
+      const client = new HiveLogClient({ ...testConfig, metadata: {} })
       expect(client).toBeInstanceOf(HiveLogClient)
       expect(client.isActive()).toBe(true)
     })
 
     it('should handle undefined base metadata', () => {
-      const client = new HiveLogClient('test-project', undefined)
+      const client = new HiveLogClient({ ...testConfig, metadata: undefined })
       expect(client).toBeInstanceOf(HiveLogClient)
       expect(client.isActive()).toBe(true)
     })
@@ -59,7 +59,7 @@ describe('HiveLogClient Metadata', () => {
 
   describe('createHiveLogClient factory with metadata', () => {
     it('should create client without base metadata', () => {
-      const client = createHiveLogClient('test-project')
+      const client = createHiveLogClient(testConfig)
       expect(client).toBeInstanceOf(HiveLogClient)
     })
 
@@ -69,7 +69,7 @@ describe('HiveLogClient Metadata', () => {
         team: 'backend'
       }
 
-      const client = createHiveLogClient('test-project', baseMetadata)
+      const client = createHiveLogClient({ ...testConfig, metadata: baseMetadata })
       expect(client).toBeInstanceOf(HiveLogClient)
     })
   })
@@ -78,7 +78,7 @@ describe('HiveLogClient Metadata', () => {
     let client: HiveLogClient
 
     beforeEach(() => {
-      client = new HiveLogClient('test-project')
+      client = new HiveLogClient(testConfig)
     })
 
     it('should send log without metadata parameter', async () => {
@@ -195,7 +195,7 @@ describe('HiveLogClient Metadata', () => {
         version: '1.0.0'
       }
 
-      const client = new HiveLogClient('test-project', baseMetadata)
+      const client = new HiveLogClient({ ...testConfig, metadata: baseMetadata })
       const logItem = { input: 'test' }
 
       await client.sendLog('test-task', logItem)
@@ -227,7 +227,7 @@ describe('HiveLogClient Metadata', () => {
         version: '1.0.0'
       }
 
-      const client = new HiveLogClient('test-project', baseMetadata)
+      const client = new HiveLogClient({ ...testConfig, metadata: baseMetadata })
       const logItem = {
         input: 'test',
         metadata: {
@@ -267,7 +267,7 @@ describe('HiveLogClient Metadata', () => {
         priority: 'base'
       }
 
-      const client = new HiveLogClient('test-project', baseMetadata)
+      const client = new HiveLogClient({ ...testConfig, metadata: baseMetadata })
       const logItem = {
         input: 'test',
         metadata: {
@@ -317,7 +317,7 @@ describe('HiveLogClient Metadata', () => {
         datacenter: 'us-west-2'
       }
 
-      const client = new HiveLogClient('test-project', baseMetadata)
+      const client = new HiveLogClient({ ...testConfig, metadata: baseMetadata })
       const logItem = {
         input: { query: 'search' },
         output: { results: [] },
@@ -368,7 +368,7 @@ describe('HiveLogClient Metadata', () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
       const baseMetadata: Metadata = { environment: 'test' }
-      const client = new HiveLogClient('test-project', baseMetadata)
+      const client = new HiveLogClient({ ...testConfig, metadata: baseMetadata })
 
       const logItem = {
         input: 'test',
@@ -399,7 +399,7 @@ describe('HiveLogClient Metadata', () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
       const baseMetadata: Metadata = { environment: 'test' }
-      const client = new HiveLogClient('test-project', baseMetadata)
+      const client = new HiveLogClient({ ...testConfig, metadata: baseMetadata })
 
       const logItem = {
         input: 'test',
@@ -429,7 +429,7 @@ describe('HiveLogClient Metadata', () => {
     it('should handle empty metadata objects', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
-      const client = new HiveLogClient('test-project', {})
+      const client = new HiveLogClient({ ...testConfig, metadata: {} })
       const logItem = { input: 'test', metadata: {} }
 
       await client.sendLog('test-task', logItem, {})
@@ -451,13 +451,8 @@ describe('HiveLogClient Metadata', () => {
     })
 
     it('should work in silent mode with metadata', async () => {
-      // Clear environment variables to trigger silent mode
-      delete process.env.HIVE_API_KEY
-      delete process.env.HIVE_API_SECRET
-      delete process.env.HIVE_HOST
-
       const baseMetadata: Metadata = { environment: 'test' }
-      const silentClient = new HiveLogClient('silent-project', baseMetadata)
+      const silentClient = new HiveLogClient({ projectName: 'silent-project', metadata: baseMetadata })
 
       const result = await silentClient.sendLog('test-task', { input: 'test' }, { requestId: 'req-123' })
 
@@ -469,7 +464,7 @@ describe('HiveLogClient Metadata', () => {
       mockedAxios.post.mockRejectedValueOnce(new Error('Network error'))
 
       const baseMetadata: Metadata = { environment: 'test' }
-      const client = new HiveLogClient('test-project', baseMetadata)
+      const client = new HiveLogClient({ ...testConfig, metadata: baseMetadata })
 
       const result = await client.sendLog('test-task', { input: 'test' }, { requestId: 'req-123' })
 

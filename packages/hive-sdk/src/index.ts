@@ -8,6 +8,15 @@ export interface Metadata {
   [key: string]: unknown
 }
 
+// Configuration interface for HiveLogClient
+export interface HiveLogClientConfig {
+  projectName: string
+  apiKey?: string
+  apiSecret?: string
+  host?: string
+  metadata?: Metadata
+}
+
 // API Response Types
 export interface LogApiResponse {
   uuid: string
@@ -52,26 +61,26 @@ export class HiveLogClient {
   private baseMetadata: Metadata
   private isInitialized: boolean
 
-  constructor(projectName: string, baseMetadata?: Metadata) {
-    const apiKey = process.env.HIVE_API_KEY
-    const apiSecret = process.env.HIVE_API_SECRET
-    const host = process.env.HIVE_HOST
+  constructor(config: HiveLogClientConfig) {
+    const apiKey = config.apiKey || process.env.HIVE_API_KEY
+    const apiSecret = config.apiSecret || process.env.HIVE_API_SECRET
+    const host = config.host || process.env.HIVE_HOST || 'https://www.forgehive.cloud'
 
-    this.projectName = projectName
-    this.baseMetadata = baseMetadata || {}
+    this.projectName = config.projectName
+    this.baseMetadata = config.metadata || {}
 
-    if (!apiKey || !apiSecret || !host) {
+    if (!apiKey || !apiSecret) {
       this.apiKey = null
       this.apiSecret = null
       this.host = null
       this.isInitialized = false
-      log('HiveLogClient in silent mode for project "%s" - missing credentials (get them at https://forgehive.dev)', projectName)
+      log('HiveLogClient in silent mode for project "%s" - missing API credentials (get them at https://forgehive.dev)', config.projectName)
     } else {
       this.apiKey = apiKey
       this.apiSecret = apiSecret
       this.host = host
       this.isInitialized = true
-      log('HiveLogClient initialized for project "%s" with host "%s"', projectName, host)
+      log('HiveLogClient initialized for project "%s" with host "%s"', config.projectName, host)
     }
   }
 
@@ -199,7 +208,7 @@ export class HiveLogClient {
   }
 }
 
-export const createHiveLogClient = (projectName: string, baseMetadata?: Metadata): HiveLogClient => {
-  log('Creating HiveLogClient for project "%s"', projectName)
-  return new HiveLogClient(projectName, baseMetadata)
+export const createHiveLogClient = (config: HiveLogClientConfig): HiveLogClient => {
+  log('Creating HiveLogClient for project "%s"', config.projectName)
+  return new HiveLogClient(config)
 }
