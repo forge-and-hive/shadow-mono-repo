@@ -581,7 +581,8 @@ export const Task = class Task<
     })
 
     // Inject the setMetadata boundary that allows modifying metadata from within the task
-    const replayMetadata = logItem.metadata || {}
+    // Clone the metadata to avoid mutating the original metadata
+    const replayMetadata = { ...(logItem.metadata || {}) }
     const setMetadataBoundary = createBoundary(async (...args: unknown[]): Promise<void> => {
       const [key, value] = args as [string, string]
       replayMetadata[key] = value
@@ -592,13 +593,10 @@ export const Task = class Task<
     }
 
     // Start run for each boundary
-    for (const name in executionBoundaries) {
-      const boundary = executionBoundaries[name]
+    for (const name in boundariesWithMetadata) {
+      const boundary = boundariesWithMetadata[name]
       boundary.startRun()
     }
-
-    // Start run for the metadata boundary as well
-    setMetadataBoundary.startRun()
 
     // Handle schema validation - reusing the input from the execution log
     if (this._schema) {
@@ -665,6 +663,9 @@ export const Task = class Task<
 
     // Set boundaries in log item before emitting
     logItem.boundaries = boundariesRunLog
+
+    // Update the log item metadata with changes made during replay
+    logItem.metadata = replayMetadata
 
     // Emit the log item
     this.emit(logItem)
