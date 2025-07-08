@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import dotenv from 'dotenv'
 import { createHiveLogClient } from '@forgehive/hive-sdk'
 import { getPrice } from '../tasks/stock/getPrice'
@@ -21,5 +22,4 @@ async function main(): Promise<void> {
 }
 
 // Run the main function
-// eslint-disable-next-line no-console
 main().catch(console.error)
