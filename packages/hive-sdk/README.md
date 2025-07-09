@@ -2,10 +2,9 @@
 
 A TypeScript/JavaScript SDK for interacting with the Forge Hive logging and quality assessment platform.
 
-> **Breaking Changes in v0.0.3+**: The SDK now uses a configuration object instead of separate parameters. See [Setup](#setup) for the new API.
-
 ## Quick Start
 
+Create a client with:
 ```typescript
 import { HiveLogClient } from '@forgehive/hive-sdk'
 
@@ -15,9 +14,15 @@ const client = new HiveLogClient({
   apiKey: 'your_api_key',
   apiSecret: 'your_api_secret'
 })
+```
+
+On your app
+```
+// Run a task
+const [res, error, record] = await someTask.safeRun(args)
 
 // Send a log
-await client.sendLog('task-name', { input: 'data', output: 'result' })
+await client.sendLog('task-name', record)
 ```
 
 ## Installation
@@ -83,7 +88,7 @@ const hiveLogger = new HiveLogClient({
 })
 ```
 
-You can get your API credentials at [https://forgehive.dev](https://forgehive.dev).
+You can get your API credentials at [https://www.forgehive.cloud](https://www.forgehive.cloud).
 
 ### 2. Basic Usage
 
