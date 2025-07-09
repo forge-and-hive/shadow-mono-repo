@@ -17,7 +17,8 @@ const client = new HiveLogClient({
 ```
 
 On your app
-```
+
+```typescript
 // Run a task
 const [res, error, record] = await someTask.safeRun(args)
 
