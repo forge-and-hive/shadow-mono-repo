@@ -2,6 +2,24 @@
 
 A TypeScript/JavaScript SDK for interacting with the Forge Hive logging and quality assessment platform.
 
+> **Breaking Changes in v0.0.3+**: The SDK now uses a configuration object instead of separate parameters. See [Setup](#setup) for the new API.
+
+## Quick Start
+
+```typescript
+import { HiveLogClient } from '@forgehive/hive-sdk'
+
+// Create client with explicit configuration (recommended)
+const client = new HiveLogClient({
+  projectName: 'My Project',
+  apiKey: 'your_api_key',
+  apiSecret: 'your_api_secret'
+})
+
+// Send a log
+await client.sendLog('task-name', { input: 'data', output: 'result' })
+```
+
 ## Installation
 
 ```bash
@@ -16,14 +34,53 @@ pnpm add @forgehive/hive-sdk
 
 ## Setup
 
-### 1. Environment Variables
+### 1. Configuration Options
 
-Before using the SDK, you need to set up the following environment variables:
+The Hive SDK can be configured in two ways:
+
+#### Option A: Explicit Configuration (Recommended)
+
+```typescript
+import { HiveLogClient, createHiveLogClient } from '@forgehive/hive-sdk'
+
+// Direct configuration with credentials
+const config = {
+  projectName: 'My Project',
+  apiKey: 'your_api_key_here',
+  apiSecret: 'your_api_secret_here',
+  host: 'https://your-hive-instance.com', // Optional, defaults to https://www.forgehive.cloud
+  metadata: { // Optional base metadata
+    environment: 'production',
+    version: '1.2.0'
+  }
+}
+
+const hiveLogger = new HiveLogClient(config)
+// or using the factory function
+const hiveLogger2 = createHiveLogClient(config)
+```
+
+#### Option B: Environment Variables (Fallback)
+
+If you prefer environment variables, the SDK will automatically use them when no explicit credentials are provided:
 
 ```bash
 HIVE_API_KEY=your_api_key_here
 HIVE_API_SECRET=your_api_secret_here
-HIVE_HOST=https://your-hive-instance.com
+HIVE_HOST=https://your-hive-instance.com  # Optional, defaults to https://www.forgehive.cloud
+```
+
+```typescript
+import { HiveLogClient } from '@forgehive/hive-sdk'
+
+// Uses environment variables for credentials
+const hiveLogger = new HiveLogClient({
+  projectName: 'My Project',
+  metadata: {
+    environment: 'production',
+    version: '1.2.0'
+  }
+})
 ```
 
 You can get your API credentials at [https://forgehive.dev](https://forgehive.dev).
@@ -31,44 +88,88 @@ You can get your API credentials at [https://forgehive.dev](https://forgehive.de
 ### 2. Basic Usage
 
 ```typescript
-import { createHiveLogClient } from '@forgehive/hive-sdk'
+import { HiveLogClient, createHiveLogClient } from '@forgehive/hive-sdk'
 
-// Create client without metadata
-const hiveLogger = createHiveLogClient('Personal Knowledge Management System')
+// Create client with explicit config
+const hiveLogger = new HiveLogClient({
+  projectName: 'Personal Knowledge Management System',
+  apiKey: 'your_api_key',
+  apiSecret: 'your_api_secret',
+  metadata: {
+    environment: 'production',
+    version: '1.2.0',
+    team: 'backend'
+  }
+})
 
-// Create client with base metadata
-const hiveLoggerWithMetadata = createHiveLogClient('Personal Knowledge Management System', {
-  environment: 'production',
-  version: '1.2.0',
-  team: 'backend'
+// Or using factory function
+const hiveLogger2 = createHiveLogClient({
+  projectName: 'Personal Knowledge Management System',
+  metadata: {
+    environment: 'production',
+    version: '1.2.0',
+    team: 'backend'
+  }
 })
 ```
 
 ## API Methods
 
-### `createHiveLogClient(projectName: string, baseMetadata?: Metadata): HiveLogClient`
+### `new HiveLogClient(config: HiveLogClientConfig): HiveLogClient`
 
-Creates a new Hive log client instance with optional base metadata.
+Creates a new Hive log client instance with configuration object.
 
 ```typescript
-import { createHiveLogClient, Metadata } from '@forgehive/hive-sdk'
+import { HiveLogClient, HiveLogClientConfig, Metadata } from '@forgehive/hive-sdk'
 
-// Without metadata
-const client = createHiveLogClient('My Project')
+// Minimal configuration (uses environment variables for credentials)
+const client = new HiveLogClient({
+  projectName: 'My Project'
+})
 
-// With base metadata
-const baseMetadata: Metadata = {
-  environment: 'production',
-  version: '2.1.0',
-  datacenter: 'us-east-1'
+// Full configuration with explicit credentials
+const config: HiveLogClientConfig = {
+  projectName: 'My Project',
+  apiKey: 'your_api_key',
+  apiSecret: 'your_api_secret',
+  host: 'https://your-hive-instance.com', // Optional, defaults to https://www.forgehive.cloud
+  metadata: {
+    environment: 'production',
+    version: '2.1.0',
+    datacenter: 'us-east-1'
+  }
 }
-const clientWithMetadata = createHiveLogClient('My Project', baseMetadata)
+const clientWithConfig = new HiveLogClient(config)
 ```
 
-**Parameters:**
-- `projectName`: Name of your project
-- `baseMetadata` (optional): Base metadata that will be included with every log
+**Configuration Object:**
+- `projectName`: Name of your project (required)
+- `apiKey`: API key (optional, falls back to `HIVE_API_KEY` environment variable)
+- `apiSecret`: API secret (optional, falls back to `HIVE_API_SECRET` environment variable)
+- `host`: Hive instance URL (optional, falls back to `HIVE_HOST` environment variable, then defaults to `https://www.forgehive.cloud`)
+- `metadata`: Base metadata that will be included with every log (optional)
 
+**Returns:** `HiveLogClient` - Configured client instance
+
+### `createHiveLogClient(config: HiveLogClientConfig): HiveLogClient`
+
+Factory function that creates a new Hive log client instance.
+
+```typescript
+import { createHiveLogClient } from '@forgehive/hive-sdk'
+
+const client = createHiveLogClient({
+  projectName: 'My Project',
+  apiKey: 'your_api_key',
+  apiSecret: 'your_api_secret',
+  metadata: {
+    environment: 'production',
+    team: 'backend'
+  }
+})
+```
+
+**Parameters:** Same as `HiveLogClient` constructor
 **Returns:** `HiveLogClient` - Configured client instance
 
 ### `isActive(): boolean`
@@ -76,7 +177,11 @@ const clientWithMetadata = createHiveLogClient('My Project', baseMetadata)
 Check if the client is properly initialized with credentials.
 
 ```typescript
-const hiveLogger = createHiveLogClient('My Project')
+const hiveLogger = new HiveLogClient({
+  projectName: 'My Project',
+  apiKey: 'your_api_key',
+  apiSecret: 'your_api_secret'
+})
 
 if (hiveLogger.isActive()) {
   console.log('Client is initialized with credentials')
@@ -208,10 +313,15 @@ Metadata is merged using the following priority order (highest to lowest):
 
 ```typescript
 // Create client with base metadata
-const client = createHiveLogClient('My Project', {
-  environment: 'production',
-  version: '1.0.0',
-  team: 'backend'
+const client = new HiveLogClient({
+  projectName: 'My Project',
+  apiKey: 'your_api_key',
+  apiSecret: 'your_api_secret',
+  metadata: {
+    environment: 'production',
+    version: '1.0.0',
+    team: 'backend'
+  }
 })
 
 // logItem with metadata
@@ -244,10 +354,15 @@ await client.sendLog('task-name', logItem, {
 
 **Base metadata for all logs:**
 ```typescript
-const client = createHiveLogClient('My Service', {
-  environment: process.env.NODE_ENV,
-  version: process.env.APP_VERSION,
-  datacenter: 'us-west-2'
+const client = new HiveLogClient({
+  projectName: 'My Service',
+  apiKey: 'your_api_key',
+  apiSecret: 'your_api_secret',
+  metadata: {
+    environment: process.env.NODE_ENV,
+    version: process.env.APP_VERSION,
+    datacenter: 'us-west-2'
+  }
 })
 ```
 
@@ -281,6 +396,18 @@ await client.sendLog('search', logItem)
 ```
 
 ## Types
+
+### `HiveLogClientConfig`
+
+```typescript
+interface HiveLogClientConfig {
+  projectName: string
+  apiKey?: string
+  apiSecret?: string
+  host?: string
+  metadata?: Metadata
+}
+```
 
 ### `Metadata`
 
@@ -392,7 +519,10 @@ The SDK handles errors gracefully:
 
 ```typescript
 // sendLog works even without credentials (returns 'silent')
-const hiveLogger = createHiveLogClient('My Project')
+const hiveLogger = new HiveLogClient({
+  projectName: 'My Project'
+  // No credentials provided - will use environment variables or go silent
+})
 
 const status = await hiveLogger.sendLog('task-name', { data: 'example' })
 if (status === 'error') {
@@ -406,7 +536,10 @@ if (status === 'error') {
 
 **Check credentials before API calls:**
 ```typescript
-const hiveLogger = createHiveLogClient('My Project')
+const hiveLogger = new HiveLogClient({
+  projectName: 'My Project'
+  // Credentials will be loaded from environment variables or explicit config
+})
 
 if (hiveLogger.isActive()) {
   // Safe to use all methods
@@ -438,17 +571,21 @@ try {
 ### Complete Example
 
 ```typescript
-import { createHiveLogClient, isApiError, Quality, Metadata } from '@forgehive/hive-sdk'
+import { HiveLogClient, isApiError, Quality, Metadata } from '@forgehive/hive-sdk'
 
 async function main() {
-  // Initialize the client with base metadata
-  const baseMetadata: Metadata = {
-    environment: process.env.NODE_ENV || 'development',
-    version: '1.0.0',
-    service: 'document-search-service'
-  }
-
-  const hiveLogger = createHiveLogClient('Personal Knowledge Management System', baseMetadata)
+  // Initialize the client with configuration object
+  const hiveLogger = new HiveLogClient({
+    projectName: 'Personal Knowledge Management System',
+    apiKey: 'your_api_key_here',
+    apiSecret: 'your_api_secret_here',
+    host: 'https://your-hive-instance.com', // Optional, defaults to https://www.forgehive.cloud
+    metadata: {
+      environment: process.env.NODE_ENV || 'development',
+      version: '1.0.0',
+      service: 'document-search-service'
+    }
+  })
 
   // Send a log with logItem containing metadata
   const logData = {
