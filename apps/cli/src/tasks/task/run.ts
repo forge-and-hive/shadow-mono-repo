@@ -51,7 +51,7 @@ const boundaries = {
 
     return buildsPath
   },
-  sendLogToAPI: async (profile: Profile, projectName: string, taskName: string, logItem: unknown): Promise<boolean> => {
+  sendLogToAPI: async (profile: Profile, projectName: string, taskName: string, logItem: { input: unknown; metadata?: Record<string, string> }): Promise<boolean> => {
     try {
       const config = {
         projectName,

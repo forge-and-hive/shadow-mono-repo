@@ -8,14 +8,17 @@ export interface Metadata {
   [key: string]: string
 }
 
-// Log item interface for sendLog method
-export interface LogItem {
+// Log item interface for sendLog method - flexible to accept task execution records
+export interface LogItemInput {
   input: unknown
   output?: unknown
   error?: unknown
-  boundaries?: Record<string, Array<{ input: unknown; output: unknown, error: unknown }>>
+  boundaries?: unknown // Allow any boundary structure (task records have different format)
   metadata?: Metadata
 }
+
+// Backward compatibility alias
+export type LogItem = LogItemInput
 
 // Configuration interface for HiveLogClient
 export interface HiveLogClientConfig {
@@ -97,7 +100,7 @@ export class HiveLogClient {
     return this.isInitialized
   }
 
-  private mergeMetadata(logItem: LogItem, sendLogMetadata?: Metadata): Metadata {
+  private mergeMetadata<T extends { input: unknown; metadata?: Metadata }>(logItem: T, sendLogMetadata?: Metadata): Metadata {
     // Start with base metadata from client
     let finalMetadata = { ...this.baseMetadata }
 
@@ -114,7 +117,7 @@ export class HiveLogClient {
     return finalMetadata
   }
 
-  async sendLog(taskName: string, logItem: LogItem, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
+  async sendLog<T extends { input: unknown; metadata?: Metadata }>(taskName: string, logItem: T, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
     if (!this.isInitialized) {
       log('Silent mode: Skipping sendLog for task "%s" - client not initialized', taskName)
       return 'silent'

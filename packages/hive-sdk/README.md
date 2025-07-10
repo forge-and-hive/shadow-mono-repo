@@ -200,11 +200,12 @@ if (hiveLogger.isActive()) {
 
 **Returns:** `boolean` - `true` if credentials are available, `false` if in silent mode
 
-### `sendLog(taskName: string, logItem: LogItem, metadata?: Metadata): Promise<'success' | 'error' | 'silent'>`
+### `sendLog(taskName: string, logItem: LogItemInput, metadata?: Metadata): Promise<'success' | 'error' | 'silent'>`
 
-Sends a log entry to Hive for a specific task with optional metadata.
+Sends a log entry to Hive for a specific task with optional metadata. Accepts both manual log items and task execution records.
 
 ```typescript
+// Using a manual log item
 const status = await hiveLogger.sendLog('user-authentication', {
   input: { username: 'john_doe', timestamp: Date.now() },
   output: { success: true, userId: 12345 },
@@ -223,6 +224,12 @@ const status = await hiveLogger.sendLog('user-authentication', {
   userId: 'user-456'
 })
 
+// Using a task execution record directly
+const [result, error, record] = await someTask.safeRun(args)
+await hiveLogger.sendLog('task-name', record, {
+  environment: 'production'
+})
+
 switch (status) {
   case 'success':
     console.log('Log sent successfully')
@@ -238,7 +245,7 @@ switch (status) {
 
 **Parameters:**
 - `taskName`: Name of the task being logged
-- `logItem`: LogItem object containing input, output, error, and boundaries data
+- `logItem`: LogItemInput object (supports both manual log items and task execution records)
 - `metadata` (optional): Additional metadata for this specific log
 
 **Returns:** `Promise<'success' | 'error' | 'silent'>` - Status of the operation
@@ -415,15 +422,18 @@ interface HiveLogClientConfig {
 }
 ```
 
-### `LogItem`
+### `LogItemInput` (also exported as `LogItem`)
 
 ```typescript
-interface LogItem {
+interface LogItemInput {
   input: unknown
   output?: unknown
   error?: unknown
-  boundaries?: Record<string, Array<{ input: unknown; output: unknown, error: unknown }>>
+  boundaries?: unknown // Flexible to accept different boundary structures
   metadata?: Metadata
+  taskName?: string
+  type?: string
+  [key: string]: unknown // Allows task execution records and other additional properties
 }
 ```
 
@@ -589,7 +599,7 @@ try {
 ### Complete Example
 
 ```typescript
-import { HiveLogClient, isApiError, Quality, Metadata, LogItem } from '@forgehive/hive-sdk'
+import { HiveLogClient, isApiError, Quality, Metadata, LogItemInput } from '@forgehive/hive-sdk'
 
 async function main() {
   // Initialize the client with configuration object
