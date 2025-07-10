@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@forgehive/schema": "workspace:*",
-    "@forgehive/task": "workspace:*"
+    "@forgehive/task": "workspace:*",
+    "@forgehive/hive-sdk": "workspace:*",
+    "dotenv": "^16.5.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

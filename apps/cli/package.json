@@ -1,6 +1,6 @@
 {
   "name": "@forgehive/forge-cli",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "TypeScript CLI application",
   "license": "MIT",
   "main": "dist/index.js",
@@ -10,10 +10,11 @@
   "publishConfig": {
     "access": "public",
     "dependencies": {
-      "@forgehive/record-tape": "^0.2.1",
-      "@forgehive/runner": "^0.2.1",
+      "@forgehive/hive-sdk": "^0.0.2",
+      "@forgehive/record-tape": "^0.2.2",
+      "@forgehive/runner": "^0.2.2",
       "@forgehive/schema": "^0.1.4",
-      "@forgehive/task": "^0.2.1",
+      "@forgehive/task": "^0.2.2",
       "esbuild": "^0.25.0",
       "handlebars": "^4.7.8",
       "minimist": "^1.2.8"
@@ -27,6 +28,7 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
+    "@forgehive/hive-sdk": "workspace:*",
     "@forgehive/record-tape": "workspace:*",
     "@forgehive/runner": "workspace:*",
     "@forgehive/schema": "workspace:*",

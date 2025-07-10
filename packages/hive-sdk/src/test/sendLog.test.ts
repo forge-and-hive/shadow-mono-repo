@@ -6,27 +6,21 @@ jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
 describe('HiveLogClient sendLog', () => {
-  const originalEnv = process.env
   let client: HiveLogClient
 
+  const testConfig = {
+    projectName: 'test-project',
+    apiKey: 'test-api-key',
+    apiSecret: 'test-api-secret',
+    host: 'https://test-host.com'
+  }
+
   beforeEach(() => {
-    jest.resetModules()
-    process.env = { ...originalEnv }
-
-    // Set up environment variables
-    process.env.HIVE_API_KEY = 'test-api-key'
-    process.env.HIVE_API_SECRET = 'test-api-secret'
-    process.env.HIVE_HOST = 'https://test-host.com'
-
-    // Create client instance
-    client = new HiveLogClient('test-project')
+    // Create client instance with config
+    client = new HiveLogClient(testConfig)
 
     // Clear all mocks
     jest.clearAllMocks()
-  })
-
-  afterAll(() => {
-    process.env = originalEnv
   })
 
   describe('successful sendLog', () => {
@@ -44,7 +38,7 @@ describe('HiveLogClient sendLog', () => {
         {
           projectName: 'test-project',
           taskName: 'test-task',
-          logItem: JSON.stringify(logItem)
+          logItem: JSON.stringify({ ...logItem, metadata: {} })
         },
         {
           headers: {
@@ -75,7 +69,7 @@ describe('HiveLogClient sendLog', () => {
         {
           projectName: 'test-project',
           taskName: 'complex-task',
-          logItem: JSON.stringify(complexLogItem)
+          logItem: JSON.stringify({ ...complexLogItem, metadata: {} })
         },
         {
           headers: {
@@ -110,18 +104,18 @@ describe('HiveLogClient sendLog', () => {
   })
 
   describe('sendLog parameters', () => {
-    it('should handle empty log items', async () => {
+    it('should handle log items with minimal input', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
-      const result = await client.sendLog('empty-task', {})
+      const result = await client.sendLog('minimal-task', { input: 'minimal input' })
 
       expect(result).toBe('success')
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'https://test-host.com/api/tasks/log-ingest',
         {
           projectName: 'test-project',
-          taskName: 'empty-task',
-          logItem: JSON.stringify({})
+          taskName: 'minimal-task',
+          logItem: JSON.stringify({ input: 'minimal input', metadata: {} })
         },
         expect.any(Object)
       )
@@ -139,7 +133,7 @@ describe('HiveLogClient sendLog', () => {
         {
           projectName: 'test-project',
           taskName: 'null-task',
-          logItem: JSON.stringify(logItem)
+          logItem: JSON.stringify({ ...logItem, metadata: {} })
         },
         expect.any(Object)
       )

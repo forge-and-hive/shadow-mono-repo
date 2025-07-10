@@ -40,6 +40,9 @@ importers:
 
   apps/cli:
     dependencies:
+      '@forgehive/hive-sdk':
+        specifier: workspace:*
+        version: link:../../packages/hive-sdk
       '@forgehive/record-tape':
         specifier: workspace:*
         version: link:../../packages/record-tape
@@ -101,12 +104,18 @@ importers:
 
   apps/sample-project:
     dependencies:
+      '@forgehive/hive-sdk':
+        specifier: workspace:*
+        version: link:../../packages/hive-sdk
       '@forgehive/schema':
         specifier: workspace:*
         version: link:../../packages/schema
       '@forgehive/task':
         specifier: workspace:*
         version: link:../../packages/task
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.5.0
     devDependencies:
       '@types/jest':
         specifier: ^29.5.12
@@ -5352,7 +5361,7 @@ snapshots:
 
   dotenv-expand@11.0.7:
     dependencies:
-      dotenv: 16.4.7
+      dotenv: 16.5.0
 
   dotenv@16.4.7: {}
 

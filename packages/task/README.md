@@ -47,14 +47,14 @@ const registerUser = createTask(
   async (argv, boundaries) => {
     // argv is typed based on the schema (has name: string, age?: number)
     console.log(`Registering user: ${argv.name}`);
-    
+
     // Call boundaries with type safety
     await boundaries.saveToDatabase({ name: argv.name, age: argv.age });
     const emailSent = await boundaries.sendEmail(
       'admin@example.com',
       `New user registered: ${argv.name}`
     );
-    
+
     return {
       success: true,
       emailSent,
@@ -184,27 +184,27 @@ describe('Init task', () => {
   it('should create a config file when dryRun is false', async () => {
     // Mock the saveFile boundary
     const saveFileMock = jest.fn();
-    
+
     // Override the boundaries
     init.getBoundaries().saveFile = saveFileMock;
-    
+
     // Run the task
     await init.run({ dryRun: false });
-    
+
     // Verify the boundary was called
     expect(saveFileMock).toHaveBeenCalled();
   });
-  
+
   it('should not create a file when dryRun is true', async () => {
     // Mock the saveFile boundary
     const saveFileMock = jest.fn();
-    
+
     // Override the boundaries
     init.getBoundaries().saveFile = saveFileMock;
-    
+
     // Run the task
     await init.run({ dryRun: true });
-    
+
     // Verify the boundary was not called
     expect(saveFileMock).not.toHaveBeenCalled();
   });
@@ -236,6 +236,160 @@ Returns a `TaskInstanceType` with methods for running and managing the task.
 - `isValid(argv?)`: Check if input is valid
 - `asBoundary()`: Convert the task to a boundary function
 
+## Adding Metadata to Task Execution
+
+Tasks automatically provide a `setMetadata` boundary that allows you to add custom metadata to execution records. This metadata is useful for tracking, debugging, and analytics.
+
+### Basic Usage
+
+```typescript
+import { createTask, Schema } from '@forgehive/task';
+
+const schema = new Schema({
+  userId: Schema.string(),
+  operation: Schema.string()
+});
+
+const boundaries = {
+  processPayment: async (amount: number): Promise<string> => {
+    // Payment processing logic
+    return 'payment-id-123';
+  }
+};
+
+const processUserAction = createTask({
+  schema,
+  boundaries,
+  fn: async ({ userId, operation }, { processPayment, setMetadata }) => {
+    // Add metadata at the beginning
+    await setMetadata('userId', userId);
+    await setMetadata('environment', 'production');
+
+    if (operation === 'payment') {
+      await setMetadata('step', 'processing-payment');
+      const paymentId = await processPayment(100);
+
+      await setMetadata('step', 'payment-completed');
+      await setMetadata('paymentId', paymentId);
+
+      return { success: true, paymentId };
+    }
+
+    await setMetadata('step', 'completed');
+    return { success: true };
+  }
+});
+```
+
+### Metadata in Execution Records
+
+When you run a task, the metadata appears in the execution record:
+
+```typescript
+const [result, error, record] = await processUserAction.safeRun({
+  userId: 'user-123',
+  operation: 'payment'
+});
+
+console.log(record.metadata);
+// Output:
+// {
+//   userId: 'user-123',
+//   environment: 'production',
+//   step: 'payment-completed',
+//   paymentId: 'payment-id-123'
+// }
+```
+
+### Key Features
+
+- **Dynamic Updates**: Metadata can be updated multiple times during execution
+- **Error Preservation**: Metadata is preserved even if the task fails
+- **Replay Support**: Metadata is properly handled during task replays
+- **No Boundary Logs**: `setMetadata` calls don't appear in boundary execution logs
+- **Type Safe**: Full TypeScript support with intellisense
+
+### Practical Example: User Registration
+
+```typescript
+const registerUser = createTask({
+  schema: new Schema({
+    email: Schema.string(),
+    plan: Schema.string()
+  }),
+  boundaries: {
+    validateEmail: async (email: string) => true,
+    createUser: async (userData: any) => ({ id: 'user-123' }),
+    sendWelcomeEmail: async (email: string) => true
+  },
+  fn: async ({ email, plan }, { validateEmail, createUser, sendWelcomeEmail, setMetadata }) => {
+    // Track the registration flow
+    await setMetadata('registrationFlow', 'started');
+    await setMetadata('plan', plan);
+    await setMetadata('timestamp', Date.now().toString());
+
+    // Validate email
+    await setMetadata('step', 'validating-email');
+    const isValidEmail = await validateEmail(email);
+
+    if (!isValidEmail) {
+      await setMetadata('step', 'validation-failed');
+      throw new Error('Invalid email');
+    }
+
+    // Create user
+    await setMetadata('step', 'creating-user');
+    const user = await createUser({ email, plan });
+    await setMetadata('userId', user.id);
+
+    // Send welcome email
+    await setMetadata('step', 'sending-welcome-email');
+    await sendWelcomeEmail(email);
+
+    await setMetadata('step', 'completed');
+    await setMetadata('registrationFlow', 'success');
+
+    return { userId: user.id, success: true };
+  }
+});
+```
+
+### Using Metadata for Analytics
+
+Metadata is particularly useful for tracking task performance and user behavior:
+
+```typescript
+// Add listener to track analytics
+registerUser.addListener((record) => {
+  // Send metadata to analytics service
+  analytics.track('task_executed', {
+    taskName: record.taskName,
+    success: record.type === 'success',
+    metadata: record.metadata,
+    duration: Date.now() - parseInt(record.metadata?.timestamp || '0')
+  });
+});
+```
+
+### Environment-Specific Metadata
+
+Tasks automatically receive environment metadata when executed in different contexts:
+
+- **CLI execution**: `environment: 'cli'`
+- **Lambda execution**: `environment: 'hive-lambda'`
+- **Custom contexts**: Pass metadata through `safeRun(args, context)`
+
+You can combine this with your custom metadata:
+
+```typescript
+const [result, error, record] = await task.safeRun(
+  { userId: 'user-123' },
+  { executionContext: 'background-job', version: '1.2.3' }
+);
+
+// record.metadata will contain both your custom metadata and the context
+```
+
 ## License
 
-MIT 
+MIT

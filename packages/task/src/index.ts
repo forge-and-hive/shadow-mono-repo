@@ -139,10 +139,19 @@ type BoundaryData = Array<{input: unknown[], output?: unknown}>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type InferSchemaType<S> = S extends Schema<any> ? InferSchema<S> : Record<string, unknown>;
 
+// Type for execution record boundaries that are automatically injected
+// When adding new execution boundaries, add their types here
+export type ExecutionRecordBoundaries = {
+  setMetadata: (key: string, value: string) => Promise<void>
+  // Future execution boundaries can be added here:
+  // setContext: (context: Record<string, unknown>) => Promise<void>
+  // addTag: (tag: string) => Promise<void>
+}
+
 // Helper type for task function with proper typing
 export type TaskFunction<S, B extends Boundaries> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<any>;
+  (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B> & ExecutionRecordBoundaries) => Promise<any>;
 
 /**
  * Utility function to compute the execution record type based on output and error state
@@ -355,6 +364,28 @@ export const Task = class Task<
     this._boundaryMocks = {}
   }
 
+  /**
+   * Creates execution record boundaries that modify execution metadata and logging
+   * These boundaries are automatically injected into all task executions
+   *
+   * To add a new execution boundary:
+   * 1. Add the boundary function here
+   * 2. Update the ExecutionRecordBoundaries type to include the new boundary
+   * 3. That's it! The boundary will be available in all tasks automatically
+   */
+  _createExecutionBoundaries(metadata: Record<string, string>): Record<string, WrappedBoundaryFunction> {
+    return {
+      // Allows setting metadata key-value pairs from within task execution
+      setMetadata: createBoundary(async (...args: unknown[]): Promise<void> => {
+        const [key, value] = args as [string, string]
+        metadata[key] = value
+      })
+
+      // Future execution boundaries can be added here:
+      // addMetrics: createBoundary(async (...args: unknown[]): Promise<void> => { ... }),
+    }
+  }
+
   _createBounderies ({
     definition,
     baseData,
@@ -431,9 +462,16 @@ export const Task = class Task<
       mode: this._mode
     })
 
+    // Create and inject execution record boundaries (setMetadata, etc.)
+    const executionRecordBoundaries = this._createExecutionBoundaries(metadata)
+    const allBoundaries = {
+      ...executionBoundaries,
+      ...executionRecordBoundaries
+    }
+
     // Start run for each boundary
-    for (const name in executionBoundaries) {
-      const boundary = executionBoundaries[name]
+    for (const name in allBoundaries) {
+      const boundary = allBoundaries[name]
       boundary.startRun()
     }
 
@@ -470,7 +508,7 @@ export const Task = class Task<
       // Execute the task function
       output = await this._fn(
         argv as Parameters<Func>[0],
-        executionBoundaries as unknown as Parameters<Func>[1]
+        allBoundaries as unknown as Parameters<Func>[1]
       )
 
       logItem.output = output
@@ -506,6 +544,9 @@ export const Task = class Task<
         this._accumulatedBoundariesData[name] = [...currentData, ...(runData as BoundaryData)]
       }
     }
+
+    // Filter out setMetadata boundary calls from the logs (they should not appear in execution record)
+    // Note: setMetadata is not part of the original boundaries definition, so it won't be in boundariesRunLog anyway
 
     // Set boundaries in log item before emitting
     logItem.boundaries = boundariesRunLog
@@ -566,9 +607,18 @@ export const Task = class Task<
       boundaryModes: config.boundaries
     })
 
+    // Create and inject execution record boundaries (setMetadata, etc.)
+    // Clone the metadata to avoid mutating the original metadata
+    const replayMetadata = { ...(logItem.metadata || {}) }
+    const executionRecordBoundaries = this._createExecutionBoundaries(replayMetadata)
+    const allBoundaries = {
+      ...executionBoundaries,
+      ...executionRecordBoundaries
+    }
+
     // Start run for each boundary
-    for (const name in executionBoundaries) {
-      const boundary = executionBoundaries[name]
+    for (const name in allBoundaries) {
+      const boundary = allBoundaries[name]
       boundary.startRun()
     }
 
@@ -603,7 +653,7 @@ export const Task = class Task<
       // Execute the task function with replay boundaries
       output = await this._fn(
         argv,
-        executionBoundaries as unknown as Parameters<Func>[1]
+        allBoundaries as unknown as Parameters<Func>[1]
       )
 
       logItem.output = output
@@ -632,8 +682,14 @@ export const Task = class Task<
       }
     }
 
+    // Filter out setMetadata boundary calls from the logs (they should not appear in execution record)
+    // Note: setMetadata is not part of the original boundaries definition, so it won't be in boundariesRunLog anyway
+
     // Set boundaries in log item before emitting
     logItem.boundaries = boundariesRunLog
+
+    // Update the log item metadata with changes made during replay
+    logItem.metadata = replayMetadata
 
     // Emit the log item
     this.emit(logItem)
@@ -683,6 +739,12 @@ export const Task = class Task<
     try {
       // Call the task's safeRun method
       const [outcome, error, log] = await this.safeRun(eventArgs)
+
+      // Extend log metadata with environment info
+      log.metadata = {
+        ...log.metadata,
+        environment: 'hive-lambda'
+      }
 
       // Send log to Hive if environment variables are present
       await this._sendToHive(log)
@@ -823,7 +885,7 @@ export interface CreateTaskConfig<
   description?: string
   schema: S
   boundaries: B
-  fn: (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B>) => Promise<R>
+  fn: (argv: InferSchemaType<S>, boundaries: WrappedBoundaries<B> & ExecutionRecordBoundaries) => Promise<R>
   mode?: Mode
   boundariesData?: BoundaryTapeData
 }

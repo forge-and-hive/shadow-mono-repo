@@ -3,6 +3,32 @@ import debug from 'debug'
 
 const log = debug('hive-sdk')
 
+// Metadata interface
+export interface Metadata {
+  [key: string]: string
+}
+
+// Log item interface for sendLog method - flexible to accept task execution records
+export interface LogItemInput {
+  input: unknown
+  output?: unknown
+  error?: unknown
+  boundaries?: unknown // Allow any boundary structure (task records have different format)
+  metadata?: Metadata
+}
+
+// Backward compatibility alias
+export type LogItem = LogItemInput
+
+// Configuration interface for HiveLogClient
+export interface HiveLogClientConfig {
+  projectName: string
+  apiKey?: string
+  apiSecret?: string
+  host?: string
+  metadata?: Metadata
+}
+
 // API Response Types
 export interface LogApiResponse {
   uuid: string
@@ -13,6 +39,7 @@ export interface LogApiResponse {
     output?: unknown
     error?: unknown
     boundaries?: Record<string, Array<{ input: unknown; output: unknown, error: unknown }>>
+    metadata?: Metadata
   }
   replayFrom?: string
   createdAt: string
@@ -43,27 +70,29 @@ export class HiveLogClient {
   private apiSecret: string | null
   private host: string | null
   private projectName: string
+  private baseMetadata: Metadata
   private isInitialized: boolean
 
-  constructor(projectName: string) {
-    const apiKey = process.env.HIVE_API_KEY
-    const apiSecret = process.env.HIVE_API_SECRET
-    const host = process.env.HIVE_HOST
+  constructor(config: HiveLogClientConfig) {
+    const apiKey = config.apiKey || process.env.HIVE_API_KEY
+    const apiSecret = config.apiSecret || process.env.HIVE_API_SECRET
+    const host = config.host || process.env.HIVE_HOST || 'https://www.forgehive.cloud'
 
-    this.projectName = projectName
+    this.projectName = config.projectName
+    this.baseMetadata = config.metadata || {}
 
-    if (!apiKey || !apiSecret || !host) {
+    if (!apiKey || !apiSecret) {
       this.apiKey = null
       this.apiSecret = null
       this.host = null
       this.isInitialized = false
-      log('HiveLogClient in silent mode for project "%s" - missing credentials (get them at https://forgehive.dev)', projectName)
+      log('HiveLogClient in silent mode for project "%s" - missing API credentials (get them at https://www.forgehive.cloud)', config.projectName)
     } else {
       this.apiKey = apiKey
       this.apiSecret = apiSecret
       this.host = host
       this.isInitialized = true
-      log('HiveLogClient initialized for project "%s" with host "%s"', projectName, host)
+      log('HiveLogClient initialized for project "%s" with host "%s"', config.projectName, host)
     }
   }
 
@@ -71,7 +100,24 @@ export class HiveLogClient {
     return this.isInitialized
   }
 
-  async sendLog(taskName: string, logItem: unknown): Promise<'success' | 'error' | 'silent'> {
+  private mergeMetadata<T extends { input: unknown; metadata?: Metadata }>(logItem: T, sendLogMetadata?: Metadata): Metadata {
+    // Start with base metadata from client
+    let finalMetadata = { ...this.baseMetadata }
+
+    // Merge with logItem metadata if it exists
+    if (logItem.metadata) {
+      finalMetadata = { ...finalMetadata, ...logItem.metadata }
+    }
+
+    // Merge with sendLog metadata (highest priority)
+    if (sendLogMetadata) {
+      finalMetadata = { ...finalMetadata, ...sendLogMetadata }
+    }
+
+    return finalMetadata
+  }
+
+  async sendLog<T extends { input: unknown; metadata?: Metadata }>(taskName: string, logItem: T, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
     if (!this.isInitialized) {
       log('Silent mode: Skipping sendLog for task "%s" - client not initialized', taskName)
       return 'silent'
@@ -83,10 +129,19 @@ export class HiveLogClient {
 
       const authToken = `${this.apiKey}:${this.apiSecret}`
 
+      // Merge metadata with priority: sendLog > logItem > client
+      const finalMetadata = this.mergeMetadata(logItem, metadata)
+
+      // Create enhanced logItem with merged metadata
+      const enhancedLogItem = {
+        ...logItem,
+        metadata: finalMetadata
+      }
+
       await axios.post(logsUrl, {
         projectName: this.projectName,
         taskName,
-        logItem: JSON.stringify(logItem)
+        logItem: JSON.stringify(enhancedLogItem)
       }, {
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -106,7 +161,7 @@ export class HiveLogClient {
   async getLog(taskName: string, uuid: string): Promise<LogApiResult | null> {
     if (!this.isInitialized) {
       log('Error: getLog for task "%s" with uuid "%s" - missing credentials', taskName, uuid)
-      throw new Error('Missing Hive API credentials or host, get them at https://forgehive.dev')
+      throw new Error('Missing Hive API credentials or host, get them at https://www.forgehive.cloud')
     }
 
     try {
@@ -134,7 +189,7 @@ export class HiveLogClient {
   async setQuality(taskName: string, uuid: string, quality: Quality): Promise<boolean> {
     if (!this.isInitialized) {
       log('Error: setQuality for task "%s" with uuid "%s" - missing credentials', taskName, uuid)
-      throw new Error('Missing Hive API credentials or host, get them at https://forgehive.dev')
+      throw new Error('Missing Hive API credentials or host, get them at https://www.forgehive.cloud')
     }
 
     try {
@@ -162,7 +217,7 @@ export class HiveLogClient {
   }
 }
 
-export const createHiveLogClient = (projectName: string): HiveLogClient => {
-  log('Creating HiveLogClient for project "%s"', projectName)
-  return new HiveLogClient(projectName)
+export const createHiveLogClient = (config: HiveLogClientConfig): HiveLogClient => {
+  log('Creating HiveLogClient for project "%s"', config.projectName)
+  return new HiveLogClient(config)
 }
