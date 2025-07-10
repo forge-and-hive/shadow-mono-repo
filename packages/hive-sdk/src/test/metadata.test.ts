@@ -6,8 +6,6 @@ jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
 describe('HiveLogClient Metadata', () => {
-  const originalEnv = process.env
-
   const testConfig = {
     projectName: 'test-project',
     apiKey: 'test-api-key',
@@ -16,13 +14,8 @@ describe('HiveLogClient Metadata', () => {
   }
 
   beforeEach(() => {
-    jest.resetModules()
     // Clear all mocks
     jest.clearAllMocks()
-  })
-
-  afterAll(() => {
-    process.env = originalEnv
   })
 
   describe('Constructor with base metadata', () => {

@@ -5,7 +5,7 @@ const log = debug('hive-sdk')
 
 // Metadata interface
 export interface Metadata {
-  [key: string]: unknown
+  [key: string]: string
 }
 
 // Configuration interface for HiveLogClient
@@ -74,7 +74,7 @@ export class HiveLogClient {
       this.apiSecret = null
       this.host = null
       this.isInitialized = false
-      log('HiveLogClient in silent mode for project "%s" - missing API credentials (get them at https://forgehive.dev)', config.projectName)
+      log('HiveLogClient in silent mode for project "%s" - missing API credentials (get them at https://www.forgehive.cloud)', config.projectName)
     } else {
       this.apiKey = apiKey
       this.apiSecret = apiSecret

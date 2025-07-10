@@ -392,8 +392,8 @@ const logItem = {
   input: { query: 'search term' },
   output: { results: [...] },
   metadata: {
-    searchDuration: 245,  // ms
-    resultCount: 15,
+    searchDuration: '245',  // ms
+    resultCount: '15',
     algorithm: 'fuzzy-v2'
   }
 }
@@ -419,7 +419,7 @@ interface HiveLogClientConfig {
 
 ```typescript
 interface Metadata {
-  [key: string]: unknown
+  [key: string]: string
 }
 ```
 
@@ -599,8 +599,8 @@ async function main() {
     output: { results: ['paper1.pdf', 'paper2.pdf'], count: 2 },
     metadata: {
       searchAlgorithm: 'semantic-search-v2',
-      processingTime: 245, // ms
-      cacheHit: false
+      processingTime: '245', // ms
+      cacheHit: 'false'
     },
     boundaries: {
       search_engine: [

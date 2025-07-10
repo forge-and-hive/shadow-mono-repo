@@ -6,7 +6,6 @@ jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
 describe('HiveLogClient sendLog', () => {
-  const originalEnv = process.env
   let client: HiveLogClient
 
   const testConfig = {
@@ -17,17 +16,11 @@ describe('HiveLogClient sendLog', () => {
   }
 
   beforeEach(() => {
-    jest.resetModules()
-
     // Create client instance with config
     client = new HiveLogClient(testConfig)
 
     // Clear all mocks
     jest.clearAllMocks()
-  })
-
-  afterAll(() => {
-    process.env = originalEnv
   })
 
   describe('successful sendLog', () => {
