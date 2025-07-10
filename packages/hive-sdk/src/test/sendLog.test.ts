@@ -104,18 +104,18 @@ describe('HiveLogClient sendLog', () => {
   })
 
   describe('sendLog parameters', () => {
-    it('should handle empty log items', async () => {
+    it('should handle log items with minimal input', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
-      const result = await client.sendLog('empty-task', {})
+      const result = await client.sendLog('minimal-task', { input: 'minimal input' })
 
       expect(result).toBe('success')
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'https://test-host.com/api/tasks/log-ingest',
         {
           projectName: 'test-project',
-          taskName: 'empty-task',
-          logItem: JSON.stringify({ metadata: {} })
+          taskName: 'minimal-task',
+          logItem: JSON.stringify({ input: 'minimal input', metadata: {} })
         },
         expect.any(Object)
       )

@@ -8,6 +8,15 @@ export interface Metadata {
   [key: string]: string
 }
 
+// Log item interface for sendLog method
+export interface LogItem {
+  input: unknown
+  output?: unknown
+  error?: unknown
+  boundaries?: Record<string, Array<{ input: unknown; output: unknown, error: unknown }>>
+  metadata?: Metadata
+}
+
 // Configuration interface for HiveLogClient
 export interface HiveLogClientConfig {
   projectName: string
@@ -88,16 +97,13 @@ export class HiveLogClient {
     return this.isInitialized
   }
 
-  private mergeMetadata(logItem: unknown, sendLogMetadata?: Metadata): Metadata {
+  private mergeMetadata(logItem: LogItem, sendLogMetadata?: Metadata): Metadata {
     // Start with base metadata from client
     let finalMetadata = { ...this.baseMetadata }
 
     // Merge with logItem metadata if it exists
-    if (logItem && typeof logItem === 'object' && 'metadata' in logItem) {
-      const logItemMetadata = (logItem as { metadata: unknown }).metadata
-      if (logItemMetadata && typeof logItemMetadata === 'object') {
-        finalMetadata = { ...finalMetadata, ...(logItemMetadata as Metadata) }
-      }
+    if (logItem.metadata) {
+      finalMetadata = { ...finalMetadata, ...logItem.metadata }
     }
 
     // Merge with sendLog metadata (highest priority)
@@ -108,7 +114,7 @@ export class HiveLogClient {
     return finalMetadata
   }
 
-  async sendLog(taskName: string, logItem: unknown, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
+  async sendLog(taskName: string, logItem: LogItem, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
     if (!this.isInitialized) {
       log('Silent mode: Skipping sendLog for task "%s" - client not initialized', taskName)
       return 'silent'
@@ -125,7 +131,7 @@ export class HiveLogClient {
 
       // Create enhanced logItem with merged metadata
       const enhancedLogItem = {
-        ...(typeof logItem === 'object' && logItem !== null ? logItem : { data: logItem }),
+        ...logItem,
         metadata: finalMetadata
       }
 
@@ -152,7 +158,7 @@ export class HiveLogClient {
   async getLog(taskName: string, uuid: string): Promise<LogApiResult | null> {
     if (!this.isInitialized) {
       log('Error: getLog for task "%s" with uuid "%s" - missing credentials', taskName, uuid)
-      throw new Error('Missing Hive API credentials or host, get them at https://forgehive.dev')
+      throw new Error('Missing Hive API credentials or host, get them at https://www.forgehive.cloud')
     }
 
     try {
@@ -180,7 +186,7 @@ export class HiveLogClient {
   async setQuality(taskName: string, uuid: string, quality: Quality): Promise<boolean> {
     if (!this.isInitialized) {
       log('Error: setQuality for task "%s" with uuid "%s" - missing credentials', taskName, uuid)
-      throw new Error('Missing Hive API credentials or host, get them at https://forgehive.dev')
+      throw new Error('Missing Hive API credentials or host, get them at https://www.forgehive.cloud')
     }
 
     try {

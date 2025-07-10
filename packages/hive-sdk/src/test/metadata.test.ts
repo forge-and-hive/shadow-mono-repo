@@ -136,11 +136,11 @@ describe('HiveLogClient Metadata', () => {
       )
     })
 
-    it('should handle primitive logItem values', async () => {
+    it('should handle logItem with only input property', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
-      const metadata: Metadata = { type: 'primitive' }
-      const result = await client.sendLog('test-task', 'simple string', metadata)
+      const metadata: Metadata = { type: 'minimal' }
+      const result = await client.sendLog('test-task', { input: 'simple input' }, metadata)
 
       expect(result).toBe('success')
       expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -149,19 +149,19 @@ describe('HiveLogClient Metadata', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
-            data: 'simple string',
-            metadata: { type: 'primitive' }
+            input: 'simple input',
+            metadata: { type: 'minimal' }
           })
         },
         expect.any(Object)
       )
     })
 
-    it('should handle null logItem values', async () => {
+    it('should handle logItem with null input values', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
       const metadata: Metadata = { type: 'null-test' }
-      const result = await client.sendLog('test-task', null, metadata)
+      const result = await client.sendLog('test-task', { input: null }, metadata)
 
       expect(result).toBe('success')
       expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -170,7 +170,7 @@ describe('HiveLogClient Metadata', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
-            data: null,
+            input: null,
             metadata: { type: 'null-test' }
           })
         },
@@ -316,7 +316,7 @@ describe('HiveLogClient Metadata', () => {
         output: { results: [] },
         metadata: {
           algorithm: 'fuzzy-search',
-          processingTime: 250,
+          processingTime: '250',
           version: '1.1.0'  // overrides base
         }
       }
@@ -338,7 +338,7 @@ describe('HiveLogClient Metadata', () => {
           version: '1.2.0',             // from sendLog (highest priority)
           datacenter: 'us-west-2',      // from base
           algorithm: 'fuzzy-search',    // from logItem
-          processingTime: 250,          // from logItem
+          processingTime: '250',        // from logItem
           requestId: 'req-789',         // from sendLog
           userId: 'user-123'            // from sendLog
         }
@@ -357,15 +357,15 @@ describe('HiveLogClient Metadata', () => {
   })
 
   describe('Edge cases and error handling', () => {
-    it('should handle invalid metadata in logItem', async () => {
+    it('should handle logItem without metadata property', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
       const baseMetadata: Metadata = { environment: 'test' }
       const client = new HiveLogClient({ ...testConfig, metadata: baseMetadata })
 
       const logItem = {
-        input: 'test',
-        metadata: 'invalid-metadata-string' // Not an object
+        input: 'test'
+        // No metadata property
       }
 
       await client.sendLog('test-task', logItem)
@@ -388,7 +388,7 @@ describe('HiveLogClient Metadata', () => {
       )
     })
 
-    it('should handle null metadata in logItem', async () => {
+    it('should handle logItem with undefined metadata', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
       const baseMetadata: Metadata = { environment: 'test' }
@@ -396,7 +396,7 @@ describe('HiveLogClient Metadata', () => {
 
       const logItem = {
         input: 'test',
-        metadata: null
+        metadata: undefined
       }
 
       await client.sendLog('test-task', logItem)

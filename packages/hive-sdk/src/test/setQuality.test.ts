@@ -249,7 +249,7 @@ describe('HiveLogClient setQuality', () => {
 
       await expect(silentClient.setQuality('test-task', 'test-uuid', quality))
         .rejects
-        .toThrow('Missing Hive API credentials or host, get them at https://forgehive.dev')
+        .toThrow('Missing Hive API credentials or host, get them at https://www.forgehive.cloud')
 
       // Verify axios was never called
       expect(mockedAxios.post).not.toHaveBeenCalled()

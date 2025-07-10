@@ -106,20 +106,20 @@ describe('Hive SDK', () => {
     })
 
     it('should return "silent" for sendLog in silent mode', async () => {
-      const result = await silentClient.sendLog('test-task', { data: 'test' })
+      const result = await silentClient.sendLog('test-task', { input: 'test' })
       expect(result).toBe('silent')
     })
 
     it('should throw error for getLog in silent mode', async () => {
       await expect(silentClient.getLog('test-task', 'test-uuid')).rejects.toThrow(
-        'Missing Hive API credentials or host, get them at https://forgehive.dev'
+        'Missing Hive API credentials or host, get them at https://www.forgehive.cloud'
       )
     })
 
     it('should throw error for setQuality in silent mode', async () => {
       const quality = { score: 8, reason: 'test', suggestions: 'test' }
       await expect(silentClient.setQuality('test-task', 'test-uuid', quality)).rejects.toThrow(
-        'Missing Hive API credentials or host, get them at https://forgehive.dev'
+        'Missing Hive API credentials or host, get them at https://www.forgehive.cloud'
       )
     })
   })

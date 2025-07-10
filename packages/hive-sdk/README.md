@@ -200,7 +200,7 @@ if (hiveLogger.isActive()) {
 
 **Returns:** `boolean` - `true` if credentials are available, `false` if in silent mode
 
-### `sendLog(taskName: string, logItem: unknown, metadata?: Metadata): Promise<'success' | 'error' | 'silent'>`
+### `sendLog(taskName: string, logItem: LogItem, metadata?: Metadata): Promise<'success' | 'error' | 'silent'>`
 
 Sends a log entry to Hive for a specific task with optional metadata.
 
@@ -238,7 +238,7 @@ switch (status) {
 
 **Parameters:**
 - `taskName`: Name of the task being logged
-- `logItem`: Object containing input, output, error, and boundaries data
+- `logItem`: LogItem object containing input, output, error, and boundaries data
 - `metadata` (optional): Additional metadata for this specific log
 
 **Returns:** `Promise<'success' | 'error' | 'silent'>` - Status of the operation
@@ -415,6 +415,18 @@ interface HiveLogClientConfig {
 }
 ```
 
+### `LogItem`
+
+```typescript
+interface LogItem {
+  input: unknown
+  output?: unknown
+  error?: unknown
+  boundaries?: Record<string, Array<{ input: unknown; output: unknown, error: unknown }>>
+  metadata?: Metadata
+}
+```
+
 ### `Metadata`
 
 ```typescript
@@ -504,7 +516,7 @@ hive-sdk Success: Sent log for task "user-authentication" +250ms
 
 # Silent mode (missing credentials)
 hive-sdk Creating HiveLogClient for project "Personal Knowledge Management System" +0ms
-hive-sdk HiveLogClient in silent mode for project "Personal Knowledge Management System" - missing credentials (get them at https://forgehive.dev) +2ms
+hive-sdk HiveLogClient in silent mode for project "Personal Knowledge Management System" - missing credentials (get them at https://www.forgehive.cloud) +2ms
 hive-sdk Silent mode: Skipping sendLog for task "user-authentication" - client not initialized +100ms
 hive-sdk Error: getLog for task "user-task" with uuid "some-uuid" - missing credentials +150ms
 
@@ -577,7 +589,7 @@ try {
 ### Complete Example
 
 ```typescript
-import { HiveLogClient, isApiError, Quality, Metadata } from '@forgehive/hive-sdk'
+import { HiveLogClient, isApiError, Quality, Metadata, LogItem } from '@forgehive/hive-sdk'
 
 async function main() {
   // Initialize the client with configuration object
