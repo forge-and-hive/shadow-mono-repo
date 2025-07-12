@@ -84,14 +84,16 @@ const boundaries = {
 };
 
 // Create a task
-const createUser = createTask(
-  userSchema,
+const createUser = createTask({
+  name: 'createUser',
+  description: 'Create a new user account',
+  schema: userSchema,
   boundaries,
-  async (input, boundaries) => {
+  fn: async (input, boundaries) => {
     await boundaries.saveUser(input);
     return { success: true };
   }
-);
+});
 
 // Run the task
 const result = await createUser.run({

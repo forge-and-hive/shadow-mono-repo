@@ -46,11 +46,13 @@ const boundaries = {
 };
 
 // Create the task with type inference and argument destructuring
-const registerUser = createTask(
+const registerUser = createTask({
+  name: 'registerUser',
+  description: 'Register a new user with email notification',
   schema,
   boundaries,
   // Using destructuring for both input and boundaries
-  async ({ name, age }, { saveToDatabase, sendEmail }) => {
+  fn: async ({ name, age }, { saveToDatabase, sendEmail }) => {
     // Input parameters are directly available through destructuring
     console.log(`Registering user: ${name}`);
 
@@ -67,7 +69,7 @@ const registerUser = createTask(
       user: { name, age }
     };
   }
-);
+});
 
 // Execute the task
 const result = await registerUser.run({ name: 'John Doe', age: 30 });
@@ -112,13 +114,15 @@ The `createTask` function provides full type inference:
 
 ```typescript
 // Full type inference with destructuring
-const createUser = createTask(
-  userSchema,
-  {
+const createUser = createTask({
+  name: 'createUser',
+  description: 'Create user with email notification',
+  schema: userSchema,
+  boundaries: {
     saveToDatabase: async (user: User): Promise<string> => { /* ... */ },
     sendEmail: async (to: string, subject: string): Promise<boolean> => { /* ... */ }
   },
-  async ({ name, email }, { saveToDatabase, sendEmail }) => {
+  fn: async ({ name, email }, { saveToDatabase, sendEmail }) => {
     // Input properties are typed based on userSchema
     // Boundaries are typed based on the boundaries object
     const userId = await saveToDatabase({ name, email });
@@ -127,7 +131,7 @@ const createUser = createTask(
     // Return type is inferred
     return { userId, emailSent };
   }
-);
+});
 
 // Usage with type checking
 const result = await createUser.run({
@@ -283,10 +287,12 @@ const boundaries = {
 };
 
 // Create the init task with destructuring
-export const init = createTask(
+export const init = createTask({
+  name: 'init',
+  description: 'Initialize project configuration',
   schema,
   boundaries,
-  async ({ dryRun }, { saveFile }) => {
+  fn: async ({ dryRun }, { saveFile }) => {
     // Handle the dryRun flag
     const isDryRun = Boolean(dryRun);
 
@@ -309,7 +315,7 @@ export const init = createTask(
 
     return config;
   }
-);
+});
 ```
 
 ### API Handler
@@ -341,10 +347,12 @@ const boundaries = {
 };
 
 // Create the task with nested destructuring
-export const createUserTask = createTask(
-  userCreateSchema,
+export const createUserTask = createTask({
+  name: 'createUserTask',
+  description: 'Create user with validation and notifications',
+  schema: userCreateSchema,
   boundaries,
-  async ({ name, email, role }, { db, notifications, logger }) => {
+  fn: async ({ name, email, role }, { db, notifications, logger }) => {
     logger.info(`Creating user: ${email}`);
 
     // Check if user exists
@@ -363,7 +371,7 @@ export const createUserTask = createTask(
 
     return { userId };
   }
-);
+});
 
 // Express route handler
 app.post('/api/users', async (req, res) => {

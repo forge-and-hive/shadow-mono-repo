@@ -81,16 +81,18 @@ const boundaries = {
 };
 
 // Create the task with type inference
-const createUser = createTask(
-  userSchema,
+const createUser = createTask({
+  name: 'createUser',
+  description: 'Create a new user account and send welcome email',
+  schema: userSchema,
   boundaries,
-  async (input, boundaries) => {
+  fn: async (input, boundaries) => {
     // Task implementation using boundaries for external calls
     const userId = await boundaries.database.saveUser(input);
     await boundaries.email.sendWelcome(input.email, 'Welcome!');
     return { success: true, userId };
   }
-);
+});
 ```
 
 ### 2. Execution Tracking
@@ -165,16 +167,18 @@ Tasks can be composed to build complex workflows:
 
 ```typescript
 // Create a composite task using other tasks
-const registerAndNotifyUser = createTask(
-  registrationSchema,
-  { ...boundaries, otherTasks: { createUser, sendNotification } },
-  async (input, { otherTasks }) => {
+const registerAndNotifyUser = createTask({
+  name: 'registerAndNotifyUser',
+  description: 'Register a user and send notification',
+  schema: registrationSchema,
+  boundaries: { ...boundaries, otherTasks: { createUser, sendNotification } },
+  fn: async (input, { otherTasks }) => {
     // Use other tasks as boundaries
     const user = await otherTasks.createUser.run(input);
     await otherTasks.sendNotification.run({ userId: user.id });
     return user;
   }
-);
+});
 ```
 
 ### Record and Replay with "Record Tape"

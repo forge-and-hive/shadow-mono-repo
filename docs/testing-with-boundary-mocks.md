@@ -83,18 +83,20 @@ Let's say you have a task that fetches a stock price:
 
 ```typescript
 // Task definition
-export const getPrice = createTask(
+export const getPrice = createTask({
+  name: 'getPrice',
+  description: 'Fetch stock price from external API',
   schema,
-  {
+  boundaries: {
     fetchStockPrice: async (ticker: string): Promise<{price: number}> => {
       // Implementation that calls an external API
     }
   },
-  async function ({ ticker }, { fetchStockPrice }) {
+  fn: async function ({ ticker }, { fetchStockPrice }) {
     const { price } = await fetchStockPrice(ticker)
     return { ticker, price }
   }
-)
+})
 ```
 
 Here's how you would test it:

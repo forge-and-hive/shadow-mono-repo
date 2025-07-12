@@ -210,17 +210,19 @@ const userSchema = new Schema({
   age: Schema.number()
 });
 
-const createUserTask = createTask(
-  userSchema,
-  {
+const createUserTask = createTask({
+  name: 'createUserTask',
+  description: 'Create a new user with validation',
+  schema: userSchema,
+  boundaries: {
     saveToDatabase: async (user) => { /* ... */ }
   },
-  async (input, boundaries) => {
+  fn: async (input, boundaries) => {
     // input is typed as { name: string, age: number }
     await boundaries.saveToDatabase(input);
     return { success: true, userId: '123' };
   }
-);
+});
 ```
 
 ## Best Practices
@@ -249,16 +251,16 @@ function validateRegistration(formData) {
   if (!result.success) {
     return { valid: false, errors: result.error.format() };
   }
-  
+
   // Additional custom validation
   if (formData.password !== formData.confirmPassword) {
     return { valid: false, errors: { confirmPassword: 'Passwords do not match' } };
   }
-  
+
   if (!formData.agreeToTerms) {
     return { valid: false, errors: { agreeToTerms: 'You must agree to the terms' } };
   }
-  
+
   return { valid: true, data: result.data };
 }
 ```
@@ -279,12 +281,12 @@ async function handleSearchRequest(req, res) {
   if (!result.success) {
     return res.status(400).json({ error: 'Invalid search parameters', details: result.error.format() });
   }
-  
+
   const { query, page = 1, limit = 10, sort = 'relevance', filters = {} } = result.data;
-  
+
   // Process the search with validated and typed parameters
   const searchResults = await performSearch(query, page, limit, sort, filters);
-  
+
   return res.json(searchResults);
 }
 ```
@@ -303,7 +305,7 @@ const passwordSchema = Schema.string().refine(
     const hasLowercase = /[a-z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
-    
+
     return hasUppercase && hasLowercase && hasNumber && hasSpecialChar;
   },
   {
@@ -350,4 +352,4 @@ const userSchema = new Schema({
 
 ## Conclusion
 
-The Schema library provides a powerful, type-safe way to define and validate data structures in your application. By using schemas, you can ensure data integrity, improve type safety, and catch errors early in your application flow. 
+The Schema library provides a powerful, type-safe way to define and validate data structures in your application. By using schemas, you can ensure data integrity, improve type safety, and catch errors early in your application flow.
