@@ -20,6 +20,7 @@ export interface Infra {
 export interface ForgeConf {
   project: {
     name: string
+    uuid?: string
   }
   paths: {
     logs: string

@@ -18,6 +18,8 @@ import { replay as replayTask } from './tasks/task/replay'
 import { list as listTasks } from './tasks/task/list'
 import { describe as describeTask } from './tasks/task/describe'
 import { fingerprint as fingerprintTask } from './tasks/task/fingerprint'
+import { invoke as invokeTask } from './tasks/task/invoke'
+
 
 import { create as createRunner } from './tasks/runner/create'
 import { remove as removeRunner } from './tasks/runner/remove'
@@ -58,6 +60,7 @@ runner.load('task:replay', replayTask)
 runner.load('task:list', listTasks)
 runner.load('task:describe', describeTask)
 runner.load('task:fingerprint', fingerprintTask)
+runner.load('task:invoke', invokeTask)
 
 // Runner commands
 runner.load('runner:create', createRunner)
@@ -113,6 +116,13 @@ runner.setHandler(async (data: ParsedArgs): Promise<unknown> => {
       result = await task.run({
         descriptorName: action,
         uuid
+      })
+    } else if (taskName === 'task:invoke') {
+      const { json } = args as { json: string }
+
+      result = await task.run({
+        descriptorName: action,
+        json
       })
     } else if (taskName === 'task:replay') {
       const { path, cache } = args as { path: string, cache: string }

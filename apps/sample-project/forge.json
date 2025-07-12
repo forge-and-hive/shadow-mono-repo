@@ -1,6 +1,7 @@
 {
   "project": {
-    "name": "Mono repo sample project"
+    "name": "Mono repo sample project",
+    "uuid": "167aa373-cecc-42b5-90d1-a29454d76504"
   },
   "paths": {
     "logs": "logs/",
