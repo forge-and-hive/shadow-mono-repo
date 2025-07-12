@@ -109,6 +109,10 @@
     "bundle:fingerprint": {
       "path": "src/tasks/bundle/fingerprint.ts",
       "handler": "fingerprint"
+    },
+    "task:invoke": {
+      "path": "src/tasks/task/invoke.ts",
+      "handler": "invoke"
     }
   },
   "runners": {}

@@ -221,3 +221,87 @@ export const createHiveLogClient = (config: HiveLogClientConfig): HiveLogClient 
   log('Creating HiveLogClient for project "%s"', config.projectName)
   return new HiveLogClient(config)
 }
+
+// Configuration interface for HiveClient
+export interface HiveClientConfig {
+  projectUuid: string
+  apiKey?: string
+  apiSecret?: string
+  host?: string
+}
+
+// Response types for invoke method
+export interface InvokeResponse {
+  responsePayload: unknown
+}
+
+export interface InvokeError {
+  error: string
+}
+
+export type InvokeResult = InvokeResponse | InvokeError
+
+// Type guard to check if invoke response is an error
+export function isInvokeError(response: unknown): response is InvokeError {
+  return response !== null && typeof response === 'object' && 'error' in response
+}
+
+export class HiveClient {
+  private apiKey: string
+  private apiSecret: string
+  private host: string
+  private projectUuid: string
+
+  constructor(config: HiveClientConfig) {
+    const apiKey = config.apiKey || process.env.HIVE_API_KEY
+    const apiSecret = config.apiSecret || process.env.HIVE_API_SECRET
+    const host = config.host || process.env.HIVE_HOST || 'https://forgehive.dev'
+
+    if (!apiKey || !apiSecret) {
+      throw new Error('Missing Hive API credentials. Please provide apiKey and apiSecret, or set HIVE_API_KEY and HIVE_API_SECRET environment variables. Get them at https://forgehive.dev')
+    }
+
+    this.projectUuid = config.projectUuid
+    this.host = host
+    this.apiKey = apiKey
+    this.apiSecret = apiSecret
+
+    log('HiveClient initialized for project "%s" with host "%s"', config.projectUuid, host)
+  }
+
+  async invoke(taskName: string, payload: unknown): Promise<InvokeResult | null> {
+    try {
+      const invokeUrl = `${this.host}/api/project/${this.projectUuid}/task/${taskName}/invoke`
+      log('Invoking task "%s" at %s', taskName, invokeUrl)
+
+      const authToken = `${this.apiKey}:${this.apiSecret}`
+
+      const response = await axios.post(invokeUrl, {
+        payload
+      }, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      log('Success: Invoked task "%s"', taskName)
+      return response.data as InvokeResult
+    } catch (e) {
+      const error = e as Error
+      log('Error: Failed to invoke task "%s": %s', taskName, error.message)
+
+      // Check if it's an axios error with response data
+      if (axios.isAxiosError(error) && error.response?.data) {
+        return error.response.data as InvokeError
+      }
+
+      return { error: error.message }
+    }
+  }
+}
+
+export const createHiveClient = (config: HiveClientConfig): HiveClient => {
+  log('Creating HiveClient for project "%s"', config.projectUuid)
+  return new HiveClient(config)
+}
