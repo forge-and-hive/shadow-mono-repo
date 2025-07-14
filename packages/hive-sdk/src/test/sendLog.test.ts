@@ -278,6 +278,7 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
   })
 })
 
+
 describe('HiveLogClient getListener', () => {
   let client: HiveLogClient
 
@@ -357,9 +358,7 @@ describe('HiveLogClient getListener', () => {
             error: undefined,
             boundaries: {},
             metadata: {
-              recordMeta: 'from-record',
-              environment: 'production',
-              version: '1.0.0'
+              recordMeta: 'from-record'
             }
           })
         },

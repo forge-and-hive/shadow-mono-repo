@@ -9,7 +9,7 @@ import { getPortfolio } from '../tasks/stock/getPortfolio'
 dotenv.config()
 
 // Create the Hive client
-const client = createHiveLogClient({ 
+const client = createHiveLogClient({
   projectName: 'Mono repo sample project',
   metadata: {
     environment: 'development',
@@ -25,14 +25,14 @@ Task.listenExecutionRecords(client.getListener())
 
 async function runAutomaticLoggingExample(): Promise<void> {
   console.log('Running tasks with automatic logging...')
-  
+
   // All these task executions will be automatically logged
   const [priceResult, priceError] = await getPrice.safeRun({ ticker: 'AAPL' })
   console.log('Price result:', priceResult)
-  
+
   if (!priceError) {
-    const [portfolioResult, portfolioError] = await getPortfolio.safeRun({ 
-      userUUID: '12-3' 
+    const [portfolioResult] = await getPortfolio.safeRun({
+      userUUID: '12-3'
     })
     console.log('Portfolio result:', portfolioResult)
   }
@@ -62,7 +62,7 @@ Task.listenExecutionRecords(async (record) => {
     filtered: 'true',
     timestamp: new Date().toISOString()
   })
-  
+
   console.log(`Logged ${record.taskName} with result: ${logResult}`)
 })
 
@@ -70,19 +70,19 @@ Task.listenExecutionRecords(async (record) => {
 function sanitizeInput(input: unknown): unknown {
   if (typeof input === 'object' && input !== null) {
     const sanitized = { ...input as Record<string, unknown> }
-    
+
     // Remove sensitive fields
     delete sanitized.password
     delete sanitized.apiKey
     delete sanitized.secret
-    
+
     // Mask email addresses
     Object.keys(sanitized).forEach(key => {
       if (typeof sanitized[key] === 'string' && (sanitized[key] as string).includes('@')) {
         sanitized[key] = '***@***.***'
       }
     })
-    
+
     return sanitized
   }
   return input
@@ -91,11 +91,11 @@ function sanitizeInput(input: unknown): unknown {
 function sanitizeOutput(output: unknown): unknown {
   if (typeof output === 'object' && output !== null) {
     const sanitized = { ...output as Record<string, unknown> }
-    
+
     // Remove sensitive response fields
     delete sanitized.internalId
     delete sanitized.userId
-    
+
     return sanitized
   }
   return output
@@ -103,11 +103,11 @@ function sanitizeOutput(output: unknown): unknown {
 
 async function runManualLoggingExample(): Promise<void> {
   console.log('Running tasks with manual filtering...')
-  
+
   // These executions will be filtered and sanitized before logging
-  const [priceResult, priceError] = await getPrice.safeRun({ ticker: 'TSLA' })
+  const [priceResult] = await getPrice.safeRun({ ticker: 'TSLA' })
   console.log('Price result:', priceResult)
-  
+
   // Simulate a task with PII that would be filtered
   const testRecord = {
     taskName: 'user-data-fetch',
@@ -117,7 +117,7 @@ async function runManualLoggingExample(): Promise<void> {
     boundaries: {},
     metadata: {}
   }
-  
+
   // This would trigger our manual listener
   await client.sendLog(testRecord)
 }
@@ -125,13 +125,13 @@ async function runManualLoggingExample(): Promise<void> {
 // Example 3: Direct sendLog usage (for one-off logging)
 async function runDirectLoggingExample(): Promise<void> {
   console.log('\n=== Example 3: Direct SendLog Usage ===')
-  
+
   // Execute a task without global listener
   const originalListener = Task.globalListener
   Task.globalListener = undefined // Temporarily disable global listener
-  
-  const [result, error, record] = await getPrice.safeRun({ ticker: 'NVDA' })
-  
+
+  const [, , record] = await getPrice.safeRun({ ticker: 'NVDA' })
+
   // Manually log this specific execution
   if (record) {
     const logResult = await client.sendLog(record, {
@@ -141,28 +141,29 @@ async function runDirectLoggingExample(): Promise<void> {
     })
     console.log('Direct logging result:', logResult)
   }
-  
+
   // Restore the global listener
   Task.globalListener = originalListener
 }
+
 
 async function main(): Promise<void> {
   try {
     // Run Example 1: Automatic logging
     await runAutomaticLoggingExample()
-    
+
     // Wait a bit for logs to process
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     // Run Example 2: Manual logging with filtering
     await runManualLoggingExample()
-    
+
     // Wait a bit for logs to process
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     // Run Example 3: Direct logging
     await runDirectLoggingExample()
-    
+
     console.log('\n=== All examples completed ===')
   } catch (error) {
     console.error('Error in main:', error)

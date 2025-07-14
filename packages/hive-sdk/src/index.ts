@@ -4,7 +4,7 @@ import debug from 'debug'
 const log = debug('hive-sdk')
 
 // Import ExecutionRecord type from task package
-interface ExecutionRecord<InputType = unknown, OutputType = unknown, B = unknown> {
+export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B = unknown> {
   input: InputType
   output?: OutputType | null
   error?: string
