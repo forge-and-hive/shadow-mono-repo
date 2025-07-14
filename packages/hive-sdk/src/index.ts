@@ -131,7 +131,7 @@ export class HiveLogClient {
   async sendLog(record: ExecutionRecord, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
     // Extract taskName from record
     const taskName = record.taskName || 'unknown-task'
-    
+
     if (!this.isInitialized) {
       log('Silent mode: Skipping sendLog for task "%s" - client not initialized', taskName)
       return 'silent'
@@ -181,9 +181,9 @@ export class HiveLogClient {
     }
   }
 
-  getListener(metadata?: Metadata): (record: ExecutionRecord) => Promise<void> {
+  getListener(): (record: ExecutionRecord) => Promise<void> {
     return async (record: ExecutionRecord) => {
-      await this.sendLog(record, metadata)
+      await this.sendLog(record)
     }
   }
 

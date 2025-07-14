@@ -182,7 +182,7 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
         taskName: 'metadata-task',
         type: 'success' as const,
         boundaries: {},
-        metadata: { 
+        metadata: {
           recordMeta: 'from-record',
           sharedKey: 'record-value'
         }
@@ -298,7 +298,7 @@ describe('HiveLogClient getListener', () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
       const listener = client.getListener()
-      
+
       expect(typeof listener).toBe('function')
 
       const executionRecord = {
@@ -333,8 +333,7 @@ describe('HiveLogClient getListener', () => {
     it('should return a function that calls sendLog with provided metadata', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
-      const listenerMetadata = { environment: 'production', version: '1.0.0' }
-      const listener = client.getListener(listenerMetadata)
+      const listener = client.getListener()
 
       const executionRecord = {
         input: { value: 'test-input' },

@@ -50,9 +50,6 @@ export interface ReplayConfig<B extends Boundaries = Boundaries> {
   }
 }
 
-// ToDo: Add a type for the boundaries data
-
-
 // Make BoundaryLog generic
 export type BoundaryLog<I extends unknown[] = unknown[], O = unknown> = BoundaryRecord<I, O>;
 
