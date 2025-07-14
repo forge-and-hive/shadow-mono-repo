@@ -3,6 +3,17 @@ import debug from 'debug'
 
 const log = debug('hive-sdk')
 
+// Import ExecutionRecord type from task package
+interface ExecutionRecord<InputType = unknown, OutputType = unknown, B = unknown> {
+  input: InputType
+  output?: OutputType | null
+  error?: string
+  boundaries?: B
+  taskName?: string
+  metadata?: Record<string, string>
+  type?: 'success' | 'error' | 'pending'
+}
+
 // Metadata interface
 export interface Metadata {
   [key: string]: string
@@ -117,7 +128,10 @@ export class HiveLogClient {
     return finalMetadata
   }
 
-  async sendLog<T extends { input: unknown; metadata?: Metadata }>(taskName: string, logItem: T, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
+  async sendLog(record: ExecutionRecord, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
+    // Extract taskName from record
+    const taskName = record.taskName || 'unknown-task'
+    
     if (!this.isInitialized) {
       log('Silent mode: Skipping sendLog for task "%s" - client not initialized', taskName)
       return 'silent'
@@ -129,7 +143,16 @@ export class HiveLogClient {
 
       const authToken = `${this.apiKey}:${this.apiSecret}`
 
-      // Merge metadata with priority: sendLog > logItem > client
+      // Convert ExecutionRecord to LogItemInput format
+      const logItem = {
+        input: record.input,
+        output: record.output,
+        error: record.error,
+        boundaries: record.boundaries,
+        metadata: record.metadata
+      }
+
+      // Merge metadata with priority: sendLog > record.metadata > client
       const finalMetadata = this.mergeMetadata(logItem, metadata)
 
       // Create enhanced logItem with merged metadata
@@ -155,6 +178,12 @@ export class HiveLogClient {
       const error = e as Error
       log('Error: Failed to send log for task "%s": %s', taskName, error.message)
       return 'error'
+    }
+  }
+
+  getListener(metadata?: Metadata): (record: ExecutionRecord) => Promise<void> {
+    return async (record: ExecutionRecord) => {
+      await this.sendLog(record, metadata)
     }
   }
 

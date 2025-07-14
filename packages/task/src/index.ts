@@ -172,7 +172,11 @@ export const Task = class Task<
   B extends Boundaries = Boundaries,
   Func extends BaseFunction = BaseFunction
 > implements TaskInstanceType<Func, B> {
-  public version: string = '0.1.7'
+  public version: string = '0.1.8'
+
+  // Static property for global listener
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static globalListener?: (record: ExecutionRecord<any, any, any>) => void | Promise<void>
 
   _fn: Func
   _mode: Mode
@@ -189,6 +193,36 @@ export const Task = class Task<
 
   _schema: Schema<Record<string, SchemaType>> | undefined
   _listener?: ((record: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>) => void) | undefined
+
+  // Static method to set global listener
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static listenExecutionRecords(listener: (record: ExecutionRecord<any, any, any>) => void | Promise<void>): void {
+    this.globalListener = listener
+  }
+
+  // Static method to emit to global listener with error handling
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static async emitExecutionRecord(record: ExecutionRecord<any, any, any>): Promise<void> {
+    if (this.globalListener) {
+      try {
+        // Support both sync and async listeners
+        const result = this.globalListener(record)
+        if (result instanceof Promise) {
+          // Add timeout for async listeners (5 seconds)
+          await Promise.race([
+            result,
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Listener timeout')), 5000)
+            )
+          ])
+        }
+      } catch (error) {
+        // Log error but don't affect task execution
+        // eslint-disable-next-line no-console
+        console.error('ExecutionRecord listener error:', error)
+      }
+    }
+  }
 
   constructor (fn: Func, conf: TaskConfig<B> = {
     name: undefined,
@@ -306,9 +340,15 @@ export const Task = class Task<
     Plus all the boundary data
   */
   emit (data: ExecutionRecord<Parameters<Func>[0], ReturnType<Func>, B>): void {
-    if (typeof this._listener === 'undefined') { return }
+    // Emit to instance listener
+    if (typeof this._listener !== 'undefined') {
+      this._listener(data)
+    }
 
-    this._listener(data)
+    // Emit to global listener (non-blocking)
+    Task.emitExecutionRecord(data).catch(() => {
+      // Error already logged in emitExecutionRecord, just prevent unhandled rejection
+    })
   }
 
   getBoundaries (): WrappedBoundaries<B> {

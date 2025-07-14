@@ -5,7 +5,7 @@ import { HiveLogClient } from '../index'
 jest.mock('axios')
 const mockedAxios = axios as jest.Mocked<typeof axios>
 
-describe('HiveLogClient sendLog', () => {
+describe('HiveLogClient sendLog with ExecutionRecord', () => {
   let client: HiveLogClient
 
   const testConfig = {
@@ -23,13 +23,21 @@ describe('HiveLogClient sendLog', () => {
     jest.clearAllMocks()
   })
 
-  describe('successful sendLog', () => {
-    it('should send log successfully and return true', async () => {
+  describe('successful sendLog with ExecutionRecord', () => {
+    it('should send log successfully with ExecutionRecord and return success', async () => {
       // Mock successful axios response
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
-      const logItem = { input: 'test-input', output: 'test-output' }
-      const result = await client.sendLog('test-task', logItem)
+      const executionRecord = {
+        input: { value: 'test-input' },
+        output: { result: 'test-output' },
+        taskName: 'test-task',
+        type: 'success' as const,
+        boundaries: {},
+        metadata: {}
+      }
+
+      const result = await client.sendLog(executionRecord)
 
       expect(result).toBe('success')
       expect(mockedAxios.post).toHaveBeenCalledTimes(1)
@@ -38,7 +46,13 @@ describe('HiveLogClient sendLog', () => {
         {
           projectName: 'test-project',
           taskName: 'test-task',
-          logItem: JSON.stringify({ ...logItem, metadata: {} })
+          logItem: JSON.stringify({
+            input: { value: 'test-input' },
+            output: { result: 'test-output' },
+            error: undefined,
+            boundaries: {},
+            metadata: {}
+          })
         },
         {
           headers: {
@@ -49,19 +63,22 @@ describe('HiveLogClient sendLog', () => {
       )
     })
 
-    it('should handle complex log items', async () => {
+    it('should handle ExecutionRecord with complex boundaries', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
-      const complexLogItem = {
+      const executionRecord = {
         input: { userId: 123, action: 'login' },
         output: { success: true, sessionId: 'abc123' },
-        error: null,
+        taskName: 'complex-task',
+        type: 'success' as const,
         boundaries: {
-          database: [{ input: 'SELECT * FROM users', output: [{ id: 123 }], error: null }]
-        }
+          database: [{ input: 'SELECT * FROM users', output: [{ id: 123 }], error: null }],
+          api: [{ input: { endpoint: '/auth' }, output: { token: 'jwt123' }, error: null }]
+        },
+        metadata: { environment: 'test' }
       }
 
-      const result = await client.sendLog('complex-task', complexLogItem)
+      const result = await client.sendLog(executionRecord)
 
       expect(result).toBe('success')
       expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -69,7 +86,16 @@ describe('HiveLogClient sendLog', () => {
         {
           projectName: 'test-project',
           taskName: 'complex-task',
-          logItem: JSON.stringify({ ...complexLogItem, metadata: {} })
+          logItem: JSON.stringify({
+            input: { userId: 123, action: 'login' },
+            output: { success: true, sessionId: 'abc123' },
+            error: undefined,
+            boundaries: {
+              database: [{ input: 'SELECT * FROM users', output: [{ id: 123 }], error: null }],
+              api: [{ input: { endpoint: '/auth' }, output: { token: 'jwt123' }, error: null }]
+            },
+            metadata: { environment: 'test' }
+          })
         },
         {
           headers: {
@@ -79,64 +105,284 @@ describe('HiveLogClient sendLog', () => {
         }
       )
     })
+
+    it('should handle ExecutionRecord with error', async () => {
+      mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
+
+      const executionRecord = {
+        input: { value: 'test-input' },
+        output: null,
+        error: 'Task execution failed',
+        taskName: 'error-task',
+        type: 'error' as const,
+        boundaries: {},
+        metadata: {}
+      }
+
+      const result = await client.sendLog(executionRecord)
+
+      expect(result).toBe('success')
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'https://test-host.com/api/tasks/log-ingest',
+        {
+          projectName: 'test-project',
+          taskName: 'error-task',
+          logItem: JSON.stringify({
+            input: { value: 'test-input' },
+            output: null,
+            error: 'Task execution failed',
+            boundaries: {},
+            metadata: {}
+          })
+        },
+        expect.any(Object)
+      )
+    })
+
+    it('should use "unknown-task" when taskName is missing', async () => {
+      mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
+
+      const executionRecord = {
+        input: { value: 'test-input' },
+        output: { result: 'test-output' },
+        // taskName is missing
+        type: 'success' as const,
+        boundaries: {},
+        metadata: {}
+      }
+
+      const result = await client.sendLog(executionRecord)
+
+      expect(result).toBe('success')
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'https://test-host.com/api/tasks/log-ingest',
+        {
+          projectName: 'test-project',
+          taskName: 'unknown-task',
+          logItem: JSON.stringify({
+            input: { value: 'test-input' },
+            output: { result: 'test-output' },
+            error: undefined,
+            boundaries: {},
+            metadata: {}
+          })
+        },
+        expect.any(Object)
+      )
+    })
+  })
+
+  describe('sendLog with additional metadata', () => {
+    it('should merge metadata from ExecutionRecord and sendLog parameter', async () => {
+      mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
+
+      const executionRecord = {
+        input: { value: 'test-input' },
+        output: { result: 'test-output' },
+        taskName: 'metadata-task',
+        type: 'success' as const,
+        boundaries: {},
+        metadata: { 
+          recordMeta: 'from-record',
+          sharedKey: 'record-value'
+        }
+      }
+
+      const sendLogMetadata = {
+        sendLogMeta: 'from-sendlog',
+        sharedKey: 'sendlog-value' // This should override record value
+      }
+
+      const result = await client.sendLog(executionRecord, sendLogMetadata)
+
+      expect(result).toBe('success')
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'https://test-host.com/api/tasks/log-ingest',
+        {
+          projectName: 'test-project',
+          taskName: 'metadata-task',
+          logItem: JSON.stringify({
+            input: { value: 'test-input' },
+            output: { result: 'test-output' },
+            error: undefined,
+            boundaries: {},
+            metadata: {
+              recordMeta: 'from-record',
+              sharedKey: 'sendlog-value', // sendLog metadata takes priority
+              sendLogMeta: 'from-sendlog'
+            }
+          })
+        },
+        expect.any(Object)
+      )
+    })
   })
 
   describe('failed sendLog', () => {
-    it('should return false when axios throws an error', async () => {
+    it('should return error when axios throws an error', async () => {
       // Mock axios to throw an error
       mockedAxios.post.mockRejectedValueOnce(new Error('Network error'))
 
-      const logItem = { input: 'test-input' }
-      const result = await client.sendLog('test-task', logItem)
+      const executionRecord = {
+        input: { value: 'test-input' },
+        taskName: 'test-task',
+        type: 'success' as const,
+        boundaries: {},
+        metadata: {}
+      }
+
+      const result = await client.sendLog(executionRecord)
 
       expect(result).toBe('error')
     })
 
-    it('should return false when server returns 500', async () => {
+    it('should return error when server returns 500', async () => {
       // Mock axios to throw a server error
       const serverError = new Error('Server Error')
       mockedAxios.post.mockRejectedValueOnce(serverError)
 
-      const result = await client.sendLog('test-task', { input: 'test' })
+      const executionRecord = {
+        input: { value: 'test' },
+        taskName: 'test-task',
+        type: 'success' as const,
+        boundaries: {},
+        metadata: {}
+      }
+
+      const result = await client.sendLog(executionRecord)
 
       expect(result).toBe('error')
     })
   })
 
-  describe('sendLog parameters', () => {
-    it('should handle log items with minimal input', async () => {
+  describe('sendLog in silent mode', () => {
+    it('should return silent when client is not initialized', async () => {
+      const uninitializedClient = new HiveLogClient({
+        projectName: 'test-project'
+        // No API credentials
+      })
+
+      const executionRecord = {
+        input: { value: 'test-input' },
+        taskName: 'test-task',
+        type: 'success' as const,
+        boundaries: {},
+        metadata: {}
+      }
+
+      const result = await uninitializedClient.sendLog(executionRecord)
+
+      expect(result).toBe('silent')
+      expect(mockedAxios.post).not.toHaveBeenCalled()
+    })
+  })
+})
+
+describe('HiveLogClient getListener', () => {
+  let client: HiveLogClient
+
+  const testConfig = {
+    projectName: 'test-project',
+    apiKey: 'test-api-key',
+    apiSecret: 'test-api-secret',
+    host: 'https://test-host.com'
+  }
+
+  beforeEach(() => {
+    client = new HiveLogClient(testConfig)
+    jest.clearAllMocks()
+  })
+
+  describe('getListener method', () => {
+    it('should return a function that calls sendLog', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
-      const result = await client.sendLog('minimal-task', { input: 'minimal input' })
+      const listener = client.getListener()
+      
+      expect(typeof listener).toBe('function')
 
-      expect(result).toBe('success')
+      const executionRecord = {
+        input: { value: 'test-input' },
+        output: { result: 'test-output' },
+        taskName: 'test-task',
+        type: 'success' as const,
+        boundaries: {},
+        metadata: {}
+      }
+
+      await listener(executionRecord)
+
+      expect(mockedAxios.post).toHaveBeenCalledTimes(1)
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'https://test-host.com/api/tasks/log-ingest',
         {
           projectName: 'test-project',
-          taskName: 'minimal-task',
-          logItem: JSON.stringify({ input: 'minimal input', metadata: {} })
+          taskName: 'test-task',
+          logItem: JSON.stringify({
+            input: { value: 'test-input' },
+            output: { result: 'test-output' },
+            error: undefined,
+            boundaries: {},
+            metadata: {}
+          })
         },
         expect.any(Object)
       )
     })
 
-    it('should handle null/undefined values in log items', async () => {
+    it('should return a function that calls sendLog with provided metadata', async () => {
       mockedAxios.post.mockResolvedValueOnce({ data: { success: true } })
 
-      const logItem = { input: null, output: undefined, error: 'some error' }
-      const result = await client.sendLog('null-task', logItem)
+      const listenerMetadata = { environment: 'production', version: '1.0.0' }
+      const listener = client.getListener(listenerMetadata)
 
-      expect(result).toBe('success')
+      const executionRecord = {
+        input: { value: 'test-input' },
+        output: { result: 'test-output' },
+        taskName: 'test-task',
+        type: 'success' as const,
+        boundaries: {},
+        metadata: { recordMeta: 'from-record' }
+      }
+
+      await listener(executionRecord)
+
       expect(mockedAxios.post).toHaveBeenCalledWith(
         'https://test-host.com/api/tasks/log-ingest',
         {
           projectName: 'test-project',
-          taskName: 'null-task',
-          logItem: JSON.stringify({ ...logItem, metadata: {} })
+          taskName: 'test-task',
+          logItem: JSON.stringify({
+            input: { value: 'test-input' },
+            output: { result: 'test-output' },
+            error: undefined,
+            boundaries: {},
+            metadata: {
+              recordMeta: 'from-record',
+              environment: 'production',
+              version: '1.0.0'
+            }
+          })
         },
         expect.any(Object)
       )
+    })
+
+    it('should handle listener errors gracefully', async () => {
+      mockedAxios.post.mockRejectedValueOnce(new Error('Network error'))
+
+      const listener = client.getListener()
+
+      const executionRecord = {
+        input: { value: 'test-input' },
+        taskName: 'test-task',
+        type: 'success' as const,
+        boundaries: {},
+        metadata: {}
+      }
+
+      // Should not throw, even if sendLog fails
+      await expect(listener(executionRecord)).resolves.toBeUndefined()
     })
   })
 })
