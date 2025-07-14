@@ -94,6 +94,7 @@ describe('HiveLogClient Metadata', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
+            taskName: 'test-task',
             input: 'test-input',
             output: 'test-output',
             error: undefined,
@@ -135,6 +136,7 @@ describe('HiveLogClient Metadata', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
+            taskName: 'test-task',
             input: 'test-input',
             output: 'test-output',
             error: undefined,
@@ -167,6 +169,7 @@ describe('HiveLogClient Metadata', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
+            taskName: 'test-task',
             input: 'simple input',
             error: undefined,
             boundaries: {},
@@ -190,6 +193,7 @@ describe('HiveLogClient Metadata', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
+            taskName: 'test-task',
             input: null,
             error: undefined,
             boundaries: {},
@@ -216,6 +220,7 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: {} })
 
       const expectedLogItem = {
+        taskName: 'test-task',
         input: 'test',
         error: undefined,
         boundaries: {},
@@ -256,6 +261,7 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: logItem.metadata || {} })
 
       const expectedLogItem = {
+        taskName: 'test-task',
         input: 'test',
         error: undefined,
         boundaries: {},
@@ -305,6 +311,7 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: logItem.metadata || {} }, sendLogMetadata)
 
       const expectedLogItem = {
+        taskName: 'test-task',
         input: 'test',
         error: undefined,
         boundaries: {},
@@ -358,6 +365,7 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'search-task', type: 'success' as const, boundaries: {}, metadata: logItem.metadata || {} }, sendLogMetadata)
 
       const expectedLogItem = {
+        taskName: 'search-task',
         input: { query: 'search' },
         output: { results: [] },
         error: undefined,
@@ -401,6 +409,7 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: {} })
 
       const expectedLogItem = {
+        taskName: 'test-task',
         input: 'test',
         error: undefined,
         boundaries: {},
@@ -434,6 +443,7 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: logItem.metadata || {} })
 
       const expectedLogItem = {
+        taskName: 'test-task',
         input: 'test',
         error: undefined,
         boundaries: {},
@@ -462,6 +472,7 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: logItem.metadata || {} }, {})
 
       const expectedLogItem = {
+        taskName: 'test-task',
         input: 'test',
         error: undefined,
         boundaries: {},

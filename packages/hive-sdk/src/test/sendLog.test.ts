@@ -47,6 +47,7 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
+            taskName: 'test-task',
             input: { value: 'test-input' },
             output: { result: 'test-output' },
             error: undefined,
@@ -87,6 +88,7 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           projectName: 'test-project',
           taskName: 'complex-task',
           logItem: JSON.stringify({
+            taskName: 'complex-task',
             input: { userId: 123, action: 'login' },
             output: { success: true, sessionId: 'abc123' },
             error: undefined,
@@ -128,6 +130,7 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           projectName: 'test-project',
           taskName: 'error-task',
           logItem: JSON.stringify({
+            taskName: 'error-task',
             input: { value: 'test-input' },
             output: null,
             error: 'Task execution failed',
@@ -160,6 +163,7 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           projectName: 'test-project',
           taskName: 'unknown-task',
           logItem: JSON.stringify({
+            taskName: 'unknown-task',
             input: { value: 'test-input' },
             output: { result: 'test-output' },
             error: undefined,
@@ -202,6 +206,7 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           projectName: 'test-project',
           taskName: 'metadata-task',
           logItem: JSON.stringify({
+            taskName: 'metadata-task',
             input: { value: 'test-input' },
             output: { result: 'test-output' },
             error: undefined,
@@ -320,6 +325,7 @@ describe('HiveLogClient getListener', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
+            taskName: 'test-task',
             input: { value: 'test-input' },
             output: { result: 'test-output' },
             error: undefined,
@@ -353,6 +359,7 @@ describe('HiveLogClient getListener', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
+            taskName: 'test-task',
             input: { value: 'test-input' },
             output: { result: 'test-output' },
             error: undefined,

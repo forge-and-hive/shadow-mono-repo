@@ -145,6 +145,7 @@ export class HiveLogClient {
 
       // Convert ExecutionRecord to LogItemInput format
       const logItem = {
+        taskName,
         input: record.input,
         output: record.output,
         error: record.error,
