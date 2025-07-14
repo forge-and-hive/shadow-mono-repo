@@ -6,7 +6,7 @@ const log = debug('hive-sdk')
 // Import ExecutionRecord type from task package
 export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B = unknown> {
   input: InputType
-  output?: OutputType | null
+  output?: OutputType
   error?: string
   boundaries?: B
   taskName?: string
@@ -19,17 +19,6 @@ export interface Metadata {
   [key: string]: string
 }
 
-// Log item interface for sendLog method - flexible to accept task execution records
-export interface LogItemInput {
-  input: unknown
-  output?: unknown
-  error?: unknown
-  boundaries?: unknown // Allow any boundary structure (task records have different format)
-  metadata?: Metadata
-}
-
-// Backward compatibility alias
-export type LogItem = LogItemInput
 
 // Configuration interface for HiveLogClient
 export interface HiveLogClientConfig {
@@ -45,13 +34,7 @@ export interface LogApiResponse {
   uuid: string
   taskName: string
   projectName: string
-  logItem: {
-    input: unknown
-    output?: unknown
-    error?: unknown
-    boundaries?: Record<string, Array<{ input: unknown; output: unknown, error: unknown }>>
-    metadata?: Metadata
-  }
+  logItem: ExecutionRecord
   replayFrom?: string
   createdAt: string
 }
@@ -111,13 +94,13 @@ export class HiveLogClient {
     return this.isInitialized
   }
 
-  private mergeMetadata<T extends { input: unknown; metadata?: Metadata }>(logItem: T, sendLogMetadata?: Metadata): Metadata {
+  private mergeMetadata(record: ExecutionRecord, sendLogMetadata?: Metadata): Metadata {
     // Start with base metadata from client
     let finalMetadata = { ...this.baseMetadata }
 
-    // Merge with logItem metadata if it exists
-    if (logItem.metadata) {
-      finalMetadata = { ...finalMetadata, ...logItem.metadata }
+    // Merge with record metadata if it exists
+    if (record.metadata) {
+      finalMetadata = { ...finalMetadata, ...record.metadata }
     }
 
     // Merge with sendLog metadata (highest priority)
@@ -143,7 +126,7 @@ export class HiveLogClient {
 
       const authToken = `${this.apiKey}:${this.apiSecret}`
 
-      // Convert ExecutionRecord to LogItemInput format
+      // Extract data from ExecutionRecord for API
       const logItem = {
         taskName,
         input: record.input,
@@ -154,7 +137,7 @@ export class HiveLogClient {
       }
 
       // Merge metadata with priority: sendLog > record.metadata > client
-      const finalMetadata = this.mergeMetadata(logItem, metadata)
+      const finalMetadata = this.mergeMetadata(record, metadata)
 
       // Create enhanced logItem with merged metadata
       const enhancedLogItem = {

@@ -113,7 +113,7 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
 
       const executionRecord = {
         input: { value: 'test-input' },
-        output: null,
+        output: undefined,
         error: 'Task execution failed',
         taskName: 'error-task',
         type: 'error' as const,
@@ -132,7 +132,7 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           logItem: JSON.stringify({
             taskName: 'error-task',
             input: { value: 'test-input' },
-            output: null,
+            output: undefined,
             error: 'Task execution failed',
             boundaries: {},
             metadata: {}
