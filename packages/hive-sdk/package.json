@@ -1,9 +1,15 @@
 {
   "name": "@forgehive/hive-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "dependencies": {
+      "@forgehive/task": "^0.2.4"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "test": "jest",
