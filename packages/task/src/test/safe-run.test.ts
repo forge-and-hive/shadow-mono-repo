@@ -40,6 +40,11 @@ describe('Task safeRun tests', () => {
     expect(data.input).toEqual([5])
     expect(data.output).toEqual(10)
     expect(data.error).toBeUndefined()
+    expect(data.timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
   })
 
   it('returns [null, error, record] on failed execution', async () => {
@@ -87,6 +92,11 @@ describe('Task safeRun tests', () => {
     expect(data.input).toEqual([-5])
     expect(data.error).toContain('Value cannot be negative')
     expect(data.output).toBeUndefined()
+    expect(data.timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
   })
 
   it('returns [null, error, record] on schema validation failure', async () => {
@@ -238,9 +248,41 @@ describe('Task safeRun tests', () => {
 
     expect(record.boundaries.doubleValue).toHaveLength(3)
     expect(record.boundaries.sumValues).toHaveLength(1)
-    expect(record.boundaries.doubleValue[0]).toEqual({ input: [1], output: 2 })
-    expect(record.boundaries.doubleValue[1]).toEqual({ input: [2], output: 4 })
-    expect(record.boundaries.doubleValue[2]).toEqual({ input: [3], output: 6 })
-    expect(record.boundaries.sumValues[0]).toEqual({ input: [[2, 4, 6]], output: 12 })
+    expect(record.boundaries.doubleValue[0]).toEqual({
+      input: [1],
+      output: 2,
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
+    expect(record.boundaries.doubleValue[1]).toEqual({
+      input: [2],
+      output: 4,
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
+    expect(record.boundaries.doubleValue[2]).toEqual({
+      input: [3],
+      output: 6,
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
+    expect(record.boundaries.sumValues[0]).toEqual({
+      input: [[2, 4, 6]],
+      output: 12,
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
   })
 })

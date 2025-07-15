@@ -72,7 +72,12 @@ describe('safeReplay functionality tests', () => {
         fetchData: [
           {
             input: ['AAPL'],
-            output: 160.23
+            output: 160.23,
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
           }
         ]
       }
@@ -102,6 +107,11 @@ describe('safeReplay functionality tests', () => {
           {
             input: ['AAPL'],
             output: 150.23,
+            timing: expect.objectContaining({
+              startTime: expect.any(Number),
+              endTime: expect.any(Number),
+              duration: expect.any(Number)
+            })
           }
         ]
       }
@@ -120,7 +130,12 @@ describe('safeReplay functionality tests', () => {
         fetchData: [
           {
             input: ['AAPL'],
-            output: 160.23
+            output: 160.23,
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
           }
         ]
       }
@@ -153,7 +168,12 @@ describe('safeReplay functionality tests', () => {
         fetchData: [
           {
             input: ['AAPL'],
-            output: 160.23
+            output: 160.23,
+            timing: expect.objectContaining({
+              startTime: expect.any(Number),
+              endTime: expect.any(Number),
+              duration: expect.any(Number)
+            })
           }
         ]
       }
@@ -170,7 +190,12 @@ describe('safeReplay functionality tests', () => {
         fetchData: [
           {
             input: ['AAPL'],
-            error: 'API error: Rate limit exceeded'
+            error: 'API error: Rate limit exceeded',
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
           }
         ]
       }
@@ -206,7 +231,12 @@ describe('safeReplay functionality tests', () => {
           {
             input: ['AAPL'],
             output: 160.23,
-            error: null
+            error: null,
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
           }
         ]
       }

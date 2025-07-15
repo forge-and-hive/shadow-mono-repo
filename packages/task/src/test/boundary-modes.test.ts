@@ -47,7 +47,15 @@ describe('Proxy pass mode', function () {
       },
       boundariesData: {
         fetchIncrement: [
-          { input: [{ value: 5 }], output: 5 }
+          {
+            input: [{ value: 5 }],
+            output: 5,
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
+          }
         ]
       },
       mode: 'proxy-pass'
@@ -76,7 +84,15 @@ describe('Proxy pass mode', function () {
       },
       boundariesData: {
         fetchIncrement: [
-          { input: [{ value: 6 }], output: 5 }
+          {
+            input: [{ value: 6 }],
+            output: 5,
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
+          }
         ]
       },
       mode: 'proxy-pass'
@@ -108,7 +124,15 @@ describe('Proxy catch mode', function () {
       },
       boundariesData: {
         fetchIncrement: [
-          { input: [{ value: 5 }], output: 5 }
+          {
+            input: [{ value: 5 }],
+            output: 5,
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
+          }
         ]
       },
       mode: 'proxy-catch'
@@ -137,7 +161,15 @@ describe('Proxy catch mode', function () {
       },
       boundariesData: {
         fetchIncrement: [
-          { input: [{ value: 5 }], output: 5 }
+          {
+            input: [{ value: 5 }],
+            output: 5,
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
+          }
         ]
       },
       mode: 'proxy-catch'
@@ -169,7 +201,15 @@ describe('Replay mode', function () {
       },
       boundariesData: {
         fetchIncrement: [
-          { input: [{ value: 5 }], output: 5 }
+          {
+            input: [{ value: 5 }],
+            output: 5,
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
+          }
         ]
       },
       mode: 'replay'

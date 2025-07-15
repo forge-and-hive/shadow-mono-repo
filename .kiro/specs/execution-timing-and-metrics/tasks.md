@@ -6,19 +6,19 @@
   - Export new types from task package index.ts
   - _Requirements: 1.1, 1.5, 3.1, 3.2, 3.3_
 
-- [ ] 2. Enhance boundary system with timing capture
-  - [ ] 2.1 Update BoundaryRecord type to include timing information
+- [x] 2. Enhance boundary system with timing capture
+  - [x] 2.1 Update BoundaryRecord type to include timing information
     - Modify BoundaryRecord interface in boundary.ts to include TimingInfo
     - Update BoundarySuccessRecord and BoundaryErrorRecord types
     - _Requirements: 1.1, 1.2, 4.2, 4.3_
 
-  - [ ] 2.2 Implement timing capture in boundary execution
+  - [x] 2.2 Implement timing capture in boundary execution
     - Modify createBoundary function to capture start/end times for each boundary call
     - Update WrappedBoundaryFunction to track timing during execution
     - Ensure timing is captured for both success and error scenarios
     - _Requirements: 1.1, 1.2, 4.2, 4.3_
 
-  - [ ] 2.3 Add timing data to boundary run logs
+  - [x] 2.3 Add timing data to boundary run logs
     - Update getRunData method to include timing information
     - Modify boundary tape data structure to support timing
     - _Requirements: 1.5, 4.2, 4.3_

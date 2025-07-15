@@ -9,10 +9,6 @@ import {
   type BoundaryTapeData
 } from './utils/boundary'
 import {
-  type TimingInfo,
-  type Metric,
-  type BoundaryTimingRecord,
-  type BaseExecutionRecord,
   TimingTracker
 } from './types'
 
@@ -47,7 +43,7 @@ export type {
 } from './types'
 
 // Re-export timing utilities for external use
-export { TimingTracker } from './types'
+export { TimingTracker }
 
 // Re-export Schema for external use
 export { Schema }

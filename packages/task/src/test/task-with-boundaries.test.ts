@@ -54,7 +54,15 @@ describe('Boundaries tasks tests', () => {
       },
       boundariesData: {
         fetchExternalData: [
-          { input: [], output: { foo: false } }
+          {
+            input: [],
+            output: { foo: false },
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
+          }
         ]
       },
       mode: 'proxy-pass'
@@ -122,7 +130,15 @@ describe('Boundaries tasks tests', () => {
       },
       boundariesData: {
         fetchExternalData: [
-          { input: [4], output: 2 }
+          {
+            input: [4],
+            output: 2,
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
+            }
+          }
         ]
       },
       mode: 'proxy-pass'
@@ -140,6 +156,11 @@ describe('Boundaries tasks tests', () => {
     type BoundaryData = {
       input: unknown[];
       output?: unknown;
+      timing?: {
+        startTime: number;
+        endTime: number;
+        duration: number;
+      };
     };
 
     // Define a type for the record boundaries
@@ -203,6 +224,11 @@ describe('Boundaries tasks tests', () => {
     expect(boundaries0.fetchExternalData).toHaveLength(1)
     expect(boundaries0.fetchExternalData[0].input).toEqual([2])
     expect(boundaries0.fetchExternalData[0].output).toBe(4)
+    expect(boundaries0.fetchExternalData[0].timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
 
     // Check record for second task (value: 3)
     expect(sortedRecords[1].input).toEqual({ value: 3 })
@@ -213,6 +239,11 @@ describe('Boundaries tasks tests', () => {
     expect(boundaries1.fetchExternalData).toHaveLength(1)
     expect(boundaries1.fetchExternalData[0].input).toEqual([3])
     expect(boundaries1.fetchExternalData[0].output).toBe(6)
+    expect(boundaries1.fetchExternalData[0].timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
 
     // Check record for third task (value: 4)
     expect(sortedRecords[2].input).toEqual({ value: 4 })
@@ -223,6 +254,11 @@ describe('Boundaries tasks tests', () => {
     expect(boundaries2.fetchExternalData).toHaveLength(1)
     expect(boundaries2.fetchExternalData[0].input).toEqual([4])
     expect(boundaries2.fetchExternalData[0].output).toBe(8)
+    expect(boundaries2.fetchExternalData[0].timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
   })
 
   it('Boundary data accumulates run data correctly', async () => {
@@ -261,9 +297,14 @@ describe('Boundaries tasks tests', () => {
     expect(boundariesData1.fetchExternalData).toHaveLength(1)
 
     // Verify the tape entry for first run
-    const firstRunTape = boundariesData1.fetchExternalData as Array<{input: unknown[], output: unknown}>
+    const firstRunTape = boundariesData1.fetchExternalData as Array<{input: unknown[], output: unknown, timing?: { startTime: number; endTime: number; duration: number }}>
     expect(firstRunTape[0].input).toEqual([2])
     expect(firstRunTape[0].output).toBe(4)
+    expect(firstRunTape[0].timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
 
     // Run task with value 3
     await multiplyTask.run({ value: 3 })
@@ -275,16 +316,26 @@ describe('Boundaries tasks tests', () => {
     expect(boundariesData2.fetchExternalData).toHaveLength(2)
 
     // Sort the tape by input value for consistent testing
-    const secondRunTape = boundariesData2.fetchExternalData as Array<{input: unknown[], output: unknown}>
+    const secondRunTape = boundariesData2.fetchExternalData as Array<{input: unknown[], output: unknown, timing?: { startTime: number; endTime: number; duration: number }}>
     const sortedTape = [...secondRunTape].sort((a, b) => (a.input[0] as number) - (b.input[0] as number))
 
     // First entry should still be the same
     expect(sortedTape[0].input).toEqual([2])
     expect(sortedTape[0].output).toBe(4)
+    expect(sortedTape[0].timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
 
     // Second entry should be from the second run
     expect(sortedTape[1].input).toEqual([3])
     expect(sortedTape[1].output).toBe(6)
+    expect(sortedTape[1].timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
 
     // Run task with value 4
     await multiplyTask.run({ value: 4 })
@@ -296,18 +347,33 @@ describe('Boundaries tasks tests', () => {
     expect(boundariesData3.fetchExternalData).toHaveLength(3)
 
     // Sort the tape again
-    const thirdRunTape = boundariesData3.fetchExternalData as Array<{input: unknown[], output: unknown}>
+    const thirdRunTape = boundariesData3.fetchExternalData as Array<{input: unknown[], output: unknown, timing?: { startTime: number; endTime: number; duration: number }}>
     const finalSortedTape = [...thirdRunTape].sort((a, b) => (a.input[0] as number) - (b.input[0] as number))
 
     // Verify all three entries
     expect(finalSortedTape[0].input).toEqual([2])
     expect(finalSortedTape[0].output).toBe(4)
+    expect(finalSortedTape[0].timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
 
     expect(finalSortedTape[1].input).toEqual([3])
     expect(finalSortedTape[1].output).toBe(6)
+    expect(finalSortedTape[1].timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
 
     expect(finalSortedTape[2].input).toEqual([4])
     expect(finalSortedTape[2].output).toBe(8)
+    expect(finalSortedTape[2].timing).toEqual(expect.objectContaining({
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      duration: expect.any(Number)
+    }))
 
     // Verify tape can be used for replay in proxy-pass mode
     const replayTask = createTask({

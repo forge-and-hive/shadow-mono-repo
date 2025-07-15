@@ -1,4 +1,5 @@
 import * as assert from 'assert'
+import { TimingInfo, TimingTracker } from '../types'
 
 // Define generic types for input and output
 type BaseBoundary = (...args: unknown[]) => unknown
@@ -22,6 +23,7 @@ export type BoundarySuccessRecord<TInput = unknown[], TOutput = unknown> = {
   input: TInput;
   output: TOutput;
   error?: null;
+  timing: TimingInfo;
 }
 
 /**
@@ -32,6 +34,7 @@ export type BoundaryErrorRecord<TInput = unknown[]> = {
   input: TInput;
   output?: null;
   error: string;
+  timing: TimingInfo;
 }
 
 /**
@@ -129,11 +132,19 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
     }
 
     return await (async (): Promise<ReturnType<Func>> => {
+      const timer = TimingTracker.create()
+      timer.start()
+
       let result, error: Error | undefined
       try {
         result = await fn(...args)
       } catch (e) {
         error = e as Error
+      }
+
+      const timing = timer.end()
+      if (!timing) {
+        throw new Error('Failed to capture timing information')
       }
 
       if (typeof error !== 'undefined') {
@@ -146,7 +157,8 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
           // Create an error record
           const errorRecord: BoundaryErrorRecord<FuncInput> = {
             input: args,
-            error: error.message
+            error: error.message,
+            timing
           }
 
           if (hasRun) { runLog.push(errorRecord) }
@@ -158,7 +170,8 @@ export const createBoundary = <Func extends BaseBoundary>(fn: Func): WrappedBoun
         // Create a success record
         const successRecord: BoundarySuccessRecord<FuncInput, FuncOutput> = {
           input: args,
-          output: result as FuncOutput
+          output: result as FuncOutput,
+          timing
         }
 
         if (hasRun) { runLog.push(successRecord) }

@@ -92,13 +92,23 @@ describe('execution-record-boundaries', () => {
       expect(record.boundaries.multiply).toHaveLength(1)
       expect(record.boundaries.multiply[0]).toEqual({
         input: [3],
-        output: 6
+        output: 6,
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
       })
 
       expect(record.boundaries.fetchData).toHaveLength(1)
       expect(record.boundaries.fetchData[0]).toEqual({
         input: ['test'],
-        output: 'fetched-test'
+        output: 'fetched-test',
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
       })
     })
 
