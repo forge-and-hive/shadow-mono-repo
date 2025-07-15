@@ -31,8 +31,9 @@ pnpm start
 
 - `src/tasks/` - Contains task definitions
 - `src/scripts/` - Example scripts demonstrating different logging approaches
-  - `basicExample.ts` - Simple usage from the specification
-  - `sendLogs.ts` - Comprehensive examples with filtering and PII removal
+  - `listenExecutionRecords.ts` - Global listener setup
+  - `manualFiltering.ts` - Manual logging with filtering and PII removal
+  - `directLogging.ts` - Direct sendLog usage for one-off logging
 - `src/test/` - Test files
 
 ## New: Automatic Execution Logging
@@ -58,14 +59,27 @@ Task.listenExecutionRecords(async (record) => {
 
 ## Examples
 
-### Run Basic Example
+### Run with ts-node (Recommended for development)
 ```bash
-pnpm build && node dist/scripts/basicExample.js
+# Global listener example
+npx ts-node src/scripts/listenExecutionRecords.ts
+
+# Manual filtering example
+npx ts-node src/scripts/manualFiltering.ts
+
+# Direct logging example
+npx ts-node src/scripts/directLogging.ts
 ```
 
-### Run Comprehensive Examples
+### Run Built Examples
 ```bash
-pnpm build && node dist/scripts/sendLogs.js
+# Build first
+pnpm build
+
+# Then run any example
+node dist/scripts/listenExecutionRecords.js
+node dist/scripts/manualFiltering.js
+node dist/scripts/directLogging.js
 ```
 
 For more examples, see the scripts in `src/scripts/`. 
