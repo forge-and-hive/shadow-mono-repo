@@ -168,7 +168,7 @@ async function demonstrateMetrics(): Promise<void> {
     console.log('Running task with comprehensive metrics collection...')
 
     // Execute the task
-    const [result, error, record] = await metricsTask.safeRun({ 
+    const [result, error, record] = await metricsTask.safeRun({
       userId: 'user_123',
       limit: 5
     })
@@ -183,7 +183,7 @@ async function demonstrateMetrics(): Promise<void> {
 
     console.log('\n--- Execution Metrics ---')
     console.log(`Total metrics collected: ${record.metrics?.length || 0}`)
-    
+
     if (record.metrics && record.metrics.length > 0) {
       console.log('\nMetrics breakdown:')
       const metricsByType = record.metrics.reduce((acc, metric) => {
@@ -238,21 +238,21 @@ async function demonstrateMetrics(): Promise<void> {
 // Additional demonstration: Multiple runs to show metrics accumulation patterns
 async function demonstrateMultipleRuns(): Promise<void> {
   console.log('\n=== Multiple Runs Demonstration ===')
-  
+
   const userIds = ['alice', 'bob', 'charlie']
   const allMetrics: any[] = []
 
   for (const userId of userIds) {
     console.log(`\nProcessing user: ${userId}`)
-    
-    const [, error, record] = await metricsTask.safeRun({ 
+
+    const [, error, record] = await metricsTask.safeRun({
       userId,
       limit: Math.floor(Math.random() * 8) + 3
     })
 
     if (!error && record.metrics) {
       allMetrics.push(...record.metrics.map(m => ({ ...m, userId })))
-      
+
       // Send each execution to Hive
       await client.sendLog(record, {
         environment: 'batch-demo',
@@ -277,7 +277,7 @@ async function demonstrateMultipleRuns(): Promise<void> {
     const avg = values.reduce((a: number, b: number) => a + b, 0) / values.length
     const min = Math.min(...values)
     const max = Math.max(...values)
-    
+
     console.log(`${type}.${name}:`)
     console.log(`  Average: ${avg.toFixed(2)}`)
     console.log(`  Range: ${min} - ${max}`)

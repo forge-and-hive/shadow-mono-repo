@@ -1,5 +1,6 @@
 import axios from 'axios'
 import debug from 'debug'
+import type { ExecutionRecord } from '@forgehive/task'
 
 const log = debug('hive-sdk')
 
@@ -8,16 +9,8 @@ export interface Metadata {
   [key: string]: string
 }
 
-// Import ExecutionRecord type from task package
-export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B = unknown> {
-  input: InputType
-  output?: OutputType
-  error?: string
-  boundaries?: B
-  taskName?: string
-  metadata?: Metadata
-  type?: 'success' | 'error' | 'pending'
-}
+// Re-export ExecutionRecord type from task package for convenience
+export type { ExecutionRecord } from '@forgehive/task'
 
 // Configuration interface for HiveLogClient
 export interface HiveLogClientConfig {

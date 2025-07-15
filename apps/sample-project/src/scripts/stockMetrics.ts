@@ -30,7 +30,7 @@ const stockMetricsTask = createTask({
   boundaries: {
     fetchStockPrice: async (ticker: string): Promise<{price: number, volume: number, change: number, responseTime: number}> => {
       const startTime = Date.now()
-      
+
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}`
       const response = await fetch(url)
 
@@ -53,10 +53,10 @@ const stockMetricsTask = createTask({
 
     fetchMarketStatus: async (): Promise<{isOpen: boolean, nextOpen?: string, responseTime: number}> => {
       const startTime = Date.now()
-      
+
       // Simulate market status check
       await new Promise(resolve => setTimeout(resolve, 50))
-      
+
       const now = new Date()
       const hour = now.getHours()
       const isWeekday = now.getDay() >= 1 && now.getDay() <= 5
@@ -215,11 +215,11 @@ async function demonstrateStockMetrics(): Promise<void> {
   console.log('=== Stock Metrics Demo ===')
 
   const tickers = ['AAPL', 'GOOGL', 'MSFT']
-  
+
   for (const ticker of tickers) {
     try {
       console.log(`\n--- Processing ${ticker} ---`)
-      
+
       const [result, error, record] = await stockMetricsTask.safeRun({
         ticker,
         includeAnalysis: Math.random() > 0.5
@@ -231,11 +231,11 @@ async function demonstrateStockMetrics(): Promise<void> {
       }
 
       console.log('Result:', JSON.stringify(result, null, 2))
-      
+
       // Display metrics summary
       if (record.metrics && record.metrics.length > 0) {
         console.log(`\nCollected ${record.metrics.length} metrics:`)
-        
+
         const businessMetrics = record.metrics.filter(m => m.type === 'business')
         const performanceMetrics = record.metrics.filter(m => m.type === 'performance')
         const errorMetrics = record.metrics.filter(m => m.type === 'error')

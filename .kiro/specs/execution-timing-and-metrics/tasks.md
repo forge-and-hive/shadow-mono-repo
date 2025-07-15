@@ -41,58 +41,58 @@
     - Ensure metrics are included in execution records
     - _Requirements: 2.1, 2.3, 2.5_
 
-- [ ] 4. Update ExecutionRecord interface and task execution
-  - [ ] 4.1 Enhance ExecutionRecord with timing and metrics fields
+- [x] 4. Update ExecutionRecord interface and task execution
+  - [x] 4.1 Enhance ExecutionRecord with timing and metrics fields
     - Add timing field for main function execution timing
     - Add metrics array field to store collected metrics
     - Update getExecutionRecordType function to handle new fields
     - _Requirements: 1.5, 2.4, 2.5, 3.2, 3.3_
 
-  - [ ] 4.2 Implement main function timing capture
+  - [x] 4.2 Implement main function timing capture
     - Add timing tracking to safeRun method for main function execution
     - Capture start time before function execution and end time after
     - Include timing information in execution record
     - _Requirements: 1.3, 1.4, 1.5, 4.1_
 
-  - [ ] 4.3 Update safeReplay to handle timing and metrics
+  - [x] 4.3 Update safeReplay to handle timing and metrics
     - Ensure safeReplay properly handles timing data during replay
     - Implement metrics collection during replay execution
     - Maintain timing consistency between original and replay executions
     - _Requirements: 1.6, 2.3, 5.3_
 
-- [ ] 5. Update boundary logs type system
-  - [ ] 5.1 Update BoundaryLogsFor type to include timing
+- [x] 5. Update boundary logs type system
+  - [x] 5.1 Update BoundaryLogsFor type to include timing
     - Modify BoundaryLogsFor mapped type to use enhanced BoundaryRecord
     - Ensure type compatibility with existing boundary definitions
     - _Requirements: 3.2, 3.3, 4.2, 4.3_
 
-  - [ ] 5.2 Update boundary processing in task execution
+  - [x] 5.2 Update boundary processing in task execution
     - Modify boundary data processing to include timing information
     - Update accumulated boundaries data structure to support timing
     - Ensure boundary logs in execution records include timing data
     - _Requirements: 1.5, 4.2, 4.3_
 
-- [ ] 6. Update hive-sdk to use enhanced execution records
-  - [ ] 6.1 Import enhanced ExecutionRecord types from task package
+- [x] 6. Update hive-sdk to use enhanced execution records
+  - [x] 6.1 Import enhanced ExecutionRecord types from task package
     - Update hive-sdk imports to use ExecutionRecord from task package
     - Remove duplicate ExecutionRecord interface from hive-sdk
     - Ensure type compatibility across packages
     - _Requirements: 3.1, 3.2, 3.4, 3.5_
 
-  - [ ] 6.2 Update HiveLogClient to handle new execution record fields
+  - [x] 6.2 Update HiveLogClient to handle new execution record fields
     - Ensure sendLog method properly serializes timing and metrics data
     - Update metadata merging to preserve timing and metrics information
     - Test serialization/deserialization of enhanced execution records
     - _Requirements: 3.4, 3.5, 4.6_
 
-- [ ] 7. Add helper methods for timing and metrics analysis
-  - [ ] 7.1 Create timing analysis utilities
+- [~] 7. Add helper methods for timing and metrics analysis (SKIPPED)
+  - [~] 7.1 Create timing analysis utilities (SKIPPED)
     - Implement helper functions to calculate durations from timing data
     - Add methods to extract timing statistics from execution records
     - Create utilities for timing data aggregation and analysis
     - _Requirements: 4.4, 4.5_
 
-  - [ ] 7.2 Create metrics analysis utilities
+  - [~] 7.2 Create metrics analysis utilities (SKIPPED)
     - Implement helper functions to filter and aggregate metrics
     - Add methods to extract specific metric types or names
     - Create utilities for metrics data analysis and reporting

@@ -435,12 +435,12 @@ export const Task = class Task<
       // Allows setting metrics from within task execution
       setMetrics: createBoundary(async (...args: unknown[]): Promise<void> => {
         const [metric] = args as [Metric]
-        
+
         // Validate the metric
         if (!validateMetric(metric)) {
           throw new Error(`Invalid metric provided: ${JSON.stringify(metric)}`)
         }
-        
+
         // Add to metrics array
         metrics.push(metric)
       })
@@ -504,7 +504,7 @@ export const Task = class Task<
     // Metadata is empty at start. Then will be populated on the task execution
     // Need to implement that task have a ctx and setMetadata({key, value}) boundary
     const metadata = {} as Record<string, string>
-    
+
     // Metrics array is empty at start. Then will be populated during task execution
     const metrics: Metric[] = []
 

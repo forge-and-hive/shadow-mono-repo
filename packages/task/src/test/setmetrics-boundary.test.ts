@@ -27,7 +27,7 @@ describe('setMetrics boundary', () => {
   describe('createMetric function', () => {
     it('should create valid metrics', () => {
       const metric = createMetric('performance', 'response_time', 150)
-      
+
       expect(metric).toEqual({
         type: 'performance',
         name: 'response_time',
@@ -192,7 +192,7 @@ describe('setMetrics boundary', () => {
         },
         fn: async ({ value }, { calculate, setMetrics }) => {
           const result = await calculate(value)
-          
+
           await setMetrics({
             type: 'calculation',
             name: 'result_value',
@@ -210,7 +210,7 @@ describe('setMetrics boundary', () => {
       // Verify that setMetrics is not in the boundary logs
       expect(record.boundaries).toHaveProperty('calculate')
       expect(record.boundaries).not.toHaveProperty('setMetrics')
-      
+
       // But metrics should be collected
       expect(record.metrics).toHaveLength(1)
       expect(record.metrics?.[0]).toEqual({
