@@ -57,7 +57,7 @@ const metricsTask = createTask({
       return { posts, responseTime }
     },
 
-    calculateEngagement: async (posts: any[]) => {
+    calculateEngagement: async (posts: Array<{ id: string; content: string }>) => {
       // Simulate engagement calculation
       const startTime = Date.now()
       await new Promise(resolve => setTimeout(resolve, 50))
@@ -240,7 +240,7 @@ async function demonstrateMultipleRuns(): Promise<void> {
   console.log('\n=== Multiple Runs Demonstration ===')
 
   const userIds = ['alice', 'bob', 'charlie']
-  const allMetrics: any[] = []
+  const allMetrics: Array<{ type: string; name: string; value: number }> = []
 
   for (const userId of userIds) {
     console.log(`\nProcessing user: ${userId}`)

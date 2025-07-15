@@ -19,14 +19,16 @@ describe('Timing Capture Tests', () => {
     })
 
     it('should handle rapid successive timing operations', () => {
-      const timings: any[] = []
+      const timings: Array<{ startTime: number; endTime: number; duration?: number }> = []
 
       for (let i = 0; i < 10; i++) {
         const tracker = TimingTracker.create()
         tracker.start()
         // Immediate end
         const timing = tracker.end()
-        timings.push(timing)
+        if (timing) {
+          timings.push(timing)
+        }
       }
 
       timings.forEach(timing => {
@@ -299,6 +301,8 @@ describe('Timing Capture Tests', () => {
         }
       })
 
+      // siabled to test an incorrect execution
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const [result, error, record] = await task.safeRun({ wrongField: 'test' } as any)
 
       expect(result).toBeNull()

@@ -248,12 +248,14 @@ describe('Metrics Collection Tests', () => {
 
           // Invalid metrics should be rejected but not crash the task
           try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await setMetrics({ type: '', name: 'invalid', value: 1 } as any)
           } catch (error) {
             // Expected to fail validation
           }
 
           try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await setMetrics({ type: 'business', name: 'invalid', value: NaN } as any)
           } catch (error) {
             // Expected to fail validation

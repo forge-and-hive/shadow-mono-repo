@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { createTask } from '@forgehive/task'
 import { createHiveLogClient } from '@forgehive/hive-sdk'
 import { Schema } from '@forgehive/schema'
@@ -33,7 +34,7 @@ describe('Sample App Integration Tests for Enhanced Execution Records', () => {
             await new Promise(resolve => setTimeout(resolve, 30))
             return data.toUpperCase()
           },
-          saveResult: async (_result: any) => {
+          saveResult: async (_result: unknown) => {
             // Simulate save delay
             await new Promise(resolve => setTimeout(resolve, 20))
             return { saved: true, id: `result-${Date.now()}` }
@@ -433,7 +434,7 @@ describe('Sample App Integration Tests for Enhanced Execution Records', () => {
             await new Promise(resolve => setTimeout(resolve, 40))
             return values.map(v => v * 2)
           },
-          validateData: async (data: any) => {
+          validateData: async (data: { values: number[] }) => {
             await new Promise(resolve => setTimeout(resolve, 20))
             return data.values.every((v: number) => v > 0)
           }

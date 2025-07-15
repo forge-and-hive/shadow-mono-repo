@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { createTask, TimingTracker, validateMetric, createMetric } from '../index'
 import { Schema } from '@forgehive/schema'
 
@@ -73,7 +74,7 @@ describe('Performance and Edge Case Tests', () => {
     })
 
     it('should handle high-frequency timing operations efficiently', () => {
-      const timings: any[] = []
+      const timings: Array<{ startTime: number; endTime: number; duration?: number }> = []
       const iterations = 1000
 
       const start = Date.now()
@@ -88,7 +89,9 @@ describe('Performance and Edge Case Tests', () => {
         }
 
         const timing = tracker.end()
-        timings.push(timing)
+        if (timing) {
+          timings.push(timing)
+        }
       }
 
       const totalTime = Date.now() - start
@@ -395,6 +398,7 @@ describe('Performance and Edge Case Tests', () => {
       const [invalidResult, invalidError, invalidRecord] = await validationTask.safeRun({
         requiredString: 123, // Wrong type
         nestedValue: 'not-a-number' // Wrong type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
 
       expect(invalidResult).toBeNull()
@@ -406,6 +410,7 @@ describe('Performance and Edge Case Tests', () => {
       const [missingResult, missingError, missingRecord] = await validationTask.safeRun({
         nestedValue: 100
         // Missing requiredString
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
 
       expect(missingResult).toBeNull()
@@ -435,9 +440,9 @@ describe('Performance and Edge Case Tests', () => {
             }
             return { items: data, totalSize: size }
           },
-          processLargeDataset: async (dataset: any) => {
+          processLargeDataset: async (dataset: { items: Array<{ id: string; data: number[] }> }) => {
             // Simulate heavy processing
-            const processed = dataset.items.map((item: any) => ({
+            const processed = dataset.items.map((item: { id: string; data: number[] }) => ({
               id: item.id,
               processed: true,
               checksum: item.data.reduce((sum: number, val: number) => sum + val, 0)
