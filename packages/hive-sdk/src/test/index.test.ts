@@ -106,7 +106,14 @@ describe('Hive SDK', () => {
     })
 
     it('should return "silent" for sendLog in silent mode', async () => {
-      const result = await silentClient.sendLog('test-task', { input: 'test' })
+      const executionRecord = {
+        input: { test: 'value' },
+        taskName: 'test-task',
+        type: 'success' as const,
+        boundaries: {},
+        metadata: {}
+      }
+      const result = await silentClient.sendLog(executionRecord)
       expect(result).toBe('silent')
     })
 

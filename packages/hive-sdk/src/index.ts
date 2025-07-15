@@ -8,17 +8,16 @@ export interface Metadata {
   [key: string]: string
 }
 
-// Log item interface for sendLog method - flexible to accept task execution records
-export interface LogItemInput {
-  input: unknown
-  output?: unknown
-  error?: unknown
-  boundaries?: unknown // Allow any boundary structure (task records have different format)
+// Import ExecutionRecord type from task package
+export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B = unknown> {
+  input: InputType
+  output?: OutputType
+  error?: string
+  boundaries?: B
+  taskName?: string
   metadata?: Metadata
+  type?: 'success' | 'error' | 'pending'
 }
-
-// Backward compatibility alias
-export type LogItem = LogItemInput
 
 // Configuration interface for HiveLogClient
 export interface HiveLogClientConfig {
@@ -34,13 +33,7 @@ export interface LogApiResponse {
   uuid: string
   taskName: string
   projectName: string
-  logItem: {
-    input: unknown
-    output?: unknown
-    error?: unknown
-    boundaries?: Record<string, Array<{ input: unknown; output: unknown, error: unknown }>>
-    metadata?: Metadata
-  }
+  logItem: ExecutionRecord
   replayFrom?: string
   createdAt: string
 }
@@ -100,13 +93,13 @@ export class HiveLogClient {
     return this.isInitialized
   }
 
-  private mergeMetadata<T extends { input: unknown; metadata?: Metadata }>(logItem: T, sendLogMetadata?: Metadata): Metadata {
+  private mergeMetadata(record: ExecutionRecord, sendLogMetadata?: Metadata): Metadata {
     // Start with base metadata from client
     let finalMetadata = { ...this.baseMetadata }
 
-    // Merge with logItem metadata if it exists
-    if (logItem.metadata) {
-      finalMetadata = { ...finalMetadata, ...logItem.metadata }
+    // Merge with record metadata if it exists
+    if (record.metadata) {
+      finalMetadata = { ...finalMetadata, ...record.metadata }
     }
 
     // Merge with sendLog metadata (highest priority)
@@ -117,7 +110,10 @@ export class HiveLogClient {
     return finalMetadata
   }
 
-  async sendLog<T extends { input: unknown; metadata?: Metadata }>(taskName: string, logItem: T, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
+  async sendLog(record: ExecutionRecord, metadata?: Metadata): Promise<'success' | 'error' | 'silent'> {
+    // Extract taskName from record
+    const taskName = record.taskName || 'unknown-task'
+
     if (!this.isInitialized) {
       log('Silent mode: Skipping sendLog for task "%s" - client not initialized', taskName)
       return 'silent'
@@ -129,19 +125,20 @@ export class HiveLogClient {
 
       const authToken = `${this.apiKey}:${this.apiSecret}`
 
-      // Merge metadata with priority: sendLog > logItem > client
-      const finalMetadata = this.mergeMetadata(logItem, metadata)
+      // Merge metadata with priority: sendLog > record.metadata > client
+      const finalMetadata = this.mergeMetadata(record, metadata)
 
-      // Create enhanced logItem with merged metadata
-      const enhancedLogItem = {
-        ...logItem,
+      // Create logItem with merged metadata
+      const logItem = {
+        ...record,
+        taskName,
         metadata: finalMetadata
       }
 
       await axios.post(logsUrl, {
         projectName: this.projectName,
         taskName,
-        logItem: JSON.stringify(enhancedLogItem)
+        logItem: JSON.stringify(logItem)
       }, {
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -155,6 +152,12 @@ export class HiveLogClient {
       const error = e as Error
       log('Error: Failed to send log for task "%s": %s', taskName, error.message)
       return 'error'
+    }
+  }
+
+  getListener(): (record: ExecutionRecord) => Promise<void> {
+    return async (record: ExecutionRecord) => {
+      await this.sendLog(record)
     }
   }
 

@@ -9,7 +9,7 @@
     "access": "public",
     "dependencies": {
       "@forgehive/schema": "^0.1.4",
-      "@forgehive/task": "^0.2.2"
+      "@forgehive/task": "^0.2.3"
     }
   },
   "scripts": {

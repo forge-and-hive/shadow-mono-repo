@@ -32,7 +32,7 @@ describe('HiveLogClient getLog', () => {
         logItem: {
           input: { userId: 123, action: 'login' },
           output: { success: true, sessionId: 'abc123' },
-          error: null,
+          error: undefined,
           boundaries: {
             database: [{ input: 'SELECT * FROM users', output: [{ id: 123 }], error: null }]
           }

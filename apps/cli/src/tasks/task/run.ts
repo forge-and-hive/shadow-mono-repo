@@ -10,7 +10,7 @@ import os from 'os'
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 import { RecordTape } from '@forgehive/record-tape'
-import { HiveLogClient } from '@forgehive/hive-sdk'
+import { HiveLogClient, type ExecutionRecord } from '@forgehive/hive-sdk'
 
 import { create as bundleCreate } from '../bundle/create'
 import { load as bundleLoad } from '../bundle/load'
@@ -51,7 +51,7 @@ const boundaries = {
 
     return buildsPath
   },
-  sendLogToAPI: async (profile: Profile, projectName: string, taskName: string, logItem: { input: unknown; metadata?: Record<string, string> }): Promise<boolean> => {
+  sendLogToAPI: async (profile: Profile, projectName: string, record: ExecutionRecord): Promise<boolean> => {
     try {
       const config = {
         projectName,
@@ -64,7 +64,7 @@ const boundaries = {
       }
 
       const client = new HiveLogClient(config)
-      const result = await client.sendLog(taskName, logItem)
+      const result = await client.sendLog(record)
 
       if (result === 'success') {
         console.log('===============================================')
@@ -173,7 +173,7 @@ export const run = createTask({
 
     if (profile) {
       try {
-        await sendLogToAPI(profile, projectName, descriptorName, logItem)
+        await sendLogToAPI(profile, projectName, logItem)
       } catch (e) {
         console.error('Failed to send log to API:', e)
       }
