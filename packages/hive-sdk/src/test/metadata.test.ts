@@ -94,10 +94,10 @@ describe('HiveLogClient Metadata', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
-            taskName: 'test-task',
             input: 'test-input',
             output: 'test-output',
-            error: undefined,
+            taskName: 'test-task',
+            type: 'success',
             boundaries: {},
             metadata: {}
           })
@@ -136,10 +136,10 @@ describe('HiveLogClient Metadata', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
-            taskName: 'test-task',
             input: 'test-input',
             output: 'test-output',
-            error: undefined,
+            taskName: 'test-task',
+            type: 'success',
             boundaries: {},
             metadata: {
               requestId: 'req-123',
@@ -169,9 +169,9 @@ describe('HiveLogClient Metadata', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
-            taskName: 'test-task',
             input: 'simple input',
-            error: undefined,
+            taskName: 'test-task',
+            type: 'success',
             boundaries: {},
             metadata: { type: 'minimal' }
           })
@@ -193,9 +193,9 @@ describe('HiveLogClient Metadata', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
-            taskName: 'test-task',
             input: null,
-            error: undefined,
+            taskName: 'test-task',
+            type: 'success',
             boundaries: {},
             metadata: { type: 'null-test' }
           })
@@ -220,9 +220,9 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: {} })
 
       const expectedLogItem = {
-        taskName: 'test-task',
         input: 'test',
-        error: undefined,
+        taskName: 'test-task',
+        type: 'success',
         boundaries: {},
         metadata: {
           environment: 'production',
@@ -261,15 +261,15 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: logItem.metadata || {} })
 
       const expectedLogItem = {
-        taskName: 'test-task',
         input: 'test',
-        error: undefined,
-        boundaries: {},
         metadata: {
           environment: 'production', // from base
           version: '1.1.0',          // from logItem (overrides base)
           sessionId: 'session-123'   // from logItem
-        }
+        },
+        taskName: 'test-task',
+        type: 'success',
+        boundaries: {}
       }
 
       expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -311,17 +311,17 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: logItem.metadata || {} }, sendLogMetadata)
 
       const expectedLogItem = {
-        taskName: 'test-task',
         input: 'test',
-        error: undefined,
-        boundaries: {},
         metadata: {
           environment: 'production',  // from base
           version: '1.2.0',           // from sendLog (highest priority)
           priority: 'sendLog',        // from sendLog (highest priority)
           sessionId: 'session-123',   // from logItem
           requestId: 'req-456'        // from sendLog
-        }
+        },
+        taskName: 'test-task',
+        type: 'success',
+        boundaries: {}
       }
 
       expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -365,11 +365,8 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'search-task', type: 'success' as const, boundaries: {}, metadata: logItem.metadata || {} }, sendLogMetadata)
 
       const expectedLogItem = {
-        taskName: 'search-task',
         input: { query: 'search' },
         output: { results: [] },
-        error: undefined,
-        boundaries: {},
         metadata: {
           environment: 'production',    // from base
           service: 'api-gateway',       // from base
@@ -379,7 +376,10 @@ describe('HiveLogClient Metadata', () => {
           processingTime: '250',        // from logItem
           requestId: 'req-789',         // from sendLog
           userId: 'user-123'            // from sendLog
-        }
+        },
+        taskName: 'search-task',
+        type: 'success',
+        boundaries: {}
       }
 
       expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -409,9 +409,9 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: {} })
 
       const expectedLogItem = {
-        taskName: 'test-task',
         input: 'test',
-        error: undefined,
+        taskName: 'test-task',
+        type: 'success',
         boundaries: {},
         metadata: {
           environment: 'test' // Only base metadata should be used
@@ -443,13 +443,13 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: logItem.metadata || {} })
 
       const expectedLogItem = {
-        taskName: 'test-task',
         input: 'test',
-        error: undefined,
-        boundaries: {},
         metadata: {
           environment: 'test' // Only base metadata should be used
-        }
+        },
+        taskName: 'test-task',
+        type: 'success',
+        boundaries: {}
       }
 
       expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -472,11 +472,11 @@ describe('HiveLogClient Metadata', () => {
       await client.sendLog({ ...logItem, taskName: 'test-task', type: 'success' as const, boundaries: {}, metadata: logItem.metadata || {} }, {})
 
       const expectedLogItem = {
-        taskName: 'test-task',
         input: 'test',
-        error: undefined,
-        boundaries: {},
-        metadata: {} // All empty metadata objects result in empty final metadata
+        metadata: {}, // All empty metadata objects result in empty final metadata
+        taskName: 'test-task',
+        type: 'success',
+        boundaries: {}
       }
 
       expect(mockedAxios.post).toHaveBeenCalledWith(

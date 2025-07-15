@@ -125,29 +125,20 @@ export class HiveLogClient {
 
       const authToken = `${this.apiKey}:${this.apiSecret}`
 
-      // Extract data from ExecutionRecord for API
-      const logItem = {
-        taskName,
-        input: record.input,
-        output: record.output,
-        error: record.error,
-        boundaries: record.boundaries,
-        metadata: record.metadata
-      }
-
       // Merge metadata with priority: sendLog > record.metadata > client
       const finalMetadata = this.mergeMetadata(record, metadata)
 
-      // Create enhanced logItem with merged metadata
-      const enhancedLogItem = {
-        ...logItem,
+      // Create logItem with merged metadata
+      const logItem = {
+        ...record,
+        taskName,
         metadata: finalMetadata
       }
 
       await axios.post(logsUrl, {
         projectName: this.projectName,
         taskName,
-        logItem: JSON.stringify(enhancedLogItem)
+        logItem: JSON.stringify(logItem)
       }, {
         headers: {
           Authorization: `Bearer ${authToken}`,

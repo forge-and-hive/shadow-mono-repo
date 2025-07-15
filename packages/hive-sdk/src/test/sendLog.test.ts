@@ -47,10 +47,10 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
-            taskName: 'test-task',
             input: { value: 'test-input' },
             output: { result: 'test-output' },
-            error: undefined,
+            taskName: 'test-task',
+            type: 'success',
             boundaries: {},
             metadata: {}
           })
@@ -88,10 +88,10 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           projectName: 'test-project',
           taskName: 'complex-task',
           logItem: JSON.stringify({
-            taskName: 'complex-task',
             input: { userId: 123, action: 'login' },
             output: { success: true, sessionId: 'abc123' },
-            error: undefined,
+            taskName: 'complex-task',
+            type: 'success',
             boundaries: {
               database: [{ input: 'SELECT * FROM users', output: [{ id: 123 }], error: null }],
               api: [{ input: { endpoint: '/auth' }, output: { token: 'jwt123' }, error: null }]
@@ -130,10 +130,11 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           projectName: 'test-project',
           taskName: 'error-task',
           logItem: JSON.stringify({
-            taskName: 'error-task',
             input: { value: 'test-input' },
             output: undefined,
             error: 'Task execution failed',
+            taskName: 'error-task',
+            type: 'error',
             boundaries: {},
             metadata: {}
           })
@@ -163,12 +164,12 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           projectName: 'test-project',
           taskName: 'unknown-task',
           logItem: JSON.stringify({
-            taskName: 'unknown-task',
             input: { value: 'test-input' },
             output: { result: 'test-output' },
-            error: undefined,
+            type: 'success',
             boundaries: {},
-            metadata: {}
+            metadata: {},
+            taskName: 'unknown-task'
           })
         },
         expect.any(Object)
@@ -206,10 +207,10 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
           projectName: 'test-project',
           taskName: 'metadata-task',
           logItem: JSON.stringify({
-            taskName: 'metadata-task',
             input: { value: 'test-input' },
             output: { result: 'test-output' },
-            error: undefined,
+            taskName: 'metadata-task',
+            type: 'success',
             boundaries: {},
             metadata: {
               recordMeta: 'from-record',
@@ -325,10 +326,10 @@ describe('HiveLogClient getListener', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
-            taskName: 'test-task',
             input: { value: 'test-input' },
             output: { result: 'test-output' },
-            error: undefined,
+            taskName: 'test-task',
+            type: 'success',
             boundaries: {},
             metadata: {}
           })
@@ -359,10 +360,10 @@ describe('HiveLogClient getListener', () => {
           projectName: 'test-project',
           taskName: 'test-task',
           logItem: JSON.stringify({
-            taskName: 'test-task',
             input: { value: 'test-input' },
             output: { result: 'test-output' },
-            error: undefined,
+            taskName: 'test-task',
+            type: 'success',
             boundaries: {},
             metadata: {
               recordMeta: 'from-record'
