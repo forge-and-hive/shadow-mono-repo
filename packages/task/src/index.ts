@@ -9,7 +9,11 @@ import {
   type BoundaryTapeData
 } from './utils/boundary'
 import {
-  TimingTracker
+  TimingTracker,
+  type Metric,
+  type TimingInfo,
+  validateMetric,
+  createMetric
 } from './types'
 
 export interface Task {
@@ -42,8 +46,8 @@ export type {
   BaseExecutionRecord
 } from './types'
 
-// Re-export timing utilities for external use
-export { TimingTracker }
+// Re-export timing and metrics utilities for external use
+export { TimingTracker, validateMetric, createMetric }
 
 // Re-export Schema for external use
 export { Schema }
@@ -90,6 +94,10 @@ export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B ex
   taskName?: string
   /** Additional context metadata */
   metadata?: Record<string, string>
+  /** Array of collected metrics */
+  metrics?: Metric[]
+  /** Main function execution timing */
+  timing?: TimingInfo
   /** The type of execution record - computed from output/error state */
   type: 'success' | 'error' | 'pending'
 }
@@ -154,6 +162,7 @@ export type InferSchemaType<S> = S extends Schema<any> ? InferSchema<S> : Record
 // When adding new execution boundaries, add their types here
 export type ExecutionRecordBoundaries = {
   setMetadata: (key: string, value: string) => Promise<void>
+  setMetrics: (metric: Metric) => Promise<void>
   // Future execution boundaries can be added here:
   // setContext: (context: Record<string, unknown>) => Promise<void>
   // addTag: (tag: string) => Promise<void>
@@ -415,16 +424,29 @@ export const Task = class Task<
    * 2. Update the ExecutionRecordBoundaries type to include the new boundary
    * 3. That's it! The boundary will be available in all tasks automatically
    */
-  _createExecutionBoundaries(metadata: Record<string, string>): Record<string, WrappedBoundaryFunction> {
+  _createExecutionBoundaries(metadata: Record<string, string>, metrics: Metric[]): Record<string, WrappedBoundaryFunction> {
     return {
       // Allows setting metadata key-value pairs from within task execution
       setMetadata: createBoundary(async (...args: unknown[]): Promise<void> => {
         const [key, value] = args as [string, string]
         metadata[key] = value
+      }),
+
+      // Allows setting metrics from within task execution
+      setMetrics: createBoundary(async (...args: unknown[]): Promise<void> => {
+        const [metric] = args as [Metric]
+        
+        // Validate the metric
+        if (!validateMetric(metric)) {
+          throw new Error(`Invalid metric provided: ${JSON.stringify(metric)}`)
+        }
+        
+        // Add to metrics array
+        metrics.push(metric)
       })
 
       // Future execution boundaries can be added here:
-      // addMetrics: createBoundary(async (...args: unknown[]): Promise<void> => { ... }),
+      // setContext: createBoundary(async (...args: unknown[]): Promise<void> => { ... }),
     }
   }
 
@@ -482,13 +504,17 @@ export const Task = class Task<
     // Metadata is empty at start. Then will be populated on the task execution
     // Need to implement that task have a ctx and setMetadata({key, value}) boundary
     const metadata = {} as Record<string, string>
+    
+    // Metrics array is empty at start. Then will be populated during task execution
+    const metrics: Metric[] = []
 
     // Initialize log item (without type initially)
     const logItemBase = {
       input: argv as Parameters<Func>[0],
       boundaries: {} as BoundaryLogsFor<B>,
       taskName: this._name,
-      metadata: metadata || {}
+      metadata: metadata || {},
+      metrics
     }
 
     // Create the log item with computed type
@@ -504,8 +530,8 @@ export const Task = class Task<
       mode: this._mode
     })
 
-    // Create and inject execution record boundaries (setMetadata, etc.)
-    const executionRecordBoundaries = this._createExecutionBoundaries(metadata)
+    // Create and inject execution record boundaries (setMetadata, setMetrics, etc.)
+    const executionRecordBoundaries = this._createExecutionBoundaries(metadata, metrics)
     const allBoundaries = {
       ...executionBoundaries,
       ...executionRecordBoundaries
@@ -546,6 +572,10 @@ export const Task = class Task<
     let output: Awaited<ReturnType<Func>> | null = null
     let error: Error | null = null
 
+    // Start timing for main function execution
+    const timer = TimingTracker.create()
+    timer.start()
+
     try {
       // Execute the task function
       output = await this._fn(
@@ -560,6 +590,12 @@ export const Task = class Task<
       logItem.error = errorMessage
       logItem.type = 'error'
       error = new Error(errorMessage)
+    }
+
+    // Capture timing for main function execution
+    const timing = timer.end()
+    if (timing) {
+      logItem.timing = timing
     }
 
     // Process boundary data after execution (both success and error cases)
@@ -613,12 +649,17 @@ export const Task = class Task<
     // Extract the input from the execution log
     const argv = executionLog.input
 
+    // Initialize metrics array for replay - start with original metrics if any
+    const metrics: Metric[] = executionLog.metrics ? [...executionLog.metrics] : []
+
     // Initialize log item for this replay (without type initially)
     const logItemBase = {
       input: argv,
       boundaries: {} as BoundaryLogsFor<B>,
       taskName: this._name,
-      metadata: executionLog.metadata || {}
+      metadata: executionLog.metadata || {},
+      metrics,
+      timing: executionLog.timing // Preserve original timing
     }
 
     // Create the log item with computed type
@@ -649,10 +690,10 @@ export const Task = class Task<
       boundaryModes: config.boundaries
     })
 
-    // Create and inject execution record boundaries (setMetadata, etc.)
+    // Create and inject execution record boundaries (setMetadata, setMetrics, etc.)
     // Clone the metadata to avoid mutating the original metadata
     const replayMetadata = { ...(logItem.metadata || {}) }
-    const executionRecordBoundaries = this._createExecutionBoundaries(replayMetadata)
+    const executionRecordBoundaries = this._createExecutionBoundaries(replayMetadata, metrics)
     const allBoundaries = {
       ...executionBoundaries,
       ...executionRecordBoundaries

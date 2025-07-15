@@ -40,6 +40,12 @@ describe('Listener with boundaries', () => {
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })
@@ -88,6 +94,12 @@ describe('Listener with boundaries', () => {
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'error'
     }])
   })
@@ -129,6 +141,12 @@ describe('Listener with boundaries', () => {
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })
@@ -172,6 +190,12 @@ describe('Listener with boundaries', () => {
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })
@@ -227,6 +251,12 @@ describe('Listener with boundaries', () => {
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })
@@ -278,6 +308,12 @@ describe('Listener with boundaries', () => {
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })

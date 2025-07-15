@@ -18,6 +18,12 @@ describe('Add listener', () => {
       boundaries: {},
       taskName: undefined,
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })
@@ -44,6 +50,12 @@ describe('Add listener', () => {
       boundaries: {},
       taskName: undefined,
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'error'
     }])
   })
@@ -73,6 +85,12 @@ describe('Add listener', () => {
       boundaries: {},
       taskName: undefined,
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'error'
     }])
   })
@@ -97,6 +115,12 @@ describe('Add listener', () => {
         boundaries: {},
         taskName: undefined,
         metadata: {},
+        metrics: [],
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        }),
         type: 'success'
       },
       {
@@ -105,6 +129,12 @@ describe('Add listener', () => {
         boundaries: {},
         taskName: undefined,
         metadata: {},
+        metrics: [],
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        }),
         type: 'success'
       }
     ])
@@ -132,6 +162,12 @@ describe('Add listener', () => {
       boundaries: {},
       taskName: undefined,
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })

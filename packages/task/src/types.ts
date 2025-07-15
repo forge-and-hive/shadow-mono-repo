@@ -96,3 +96,40 @@ export interface BaseExecutionRecord<InputType = unknown, OutputType = unknown, 
   /** The type of execution record - computed from output/error state */
   type: 'success' | 'error' | 'pending';
 }
+
+/**
+ * Validates a metric object to ensure it conforms to the Metric interface
+ * @param metric - The metric object to validate
+ * @returns true if the metric is valid, false otherwise
+ */
+export function validateMetric(metric: unknown): metric is Metric {
+  if (typeof metric !== 'object' || metric === null) {
+    return false;
+  }
+  
+  const m = metric as Record<string, unknown>;
+  
+  return (
+    typeof m.type === 'string' && m.type.length > 0 &&
+    typeof m.name === 'string' && m.name.length > 0 &&
+    typeof m.value === 'number' && !isNaN(m.value) && isFinite(m.value)
+  );
+}
+
+/**
+ * Creates a validated metric object
+ * @param type - The metric type/category
+ * @param name - The metric name
+ * @param value - The metric value
+ * @returns A valid Metric object
+ * @throws Error if the metric data is invalid
+ */
+export function createMetric(type: string, name: string, value: number): Metric {
+  const metric: Metric = { type, name, value };
+  
+  if (!validateMetric(metric)) {
+    throw new Error(`Invalid metric: type="${type}", name="${name}", value=${value}`);
+  }
+  
+  return metric;
+}

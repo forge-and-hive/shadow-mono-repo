@@ -7,7 +7,9 @@
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest",
+    "demo:metrics": "npm run build && node dist/scripts/metricsDemo.js",
+    "demo:stock-metrics": "npm run build && node dist/scripts/stockMetrics.js"
   },
   "dependencies": {
     "@forgehive/schema": "workspace:*",

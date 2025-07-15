@@ -23,19 +23,19 @@
     - Modify boundary tape data structure to support timing
     - _Requirements: 1.5, 4.2, 4.3_
 
-- [ ] 3. Implement setMetrics execution boundary
-  - [ ] 3.1 Create metrics validation function
+- [x] 3. Implement setMetrics execution boundary
+  - [x] 3.1 Create metrics validation function
     - Implement validateMetric function to check Metric interface compliance
     - Add error handling for invalid metric formats
     - _Requirements: 2.2, 2.6, 5.6_
 
-  - [ ] 3.2 Add setMetrics to ExecutionRecordBoundaries
+  - [x] 3.2 Add setMetrics to ExecutionRecordBoundaries
     - Implement setMetrics boundary function that accepts Metric objects
     - Add metrics array management in task execution context
     - Ensure metrics accumulate properly when called multiple times
     - _Requirements: 2.1, 2.3, 5.1, 5.2_
 
-  - [ ] 3.3 Integrate metrics collection in task execution
+  - [x] 3.3 Integrate metrics collection in task execution
     - Update _createExecutionBoundaries to include setMetrics
     - Modify safeRun method to initialize and manage metrics array
     - Ensure metrics are included in execution records
