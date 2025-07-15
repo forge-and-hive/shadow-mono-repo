@@ -50,6 +50,7 @@ describe('Task.listenExecutionRecords', () => {
       })
 
       await testTask.safeRun({ value: 5 })
+      await new Promise(resolve => process.nextTick(resolve))
 
       expect(mockListener).toHaveBeenCalledTimes(1)
       expect(mockListener).toHaveBeenCalledWith(
@@ -75,6 +76,7 @@ describe('Task.listenExecutionRecords', () => {
       })
 
       await testTask.run({ value: 3 })
+      await new Promise(resolve => process.nextTick(resolve))
 
       expect(mockListener).toHaveBeenCalledTimes(1)
       expect(mockListener).toHaveBeenCalledWith(
@@ -100,6 +102,7 @@ describe('Task.listenExecutionRecords', () => {
       })
 
       await errorTask.safeRun({})
+      await new Promise(resolve => process.nextTick(resolve))
 
       expect(mockListener).toHaveBeenCalledTimes(1)
       expect(mockListener).toHaveBeenCalledWith(
@@ -127,6 +130,7 @@ describe('Task.listenExecutionRecords', () => {
 
       testTask.addListener(instanceListener)
       await testTask.safeRun({ value: 7 })
+      await new Promise(resolve => process.nextTick(resolve))
 
       expect(instanceListener).toHaveBeenCalledTimes(1)
       expect(mockListener).toHaveBeenCalledTimes(1)
@@ -178,6 +182,7 @@ describe('Task.listenExecutionRecords', () => {
       })
 
       await testTask.safeRun({ value: 4 })
+      await new Promise(resolve => process.nextTick(resolve))
 
       expect(asyncListener).toHaveBeenCalledTimes(1)
       expect(asyncListener).toHaveBeenCalledWith(
@@ -189,9 +194,9 @@ describe('Task.listenExecutionRecords', () => {
       )
     })
 
-    it('should timeout async listeners after 5 seconds', async () => {
+    it('should handle long-running async listeners without blocking task execution', async () => {
       const slowListener = jest.fn().mockImplementation(async () => {
-        await new Promise(resolve => setTimeout(resolve, 6000)) // 6 seconds
+        await new Promise(resolve => setTimeout(resolve, 100)) // 100ms
       })
 
       Task.listenExecutionRecords(slowListener)
@@ -206,17 +211,17 @@ describe('Task.listenExecutionRecords', () => {
         fn: async (input: { value: number }) => ({ result: input.value * 2 })
       })
 
+      const startTime = Date.now()
       await testTask.safeRun({ value: 1 })
+      const endTime = Date.now()
 
-      // Wait a bit for the timeout to occur and be logged
-      await new Promise(resolve => setTimeout(resolve, 5100))
+      // Task should complete quickly without waiting for listener
+      expect(endTime - startTime).toBeLessThan(50) // Should complete in under 50ms
 
+      // Wait for next tick to ensure listener was called
+      await new Promise(resolve => process.nextTick(resolve))
       expect(slowListener).toHaveBeenCalledTimes(1)
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'ExecutionRecord listener error:',
-        expect.any(Error)
-      )
-    }, 7000) // Increase test timeout to allow for the 5 second timeout + buffer
+    })
   })
 
   describe('error handling', () => {
@@ -238,6 +243,7 @@ describe('Task.listenExecutionRecords', () => {
       })
 
       const [result, error] = await testTask.safeRun({ value: 5 })
+      await new Promise(resolve => process.nextTick(resolve))
 
       // Task should complete successfully despite listener error
       expect(result).toEqual({ result: 10 })
