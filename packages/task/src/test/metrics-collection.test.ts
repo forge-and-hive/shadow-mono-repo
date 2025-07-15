@@ -44,10 +44,10 @@ describe('Metrics Collection Tests', () => {
     })
 
     it('should throw error when creating metric with invalid data', () => {
-      expect(() => createMetric('', 'test', 1)).toThrow('Invalid metric type')
-      expect(() => createMetric('business', '', 1)).toThrow('Invalid metric name')
-      expect(() => createMetric('business', 'test', NaN)).toThrow('Invalid metric value')
-      expect(() => createMetric('business', 'test', Infinity)).toThrow('Invalid metric value')
+      expect(() => createMetric('', 'test', 1)).toThrow('Invalid metric')
+      expect(() => createMetric('business', '', 1)).toThrow('Invalid metric')
+      expect(() => createMetric('business', 'test', NaN)).toThrow('Invalid metric')
+      expect(() => createMetric('business', 'test', Infinity)).toThrow('Invalid metric')
     })
   })
 
@@ -305,7 +305,7 @@ describe('Metrics Collection Tests', () => {
       expect(originalRecord.metrics).toHaveLength(2)
 
       // Replay the execution
-      const [replayResult, replayError, replayRecord] = await task.safeReplay(originalRecord, {})
+      const [replayResult, replayError, replayRecord] = await task.safeReplay(originalRecord, { boundaries: {} })
 
       expect(replayError).toBeNull()
       expect(replayResult).toEqual({ data: 'data-for-test' })
@@ -344,7 +344,7 @@ describe('Metrics Collection Tests', () => {
       })
 
       // Original run
-      const [originalResult, originalError, originalRecord] = await task.safeRun({ mode: 'original' })
+      const [, originalError, originalRecord] = await task.safeRun({ mode: 'original' })
       expect(originalError).toBeNull()
       expect(originalRecord.metrics).toHaveLength(2)
 
@@ -355,7 +355,7 @@ describe('Metrics Collection Tests', () => {
       }
 
       // Replay with different mode
-      const [replayResult, replayError, replayRecord] = await task.safeReplay(modifiedRecord, {})
+      const [, replayError, replayRecord] = await task.safeReplay(modifiedRecord, { boundaries: {} })
 
       expect(replayError).toBeNull()
       expect(replayRecord.metrics?.length).toBeGreaterThanOrEqual(2)

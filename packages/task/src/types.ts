@@ -47,11 +47,15 @@ export class TimingTracker {
     if (this.startTime === null) {return null}
 
     const endTime = Date.now()
-    return {
+    const result = {
       startTime: this.startTime,
       endTime,
       duration: endTime - this.startTime
     }
+
+    // Reset startTime so subsequent calls return null
+    this.startTime = null
+    return result
   }
 
   /**

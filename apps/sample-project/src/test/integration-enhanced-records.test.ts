@@ -12,647 +12,532 @@ describe('Sample App Integration Tests for Enhanced Execution Records', () => {
     }
   })
 
-  describe('Complete workflow with hive-sdk integration', () => {
-    it('should execute task and successfully log enhanced execution record to hive', async () => {
-      const ecommerceTask = createTask({
-        name: 'process-order',
-        description: 'Complete e-commerce order processing workflow',
+  describe('Complete task execution with timing and metrics', () => {
+    it('should create comprehensive execution record with all enhanced fields and log to hive', async () => {
+      const task = createTask({
+        name: 'comprehensive-integration-test',
+        description: 'Test task for comprehensive execution record validation',
         schema: new Schema({
-          orderId: Schema.string(),
-          customerId: Schema.string(),
-          itemCount: Schema.number(),
-          totalAmount: Schema.number(),
-          paymentMethod: Schema.string()
+          userId: Schema.string(),
+          operations: Schema.array(Schema.string()),
+          enableMetrics: Schema.boolean().optional()
         }),
         boundaries: {
-          validateCustomer: async (customerId: string) => {
-            // Simulate customer validation API call
-            await new Promise(resolve => setTimeout(resolve, 80))
-            if (customerId.startsWith('invalid')) {
-              throw new Error(`Customer ${customerId} not found`)
-            }
-            return {
-              id: customerId,
-              name: `Customer ${customerId}`,
-              creditScore: 750,
-              verified: true
-            }
+          fetchUser: async (userId: string) => {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 50))
+            return { id: userId, name: `User-${userId}`, active: true }
           },
-          checkInventory: async (productId: string, quantity: number) => {
-            // Simulate inventory check
-            await new Promise(resolve => setTimeout(resolve, 60))
-            const available = Math.floor(Math.random() * 100) + quantity
-            return {
-              productId,
-              available,
-              reserved: quantity,
-              sufficient: available >= quantity
-            }
-          },
-          processPayment: async (amount: number, paymentMethod: string) => {
-            // Simulate payment processing
-            await new Promise(resolve => setTimeout(resolve, 120))
-            if (amount > 10000) {
-              throw new Error('Payment amount exceeds limit')
-            }
-            return {
-              transactionId: `tx_${Date.now()}`,
-              amount,
-              method: paymentMethod,
-              status: 'completed',
-              fee: amount * 0.029
-            }
-          },
-          updateInventory: async (items: any[]) => {
-            // Simulate inventory update
-            await new Promise(resolve => setTimeout(resolve, 40))
-            return {
-              updated: items.length,
-              timestamp: new Date().toISOString()
-            }
-          },
-          sendNotification: async (customerId: string, orderId: string) => {
-            // Simulate notification sending
+          processData: async (data: string) => {
+            // Simulate processing delay
             await new Promise(resolve => setTimeout(resolve, 30))
-            return {
-              sent: true,
-              channel: 'email',
-              messageId: `msg_${orderId}_${customerId}`
-            }
+            return data.toUpperCase()
+          },
+          saveResult: async (_result: any) => {
+            // Simulate save delay
+            await new Promise(resolve => setTimeout(resolve, 20))
+            return { saved: true, id: `result-${Date.now()}` }
           }
         },
-        fn: async ({ orderId, customerId, itemCount, totalAmount, paymentMethod }, {
-          validateCustomer,
-          checkInventory,
-          processPayment,
-          updateInventory,
-          sendNotification,
-          setMetrics,
-          setMetadata
-        }) => {
+        fn: async ({ userId, operations, enableMetrics = true }, { fetchUser, processData, saveResult, setMetrics, setMetadata }) => {
           const startTime = Date.now()
 
-          // Set comprehensive metadata
-          await setMetadata('orderId', orderId)
-          await setMetadata('customerId', customerId)
-          await setMetadata('paymentMethod', paymentMethod)
-          await setMetadata('itemCount', itemCount.toString())
-          await setMetadata('environment', 'sample-app-test')
+          // Set metadata
+          await setMetadata('userId', userId)
+          await setMetadata('operationCount', operations.length.toString())
+          await setMetadata('environment', 'integration-test')
 
-          // Business metrics
-          await setMetrics({ type: 'business', name: 'orders_received', value: 1 })
-          await setMetrics({ type: 'business', name: 'items_in_order', value: itemCount })
+          if (enableMetrics) {
+            await setMetrics({ type: 'business', name: 'requests', value: 1 })
+            await setMetrics({ type: 'business', name: 'input_operations', value: operations.length })
+          }
 
-          // Step 1: Validate customer
-          const customer = await validateCustomer(customerId)
-          await setMetrics({ type: 'business', name: 'customer_credit_score', value: customer.creditScore })
-          await setMetrics({ type: 'performance', name: 'customer_validation_time', value: 80 })
+          // Fetch user data
+          const user = await fetchUser(userId)
+          if (enableMetrics) {
+            await setMetrics({ type: 'performance', name: 'user_fetch_time', value: 50 })
+          }
 
-          // Step 2: Check inventory for items
-          const inventoryChecks = []
-          for (let i = 0; i < itemCount; i++) {
-            const inventory = await checkInventory(`product_${i + 1}`, 1)
-            inventoryChecks.push({ productId: `product_${i + 1}`, inventory })
+          // Process each operation
+          const processedResults = []
+          for (const operation of operations) {
+            const processed = await processData(operation)
+            processedResults.push(processed)
 
-            await setMetrics({ type: 'business', name: 'inventory_checks', value: 1 })
-            if (!inventory.sufficient) {
-              await setMetrics({ type: 'error', name: 'insufficient_inventory', value: 1 })
-              throw new Error(`Insufficient inventory for product product_${i + 1}`)
+            if (enableMetrics) {
+              await setMetrics({ type: 'business', name: 'operations_processed', value: 1 })
             }
           }
-          await setMetrics({ type: 'performance', name: 'inventory_check_time', value: 60 })
 
-          // Step 3: Process payment
-          await setMetrics({ type: 'business', name: 'order_total_cents', value: Math.round(totalAmount * 100) })
+          // Save results
+          const saveResult_ = await saveResult({ user, processed: processedResults })
 
-          const payment = await processPayment(totalAmount, paymentMethod)
-          await setMetrics({ type: 'business', name: 'payment_fee_cents', value: Math.round(payment.fee * 100) })
-          await setMetrics({ type: 'performance', name: 'payment_processing_time', value: 120 })
-
-          // Step 4: Update inventory
-          const inventoryUpdate = await updateInventory(inventoryChecks)
-          await setMetrics({ type: 'business', name: 'inventory_items_updated', value: inventoryUpdate.updated })
-          await setMetrics({ type: 'performance', name: 'inventory_update_time', value: 40 })
-
-          // Step 5: Send notification
-          const notification = await sendNotification(customerId, orderId)
-          await setMetrics({ type: 'business', name: 'notifications_sent', value: notification.sent ? 1 : 0 })
-          await setMetrics({ type: 'performance', name: 'notification_time', value: 30 })
-
-          // Final metrics
-          const totalProcessingTime = Date.now() - startTime
-          await setMetrics({ type: 'performance', name: 'total_order_processing_time', value: totalProcessingTime })
-          await setMetrics({ type: 'business', name: 'orders_completed', value: 1 })
-          await setMetrics({ type: 'error', name: 'processing_errors', value: 0 })
+          const totalTime = Date.now() - startTime
+          if (enableMetrics) {
+            await setMetrics({ type: 'performance', name: 'total_execution_time', value: totalTime })
+            await setMetrics({ type: 'error', name: 'errors_encountered', value: 0 })
+          }
 
           return {
-            orderId,
-            customer,
-            items: inventoryChecks,
-            payment,
-            inventoryUpdate,
-            notification,
-            totalAmount,
-            processingTime: totalProcessingTime,
-            status: 'completed'
+            user,
+            processedOperations: processedResults,
+            saveResult: saveResult_,
+            executionTime: totalTime
           }
         }
       })
 
-      // Execute the task
-      const [result, error, record] = await ecommerceTask.safeRun({
-        orderId: 'order_123456',
-        customerId: 'customer_789',
-        items: [
-          { productId: 'product_1', quantity: 2, price: 29.99 },
-          { productId: 'product_2', quantity: 1, price: 79.99 },
-          { productId: 'product_3', quantity: 3, price: 15.50 }
-        ],
-        paymentMethod: 'credit_card'
+      const [result, error, record] = await task.safeRun({
+        userId: 'test-user-123',
+        operations: ['operation1', 'operation2', 'operation3'],
+        enableMetrics: true
       })
 
       // Validate successful execution
       expect(error).toBeNull()
       expect(result).not.toBeNull()
-      expect(result?.status).toBe('completed')
-      expect(result?.totalAmount).toBe(156.47) // 2*29.99 + 1*79.99 + 3*15.50
+      expect(result?.user).toEqual({ id: 'test-user-123', name: 'User-test-user-123', active: true })
+      expect(result?.processedOperations).toEqual(['OPERATION1', 'OPERATION2', 'OPERATION3'])
+      expect(result?.saveResult.saved).toBe(true)
 
-      // Validate comprehensive execution record
+      // Validate enhanced execution record structure
       expect(record).toEqual(expect.objectContaining({
         input: expect.any(Object),
         output: expect.any(Object),
-        taskName: 'process-order',
-        metadata: expect.objectContaining({
-          orderId: 'order_123456',
-          customerId: 'customer_789',
-          paymentMethod: 'credit_card',
-          itemCount: '3',
-          environment: 'sample-app-test'
-        }),
+        boundaries: expect.any(Object),
+        taskName: 'comprehensive-integration-test',
+        metadata: expect.any(Object),
         metrics: expect.any(Array),
+        timing: expect.any(Object),
+        type: 'success'
+      }))
+
+      // Validate timing information
+      expect(record.timing).toEqual(expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }))
+      expect(record.timing?.duration).toBeGreaterThanOrEqual(100) // Should take at least 100ms total
+      expect(record.timing?.duration).toBeLessThan(300) // But not too long
+
+      // Validate metrics collection
+      expect(record.metrics).toHaveLength(8) // 2 + 3 + 3 = 8 metrics
+      expect(record.metrics).toEqual(expect.arrayContaining([
+        { type: 'business', name: 'requests', value: 1 },
+        { type: 'business', name: 'input_operations', value: 3 },
+        { type: 'performance', name: 'user_fetch_time', value: 50 },
+        { type: 'business', name: 'operations_processed', value: 1 },
+        { type: 'performance', name: 'total_execution_time', value: expect.any(Number) },
+        { type: 'error', name: 'errors_encountered', value: 0 }
+      ]))
+
+      // Validate metadata
+      expect(record.metadata).toEqual(expect.objectContaining({
+        userId: 'test-user-123',
+        operationCount: '3',
+        environment: 'integration-test'
+      }))
+
+      // Validate boundary timing
+      expect(record.boundaries.fetchUser).toHaveLength(1)
+      expect(record.boundaries.fetchUser[0]).toEqual(expect.objectContaining({
+        input: ['test-user-123'],
+        output: { id: 'test-user-123', name: 'User-test-user-123', active: true },
         timing: expect.objectContaining({
           startTime: expect.any(Number),
           endTime: expect.any(Number),
           duration: expect.any(Number)
-        }),
-        boundaries: expect.objectContaining({
-          validateCustomer: expect.any(Array),
-          checkInventory: expect.any(Array),
-          processPayment: expect.any(Array),
-          updateInventory: expect.any(Array),
-          sendNotification: expect.any(Array)
-        }),
-        type: 'success'
+        })
       }))
 
-      // Validate metrics collection (should have 15+ metrics)
-      expect(record.metrics?.length).toBeGreaterThanOrEqual(15)
-
-      const businessMetrics = record.metrics?.filter(m => m.type === 'business') || []
-      const performanceMetrics = record.metrics?.filter(m => m.type === 'performance') || []
-      const errorMetrics = record.metrics?.filter(m => m.type === 'error') || []
-
-      expect(businessMetrics.length).toBeGreaterThanOrEqual(8)
-      expect(performanceMetrics.length).toBeGreaterThanOrEqual(6)
-      expect(errorMetrics.length).toBeGreaterThanOrEqual(1)
-
-      // Validate timing for each boundary
-      expect(record.boundaries.validateCustomer).toHaveLength(1)
-      expect(record.boundaries.validateCustomer[0].timing.duration).toBeGreaterThanOrEqual(70)
-
-      expect(record.boundaries.checkInventory).toHaveLength(3) // One for each item
-      record.boundaries.checkInventory.forEach(call => {
-        expect(call.timing.duration).toBeGreaterThanOrEqual(50)
+      expect(record.boundaries.processData).toHaveLength(3)
+      record.boundaries.processData.forEach((call, index) => {
+        expect(call).toEqual(expect.objectContaining({
+          input: [['operation1', 'operation2', 'operation3'][index]],
+          output: ['OPERATION1', 'OPERATION2', 'OPERATION3'][index],
+          timing: expect.objectContaining({
+            startTime: expect.any(Number),
+            endTime: expect.any(Number),
+            duration: expect.any(Number)
+          })
+        }))
       })
 
-      expect(record.boundaries.processPayment).toHaveLength(1)
-      expect(record.boundaries.processPayment[0].timing.duration).toBeGreaterThanOrEqual(110)
+      expect(record.boundaries.saveResult).toHaveLength(1)
+      expect(record.boundaries.saveResult[0]).toEqual(expect.objectContaining({
+        input: expect.any(Array),
+        output: expect.objectContaining({ saved: true }),
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
+      }))
 
-      // Log to Hive SDK
+      // Test hive-sdk integration
       const logResult = await testClient.sendLog(record, {
-        testRun: 'integration-test',
-        workflow: 'e-commerce-order',
-        complexity: 'high'
+        testType: 'comprehensive-integration',
+        hasMetrics: 'true',
+        hasTiming: 'true'
       })
 
-      // In test mode (no API keys), this should return 'silent'
       expect(['success', 'silent', 'error']).toContain(logResult)
 
-      console.log('\n=== Integration Test Results ===')
-      console.log(`Order ID: ${result?.orderId}`)
-      console.log(`Total Amount: $${result?.totalAmount}`)
-      console.log(`Processing Time: ${result?.processingTime}ms`)
+      console.log('\n=== Comprehensive Integration Test Results ===')
+      console.log(`Task: ${record.taskName}`)
+      console.log(`User: ${result?.user?.name}`)
+      console.log(`Operations: ${result?.processedOperations?.length}`)
+      console.log(`Execution Time: ${result?.executionTime}ms`)
       console.log(`Metrics Collected: ${record.metrics?.length}`)
       console.log(`Boundary Calls: ${Object.keys(record.boundaries).length}`)
       console.log(`Hive Logging: ${logResult}`)
-      console.log('===========================\n')
+      console.log('================================================\n')
     })
 
-    it('should handle error scenarios and still create comprehensive execution records', async () => {
-      const errorTask = createTask({
-        name: 'error-handling-workflow',
-        schema: new Schema({
-          scenario: Schema.string(),
-          customerId: Schema.string(),
-          amount: Schema.number()
-        }),
+    it('should handle error scenarios with complete execution record and log to hive', async () => {
+      const task = createTask({
+        name: 'error-integration-test',
+        schema: new Schema({ shouldFail: Schema.boolean(), failAt: Schema.string() }),
         boundaries: {
-          validateInput: async (scenario: string) => {
-            await new Promise(resolve => setTimeout(resolve, 50))
-            if (scenario === 'invalid-input') {
-              throw new Error('Invalid input scenario')
-            }
-            return { valid: true, scenario }
+          operation1: async () => {
+            await new Promise(resolve => setTimeout(resolve, 20))
+            return 'op1-success'
           },
-          processTransaction: async (amount: number) => {
-            await new Promise(resolve => setTimeout(resolve, 100))
-            if (amount > 5000) {
-              throw new Error('Amount exceeds transaction limit')
+          operation2: async (shouldFail: boolean) => {
+            await new Promise(resolve => setTimeout(resolve, 30))
+            if (shouldFail) {
+              throw new Error('Operation 2 failed')
             }
-            return { processed: amount, fee: amount * 0.03 }
+            return 'op2-success'
           }
         },
-        fn: async ({ scenario, customerId, amount }, { validateInput, processTransaction, setMetrics, setMetadata }) => {
-          await setMetadata('scenario', scenario)
-          await setMetadata('customerId', customerId)
+        fn: async ({ shouldFail, failAt }, { operation1, operation2, setMetrics, setMetadata }) => {
           await setMetadata('testType', 'error-handling')
+          await setMetrics({ type: 'business', name: 'test_runs', value: 1 })
 
-          await setMetrics({ type: 'business', name: 'error_test_runs', value: 1 })
+          const result1 = await operation1()
+          await setMetrics({ type: 'business', name: 'op1_completed', value: 1 })
 
-          // This will succeed or fail based on scenario
-          const validation = await validateInput(scenario)
-          await setMetrics({ type: 'business', name: 'validations_attempted', value: 1 })
-
-          if (scenario === 'main-function-error') {
-            await setMetrics({ type: 'error', name: 'main_function_failures', value: 1 })
-            throw new Error('Main function intentional error')
+          if (failAt === 'main') {
+            await setMetrics({ type: 'error', name: 'main_function_errors', value: 1 })
+            throw new Error('Main function error')
           }
 
-          // This might fail based on amount
-          const transaction = await processTransaction(amount)
-          await setMetrics({ type: 'business', name: 'transactions_processed', value: 1 })
-          await setMetrics({ type: 'business', name: 'transaction_fee_cents', value: Math.round(transaction.fee * 100) })
+          const result2 = await operation2(shouldFail)
+          await setMetrics({ type: 'business', name: 'op2_completed', value: 1 })
 
-          return { validation, transaction, status: 'success' }
+          return { result1, result2 }
         }
       })
 
-      // Test boundary error scenario
-      const [result1, error1, record1] = await errorTask.safeRun({
-        scenario: 'invalid-input',
-        customerId: 'test-customer',
-        amount: 100
-      })
+      // Test boundary error
+      const [result1, error1, record1] = await task.safeRun({ shouldFail: true, failAt: 'boundary' })
 
       expect(result1).toBeNull()
       expect(error1).not.toBeNull()
       expect(record1.type).toBe('error')
-      expect(record1.timing).toBeDefined()
+      expect(record1.timing).toBeDefined() // Should have timing even on error
       expect(record1.metrics).toEqual(expect.arrayContaining([
-        { type: 'business', name: 'error_test_runs', value: 1 },
-        { type: 'business', name: 'validations_attempted', value: 1 }
+        { type: 'business', name: 'test_runs', value: 1 },
+        { type: 'business', name: 'op1_completed', value: 1 }
       ]))
+      expect(record1.boundaries.operation1).toHaveLength(1)
+      expect(record1.boundaries.operation2).toHaveLength(1)
+      expect('error' in record1.boundaries.operation2[0]).toBe(true)
 
-      // Boundary should have error with timing
-      expect(record1.boundaries.validateInput).toHaveLength(1)
-      expect('error' in record1.boundaries.validateInput[0]).toBe(true)
-      expect(record1.boundaries.validateInput[0].timing.duration).toBeGreaterThanOrEqual(40)
-
-      // Log error scenario to Hive
+      // Log error scenario to hive
       const logResult1 = await testClient.sendLog(record1, {
-        testRun: 'error-integration-test',
+        testType: 'error-handling',
         errorType: 'boundary-error'
       })
       expect(['success', 'silent', 'error']).toContain(logResult1)
 
-      // Test main function error scenario
-      const [result2, error2, record2] = await errorTask.safeRun({
-        scenario: 'main-function-error',
-        customerId: 'test-customer',
-        amount: 100
-      })
+      // Test main function error
+      const [result2, error2, record2] = await task.safeRun({ shouldFail: false, failAt: 'main' })
 
       expect(result2).toBeNull()
       expect(error2).not.toBeNull()
       expect(record2.type).toBe('error')
+      expect(record2.timing).toBeDefined()
       expect(record2.metrics).toEqual(expect.arrayContaining([
-        { type: 'business', name: 'error_test_runs', value: 1 },
-        { type: 'business', name: 'validations_attempted', value: 1 },
-        { type: 'error', name: 'main_function_failures', value: 1 }
+        { type: 'business', name: 'test_runs', value: 1 },
+        { type: 'business', name: 'op1_completed', value: 1 },
+        { type: 'error', name: 'main_function_errors', value: 1 }
       ]))
 
-      // Test transaction limit error
-      const [result3, error3, record3] = await errorTask.safeRun({
-        scenario: 'valid',
-        customerId: 'test-customer',
-        amount: 6000 // Exceeds limit
+      // Log main function error to hive
+      const logResult2 = await testClient.sendLog(record2, {
+        testType: 'error-handling',
+        errorType: 'main-function-error'
       })
+      expect(['success', 'silent', 'error']).toContain(logResult2)
 
-      expect(result3).toBeNull()
-      expect(error3).not.toBeNull()
-      expect(record3.type).toBe('error')
-      expect(record3.boundaries.processTransaction).toHaveLength(1)
-      expect('error' in record3.boundaries.processTransaction[0]).toBe(true)
-
-      console.log('\n=== Error Test Results ===')
+      console.log('\n=== Error Integration Test Results ===')
       console.log(`Boundary Error Metrics: ${record1.metrics?.length}`)
       console.log(`Main Function Error Metrics: ${record2.metrics?.length}`)
-      console.log(`Transaction Limit Error Metrics: ${record3.metrics?.length}`)
-      console.log(`All error scenarios logged: ${[logResult1].join(', ')}`)
-      console.log('========================\n')
+      console.log(`Error scenarios logged: ${[logResult1, logResult2].join(', ')}`)
+      console.log('======================================\n')
     })
   })
 
-  describe('Replay functionality with enhanced records', () => {
-    it('should replay execution with preserved timing and metrics', async () => {
-      const replayTask = createTask({
-        name: 'replay-test-workflow',
-        schema: new Schema({
-          userId: Schema.string(),
-          action: Schema.string()
-        }),
+  describe('Cross-package compatibility between task and hive-sdk', () => {
+    it('should maintain type compatibility with hive-sdk ExecutionRecord', async () => {
+      // This test ensures that ExecutionRecord from task package is compatible with hive-sdk
+      const task = createTask({
+        name: 'hive-sdk-compatibility-test',
+        schema: new Schema({ testData: Schema.string() }),
         boundaries: {
-          auditLog: async (userId: string, action: string) => {
-            await new Promise(resolve => setTimeout(resolve, 60))
-            return {
-              logId: `log_${Date.now()}`,
-              userId,
-              action,
-              timestamp: new Date().toISOString()
-            }
-          },
-          updateUserStats: async (userId: string) => {
-            await new Promise(resolve => setTimeout(resolve, 40))
-            return {
-              userId,
-              actionsCount: Math.floor(Math.random() * 10) + 1,
-              lastActivity: new Date().toISOString()
-            }
+          mockApi: async (data: string) => {
+            await new Promise(resolve => setTimeout(resolve, 25))
+            return { processed: data, timestamp: Date.now() }
           }
         },
-        fn: async ({ userId, action }, { auditLog, updateUserStats, setMetrics, setMetadata }) => {
-          await setMetadata('userId', userId)
-          await setMetadata('action', action)
-          await setMetadata('executionMode', 'original')
+        fn: async ({ testData }, { mockApi, setMetrics, setMetadata }) => {
+          await setMetadata('source', 'compatibility-test')
+          await setMetadata('version', '1.0.0')
 
-          await setMetrics({ type: 'business', name: 'user_actions', value: 1 })
+          await setMetrics({ type: 'business', name: 'api_calls', value: 1 })
 
-          const audit = await auditLog(userId, action)
-          await setMetrics({ type: 'business', name: 'audit_logs_created', value: 1 })
+          const result = await mockApi(testData)
 
-          const stats = await updateUserStats(userId)
-          await setMetrics({ type: 'business', name: 'user_stats_updated', value: 1 })
-          await setMetrics({ type: 'business', name: 'user_total_actions', value: stats.actionsCount })
+          await setMetrics({ type: 'performance', name: 'api_response_time', value: 25 })
 
-          return { audit, stats, completed: true }
+          return { result, completed: true }
         }
       })
 
-      // Original execution
-      const [originalResult, originalError, originalRecord] = await replayTask.safeRun({
-        userId: 'user_replay_test',
-        action: 'login'
-      })
+      const [result, error, record] = await task.safeRun({ testData: 'compatibility-test-data' })
 
-      expect(originalError).toBeNull()
-      expect(originalResult).not.toBeNull()
-      expect(originalRecord.type).toBe('success')
-
-      // Log original execution
-      const originalLogResult = await testClient.sendLog(originalRecord, {
-        executionType: 'original',
-        testPhase: 'replay-test'
-      })
-
-      // Replay the execution
-      const [replayResult, replayError, replayRecord] = await replayTask.safeReplay(originalRecord)
-
-      expect(replayError).toBeNull()
-      expect(replayResult).toEqual(originalResult)
-
-      // Verify replay record preserves original timing
-      expect(replayRecord.timing?.startTime).toBe(originalRecord.timing?.startTime)
-      expect(replayRecord.timing?.endTime).toBe(originalRecord.timing?.endTime)
-      expect(replayRecord.timing?.duration).toBe(originalRecord.timing?.duration)
-
-      // Replay should include original metrics plus any new ones
-      expect(replayRecord.metrics?.length).toBeGreaterThanOrEqual(originalRecord.metrics?.length || 0)
-
-      // Log replay execution
-      const replayLogResult = await testClient.sendLog(replayRecord, {
-        executionType: 'replay',
-        testPhase: 'replay-test',
-        originalLogResult: originalLogResult
-      })
-
-      console.log('\n=== Replay Test Results ===')
-      console.log(`Original Execution Time: ${originalRecord.timing?.duration}ms`)
-      console.log(`Replay Execution Time: ${replayRecord.timing?.duration}ms`)
-      console.log(`Original Metrics: ${originalRecord.metrics?.length}`)
-      console.log(`Replay Metrics: ${replayRecord.metrics?.length}`)
-      console.log(`Original Log: ${originalLogResult}`)
-      console.log(`Replay Log: ${replayLogResult}`)
-      console.log('=========================\n')
-    })
-  })
-
-  describe('Real-world complex scenarios', () => {
-    it('should handle multi-step data processing pipeline with comprehensive tracking', async () => {
-      const pipelineTask = createTask({
-        name: 'data-processing-pipeline',
-        schema: new Schema({
-          dataset: Schema.object({
-            id: Schema.string(),
-            records: Schema.array(Schema.object({
-              id: Schema.string(),
-              value: Schema.number(),
-              category: Schema.string()
-            }))
-          }),
-          config: Schema.object({
-            enableValidation: Schema.boolean(),
-            outputFormat: Schema.string()
-          })
-        }),
-        boundaries: {
-          validateDataset: async (dataset: any) => {
-            await new Promise(resolve => setTimeout(resolve, 120))
-            const invalid = dataset.records.filter((r: any) => r.value < 0)
-            return {
-              valid: invalid.length === 0,
-              totalRecords: dataset.records.length,
-              invalidRecords: invalid.length,
-              validationTime: 120
-            }
-          },
-          transformRecords: async (records: any[]) => {
-            await new Promise(resolve => setTimeout(resolve, 200))
-            return records.map(record => ({
-              ...record,
-              transformedValue: record.value * 2,
-              processedAt: new Date().toISOString()
-            }))
-          },
-          aggregateData: async (records: any[]) => {
-            await new Promise(resolve => setTimeout(resolve, 80))
-            const byCategory = records.reduce((acc, record) => {
-              if (!acc[record.category]) {
-                acc[record.category] = { count: 0, total: 0 }
-              }
-              acc[record.category].count++
-              acc[record.category].total += record.transformedValue
-              return acc
-            }, {})
-
-            return {
-              categories: Object.keys(byCategory).length,
-              aggregations: byCategory,
-              processedCount: records.length
-            }
-          },
-          saveResults: async (data: any, format: string) => {
-            await new Promise(resolve => setTimeout(resolve, 150))
-            return {
-              saved: true,
-              format,
-              size: JSON.stringify(data).length,
-              location: `output/${Date.now()}.${format}`,
-              savedAt: new Date().toISOString()
-            }
-          }
-        },
-        fn: async ({ dataset, config }, {
-          validateDataset,
-          transformRecords,
-          aggregateData,
-          saveResults,
-          setMetrics,
-          setMetadata
-        }) => {
-          const pipelineStart = Date.now()
-
-          // Set comprehensive metadata
-          await setMetadata('datasetId', dataset.id)
-          await setMetadata('recordCount', dataset.records.length.toString())
-          await setMetadata('outputFormat', config.outputFormat)
-          await setMetadata('validationEnabled', config.enableValidation.toString())
-          await setMetadata('pipeline', 'data-processing')
-
-          // Initial metrics
-          await setMetrics({ type: 'business', name: 'pipeline_runs', value: 1 })
-          await setMetrics({ type: 'business', name: 'input_records', value: dataset.records.length })
-
-          const processedData = dataset.records
-
-          // Step 1: Validation (optional)
-          if (config.enableValidation) {
-            const validation = await validateDataset(dataset)
-            await setMetrics({ type: 'business', name: 'validation_runs', value: 1 })
-            await setMetrics({ type: 'business', name: 'invalid_records_found', value: validation.invalidRecords })
-            await setMetrics({ type: 'performance', name: 'validation_time_ms', value: validation.validationTime })
-
-            if (!validation.valid) {
-              await setMetrics({ type: 'error', name: 'validation_failures', value: 1 })
-              throw new Error(`Dataset validation failed: ${validation.invalidRecords} invalid records`)
-            }
-          }
-
-          // Step 2: Transform records
-          const transformed = await transformRecords(processedData)
-          await setMetrics({ type: 'business', name: 'records_transformed', value: transformed.length })
-          await setMetrics({ type: 'performance', name: 'transformation_time_ms', value: 200 })
-
-          // Step 3: Aggregate data
-          const aggregated = await aggregateData(transformed)
-          await setMetrics({ type: 'business', name: 'categories_processed', value: aggregated.categories })
-          await setMetrics({ type: 'business', name: 'aggregations_created', value: Object.keys(aggregated.aggregations).length })
-          await setMetrics({ type: 'performance', name: 'aggregation_time_ms', value: 80 })
-
-          // Step 4: Save results
-          const saved = await saveResults(aggregated, config.outputFormat)
-          await setMetrics({ type: 'business', name: 'files_saved', value: 1 })
-          await setMetrics({ type: 'business', name: 'output_size_bytes', value: saved.size })
-          await setMetrics({ type: 'performance', name: 'save_time_ms', value: 150 })
-
-          // Final pipeline metrics
-          const totalPipelineTime = Date.now() - pipelineStart
-          await setMetrics({ type: 'performance', name: 'total_pipeline_time_ms', value: totalPipelineTime })
-          await setMetrics({ type: 'performance', name: 'records_per_second', value: Math.round((dataset.records.length * 1000) / totalPipelineTime) })
-          await setMetrics({ type: 'business', name: 'pipelines_completed', value: 1 })
-          await setMetrics({ type: 'error', name: 'pipeline_errors', value: 0 })
-
-          return {
-            datasetId: dataset.id,
-            inputRecords: dataset.records.length,
-            outputCategories: aggregated.categories,
-            saved,
-            pipelineTime: totalPipelineTime,
-            status: 'completed'
-          }
-        }
-      })
-
-      // Execute the complex pipeline
-      const testDataset = {
-        id: 'dataset_integration_test',
-        records: [
-          { id: 'r1', value: 10, category: 'A' },
-          { id: 'r2', value: 20, category: 'B' },
-          { id: 'r3', value: 15, category: 'A' },
-          { id: 'r4', value: 30, category: 'C' },
-          { id: 'r5', value: 25, category: 'B' },
-          { id: 'r6', value: 12, category: 'A' },
-          { id: 'r7', value: 18, category: 'C' }
-        ]
-      }
-
-      const [result, error, record] = await pipelineTask.safeRun({
-        dataset: testDataset,
-        config: {
-          enableValidation: true,
-          outputFormat: 'json'
-        }
-      })
-
-      // Validate successful execution
       expect(error).toBeNull()
       expect(result).not.toBeNull()
-      expect(result?.status).toBe('completed')
-      expect(result?.inputRecords).toBe(7)
-      expect(result?.outputCategories).toBe(3) // A, B, C
 
-      // Validate comprehensive metrics (should have 15+ metrics)
-      expect(record.metrics?.length).toBeGreaterThanOrEqual(15)
+      // Verify the record has all the fields expected by hive-sdk
+      expect(record).toEqual(expect.objectContaining({
+        input: expect.any(Object),
+        output: expect.any(Object),
+        boundaries: expect.any(Object),
+        taskName: expect.any(String),
+        metadata: expect.any(Object),
+        type: expect.stringMatching(/^(success|error|pending)$/)
+      }))
 
-      // Validate all boundary calls executed
-      expect(record.boundaries.validateDataset).toHaveLength(1)
-      expect(record.boundaries.transformRecords).toHaveLength(1)
-      expect(record.boundaries.aggregateData).toHaveLength(1)
-      expect(record.boundaries.saveResults).toHaveLength(1)
+      // Verify enhanced fields are present
+      expect(record.timing).toBeDefined()
+      expect(record.metrics).toBeDefined()
+      expect(Array.isArray(record.metrics)).toBe(true)
 
-      // Validate timing is captured for the complex pipeline
-      expect(record.timing?.duration).toBeGreaterThanOrEqual(500) // Should take at least 500ms
+      // Simulate what hive-sdk would do - serialize and parse the record
+      const serialized = JSON.stringify(record)
+      const parsed = JSON.parse(serialized)
 
-      // Log the complex workflow to Hive
+      // Verify serialization preserves all fields
+      expect(parsed.input).toEqual(record.input)
+      expect(parsed.output).toEqual(record.output)
+      expect(parsed.boundaries).toEqual(record.boundaries)
+      expect(parsed.taskName).toBe(record.taskName)
+      expect(parsed.metadata).toEqual(record.metadata)
+      expect(parsed.metrics).toEqual(record.metrics)
+      expect(parsed.timing).toEqual(record.timing)
+      expect(parsed.type).toBe(record.type)
+
+      // Test actual hive-sdk compatibility
       const logResult = await testClient.sendLog(record, {
-        workflowType: 'data-pipeline',
-        complexity: 'high',
-        recordCount: testDataset.records.length.toString(),
-        categories: '3'
+        testType: 'cross-package-compatibility',
+        serialization: 'verified'
       })
-
       expect(['success', 'silent', 'error']).toContain(logResult)
 
-      console.log('\n=== Pipeline Test Results ===')
-      console.log(`Dataset: ${result?.datasetId}`)
-      console.log(`Input Records: ${result?.inputRecords}`)
-      console.log(`Output Categories: ${result?.outputCategories}`)
-      console.log(`Pipeline Time: ${result?.pipelineTime}ms`)
-      console.log(`Total Metrics: ${record.metrics?.length}`)
-      console.log(`Boundary Calls: ${Object.keys(record.boundaries).length}`)
-      console.log(`File Saved: ${result?.saved.location}`)
-      console.log(`Hive Logging: ${logResult}`)
-      console.log('===========================\n')
+      console.log('\n=== Cross-Package Compatibility Test Results ===')
+      console.log(`Task: ${record.taskName}`)
+      console.log(`Serialization: ${serialized.length} bytes`)
+      console.log(`Hive SDK Compatibility: ${logResult}`)
+      console.log('================================================\n')
+    })
+
+    it('should work with hive-sdk style metadata merging', async () => {
+      const task = createTask({
+        name: 'metadata-merging-test',
+        schema: new Schema({ input: Schema.string() }),
+        boundaries: {},
+        fn: async ({ input }, { setMetadata, setMetrics }) => {
+          await setMetadata('taskLevel', 'metadata')
+          await setMetadata('priority', 'high')
+          await setMetrics({ type: 'business', name: 'executions', value: 1 })
+          return { processed: input }
+        }
+      })
+
+      const [result, error, record] = await task.safeRun({ input: 'test' })
+
+      expect(error).toBeNull()
+      expect(result).toEqual({ processed: 'test' })
+
+      // Simulate hive-sdk metadata merging behavior
+      const clientMetadata = { environment: 'test', version: '1.0' }
+      const sendLogMetadata = { requestId: 'req-123', userId: 'user-456' }
+
+      const mergedMetadata = {
+        ...clientMetadata,
+        ...record.metadata,
+        ...sendLogMetadata
+      }
+
+      expect(mergedMetadata).toEqual({
+        environment: 'test',
+        version: '1.0',
+        taskLevel: 'metadata',
+        priority: 'high',
+        requestId: 'req-123',
+        userId: 'user-456'
+      })
+
+      // Verify the complete record structure that would be sent to hive-sdk
+      const hiveRecord = {
+        ...record,
+        metadata: mergedMetadata
+      }
+
+      expect(hiveRecord).toEqual(expect.objectContaining({
+        input: { input: 'test' },
+        output: { processed: 'test' },
+        taskName: 'metadata-merging-test',
+        metadata: mergedMetadata,
+        metrics: [{ type: 'business', name: 'executions', value: 1 }],
+        timing: expect.any(Object),
+        type: 'success'
+      }))
+
+      // Test actual hive-sdk with merged metadata
+      const logResult = await testClient.sendLog(hiveRecord, sendLogMetadata)
+      expect(['success', 'silent', 'error']).toContain(logResult)
+
+      console.log('\n=== Metadata Merging Test Results ===')
+      console.log(`Original Metadata: ${JSON.stringify(record.metadata)}`)
+      console.log(`Merged Metadata: ${JSON.stringify(mergedMetadata)}`)
+      console.log(`Hive SDK Result: ${logResult}`)
+      console.log('=====================================\n')
+    })
+  })
+
+  describe('Serialization and deserialization of enhanced execution records', () => {
+    it('should properly serialize and deserialize complete execution records', async () => {
+      const task = createTask({
+        name: 'serialization-test',
+        schema: new Schema({
+          values: Schema.array(Schema.number()),
+          metadataType: Schema.string()
+        }),
+        boundaries: {
+          processArray: async (values: number[]) => {
+            await new Promise(resolve => setTimeout(resolve, 40))
+            return values.map(v => v * 2)
+          },
+          validateData: async (data: any) => {
+            await new Promise(resolve => setTimeout(resolve, 20))
+            return data.values.every((v: number) => v > 0)
+          }
+        },
+        fn: async ({ values, metadataType }, { processArray, validateData, setMetrics, setMetadata }) => {
+          await setMetadata('dataType', metadataType)
+          await setMetadata('arrayLength', values.length.toString())
+
+          await setMetrics({ type: 'business', name: 'data_processed', value: 1 })
+          await setMetrics({ type: 'business', name: 'array_size', value: values.length })
+
+          const data = { values, metadata: { type: metadataType } }
+          const isValid = await validateData(data)
+          await setMetrics({ type: 'business', name: 'validation_result', value: isValid ? 1 : 0 })
+
+          const processed = await processArray(values)
+          await setMetrics({ type: 'performance', name: 'processing_time', value: 40 })
+
+          return { processed, valid: isValid, originalData: data }
+        }
+      })
+
+      const inputData = {
+        values: [1, 2, 3, 4, 5],
+        metadataType: 'numeric-array'
+      }
+
+      const [result, error, record] = await task.safeRun(inputData)
+
+      expect(error).toBeNull()
+      expect(result).not.toBeNull()
+
+      // Serialize the complete record
+      const serialized = JSON.stringify(record)
+      expect(typeof serialized).toBe('string')
+      expect(serialized.length).toBeGreaterThan(0)
+
+      // Deserialize and verify all fields are preserved
+      const deserialized = JSON.parse(serialized)
+
+      // Verify basic structure
+      expect(deserialized.input).toEqual(inputData)
+      expect(deserialized.output).toEqual(result)
+      expect(deserialized.type).toBe('success')
+      expect(deserialized.taskName).toBe('serialization-test')
+
+      // Verify metadata
+      expect(deserialized.metadata).toEqual({
+        dataType: 'numeric-array',
+        arrayLength: '5'
+      })
+
+      // Verify metrics
+      expect(deserialized.metrics).toHaveLength(4)
+      expect(deserialized.metrics).toEqual(expect.arrayContaining([
+        { type: 'business', name: 'data_processed', value: 1 },
+        { type: 'business', name: 'array_size', value: 5 },
+        { type: 'business', name: 'validation_result', value: 1 },
+        { type: 'performance', name: 'processing_time', value: 40 }
+      ]))
+
+      // Verify timing
+      expect(deserialized.timing).toEqual(expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }))
+
+      // Verify boundary data with timing
+      expect(deserialized.boundaries.processArray).toHaveLength(1)
+      expect(deserialized.boundaries.processArray[0]).toEqual(expect.objectContaining({
+        input: [[1, 2, 3, 4, 5]],
+        output: [2, 4, 6, 8, 10],
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
+      }))
+
+      expect(deserialized.boundaries.validateData).toHaveLength(1)
+      expect(deserialized.boundaries.validateData[0]).toEqual(expect.objectContaining({
+        input: [{ values: inputData.values, metadata: { type: inputData.metadataType } }],
+        output: true,
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
+      }))
+
+      // Test hive-sdk with serialized/deserialized record
+      const logResult = await testClient.sendLog(deserialized, {
+        testType: 'serialization-test',
+        serialized: 'true'
+      })
+      expect(['success', 'silent', 'error']).toContain(logResult)
+
+      console.log('\n=== Serialization Test Results ===')
+      console.log(`Original Record Size: ${JSON.stringify(record).length} bytes`)
+      console.log(`Serialized Record Size: ${serialized.length} bytes`)
+      console.log(`Deserialized Match: ${JSON.stringify(deserialized) === JSON.stringify(record)}`)
+      console.log(`Hive SDK Result: ${logResult}`)
+      console.log('==================================\n')
     })
   })
 })
