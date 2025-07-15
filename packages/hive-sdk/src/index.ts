@@ -3,6 +3,11 @@ import debug from 'debug'
 
 const log = debug('hive-sdk')
 
+// Metadata interface
+export interface Metadata {
+  [key: string]: string
+}
+
 // Import ExecutionRecord type from task package
 export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B = unknown> {
   input: InputType
@@ -10,15 +15,9 @@ export interface ExecutionRecord<InputType = unknown, OutputType = unknown, B = 
   error?: string
   boundaries?: B
   taskName?: string
-  metadata?: Record<string, string>
+  metadata?: Metadata
   type?: 'success' | 'error' | 'pending'
 }
-
-// Metadata interface
-export interface Metadata {
-  [key: string]: string
-}
-
 
 // Configuration interface for HiveLogClient
 export interface HiveLogClientConfig {
