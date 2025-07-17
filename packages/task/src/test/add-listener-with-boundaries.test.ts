@@ -30,11 +30,22 @@ describe('Listener with boundaries', () => {
       boundaries: {
         getTen: [{
           input: [],
-          output: 10
+          output: 10,
+          timing: expect.objectContaining({
+            startTime: expect.any(Number),
+            endTime: expect.any(Number),
+            duration: expect.any(Number)
+          })
         }]
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })
@@ -73,11 +84,22 @@ describe('Listener with boundaries', () => {
       boundaries: {
         getTen: [{
           input: [],
-          error: 'Network error'
+          error: 'Network error',
+          timing: expect.objectContaining({
+            startTime: expect.any(Number),
+            endTime: expect.any(Number),
+            duration: expect.any(Number)
+          })
         }]
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'error'
     }])
   })
@@ -109,11 +131,22 @@ describe('Listener with boundaries', () => {
       boundaries: {
         addNumbers: [{
           input: [3, 7],
-          output: 10
+          output: 10,
+          timing: expect.objectContaining({
+            startTime: expect.any(Number),
+            endTime: expect.any(Number),
+            duration: expect.any(Number)
+          })
         }]
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })
@@ -147,11 +180,22 @@ describe('Listener with boundaries', () => {
       boundaries: {
         processValue: [{
           input: [undefined],
-          output: 0
+          output: 0,
+          timing: expect.objectContaining({
+            startTime: expect.any(Number),
+            endTime: expect.any(Number),
+            duration: expect.any(Number)
+          })
         }]
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })
@@ -187,16 +231,32 @@ describe('Listener with boundaries', () => {
         multiplyByTwo: [
           {
             input: [3],
-            output: 6
+            output: 6,
+            timing: expect.objectContaining({
+              startTime: expect.any(Number),
+              endTime: expect.any(Number),
+              duration: expect.any(Number)
+            })
           },
           {
             input: [6],
-            output: 12
+            output: 12,
+            timing: expect.objectContaining({
+              startTime: expect.any(Number),
+              endTime: expect.any(Number),
+              duration: expect.any(Number)
+            })
           }
         ]
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })
@@ -238,11 +298,22 @@ describe('Listener with boundaries', () => {
       boundaries: {
         getResult: [{
           input: [3],
-          error: 'Number too small'
+          error: 'Number too small',
+          timing: expect.objectContaining({
+            startTime: expect.any(Number),
+            endTime: expect.any(Number),
+            duration: expect.any(Number)
+          })
         }]
       },
       taskName: 'test',
       metadata: {},
+      metrics: [],
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      }),
       type: 'success'
     }])
   })

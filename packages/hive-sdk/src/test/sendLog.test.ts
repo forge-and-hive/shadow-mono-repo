@@ -73,8 +73,16 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
         taskName: 'complex-task',
         type: 'success' as const,
         boundaries: {
-          database: [{ input: 'SELECT * FROM users', output: [{ id: 123 }], error: null }],
-          api: [{ input: { endpoint: '/auth' }, output: { token: 'jwt123' }, error: null }]
+          database: [{
+            input: ['SELECT * FROM users'],
+            output: [{ id: 123 }],
+            timing: { startTime: 1000, endTime: 1100, duration: 100 }
+          }],
+          api: [{
+            input: [{ endpoint: '/auth' }],
+            output: { token: 'jwt123' },
+            timing: { startTime: 1200, endTime: 1250, duration: 50 }
+          }]
         },
         metadata: { environment: 'test' }
       }
@@ -93,8 +101,16 @@ describe('HiveLogClient sendLog with ExecutionRecord', () => {
             taskName: 'complex-task',
             type: 'success',
             boundaries: {
-              database: [{ input: 'SELECT * FROM users', output: [{ id: 123 }], error: null }],
-              api: [{ input: { endpoint: '/auth' }, output: { token: 'jwt123' }, error: null }]
+              database: [{
+                input: ['SELECT * FROM users'],
+                output: [{ id: 123 }],
+                timing: { startTime: 1000, endTime: 1100, duration: 100 }
+              }],
+              api: [{
+                input: [{ endpoint: '/auth' }],
+                output: { token: 'jwt123' },
+                timing: { startTime: 1200, endTime: 1250, duration: 50 }
+              }]
             },
             metadata: { environment: 'test' }
           })

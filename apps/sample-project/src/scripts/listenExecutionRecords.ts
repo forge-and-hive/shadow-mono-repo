@@ -1,7 +1,10 @@
 /* eslint-disable no-console */
+import dotenv from 'dotenv'
 import { Task } from '@forgehive/task'
 import { createHiveLogClient } from '@forgehive/hive-sdk'
 import { getPrice } from '../tasks/stock/getPrice'
+
+dotenv.config()
 
 // Global listener setup example
 const client = createHiveLogClient({
@@ -19,7 +22,7 @@ async function main(): Promise<void> {
   console.log('Running global listener example...')
 
   // This will trigger the global listener
-  const [result, error] = await getPrice.safeRun({
+  const [result, error, record] = await getPrice.safeRun({
     ticker: 'AAPL'
   })
 
@@ -29,6 +32,7 @@ async function main(): Promise<void> {
   }
 
   console.log('Task result:', result)
+  console.log('Task record:', record)
   console.log('Example completed - check the logs above')
 }
 

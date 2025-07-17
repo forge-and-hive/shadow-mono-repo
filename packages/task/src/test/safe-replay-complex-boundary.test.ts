@@ -1,5 +1,5 @@
 import { Schema } from '@forgehive/schema'
-import { createTask, ExecutionRecord, getExecutionRecordType } from '../index'
+import { createTask, ExecutionRecord, getExecutionRecordType, BoundaryRecord } from '../index'
 
 describe('Complex boundary replay tests', () => {
   // Helper function to create ExecutionRecord with computed type
@@ -190,21 +190,41 @@ describe('Complex boundary replay tests', () => {
                 { ticker: 'MSFT', quantity: 5 },
                 { ticker: 'GOOGL', quantity: 8 }
               ]
+            },
+            timing: {
+              startTime: 1000,
+              endTime: 1100,
+              duration: 100
             }
           }
         ],
         fetchPrice: [
           {
             input: ['AAPL'],
-            output: 190.50
+            output: 190.50,
+            timing: {
+              startTime: 1100,
+              endTime: 1200,
+              duration: 100
+            }
           },
           {
             input: ['MSFT'],
-            output: 405.75
+            output: 405.75,
+            timing: {
+              startTime: 1200,
+              endTime: 1300,
+              duration: 100
+            }
           },
           {
             input: ['GOOGL'],
-            output: 161.16
+            output: 161.16,
+            timing: {
+              startTime: 1300,
+              endTime: 1400,
+              duration: 100
+            }
           }
         ]
       }
@@ -239,6 +259,22 @@ describe('Complex boundary replay tests', () => {
     // Verify that boundary calls were properly replayed
     expect(replayLog.boundaries.fetchPortfolio).toHaveLength(1)
     expect(replayLog.boundaries.fetchPrice).toHaveLength(3)
+
+    // Verify timing information is preserved
+    expect(replayLog.boundaries.fetchPortfolio[0]).toMatchObject({
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
+    expect(replayLog.boundaries.fetchPrice[0]).toMatchObject({
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
   })
 
   it('Should handle errors during replay', async () => {
@@ -258,21 +294,41 @@ describe('Complex boundary replay tests', () => {
                 { ticker: 'MSFT', quantity: 5 },
                 { ticker: 'GOOGL', quantity: 8 }
               ]
+            },
+            timing: {
+              startTime: 2000,
+              endTime: 2100,
+              duration: 100
             }
           }
         ],
         fetchPrice: [
           {
             input: ['AAPL'],
-            output: 190.50
+            output: 190.50,
+            timing: {
+              startTime: 2100,
+              endTime: 2200,
+              duration: 100
+            }
           },
           {
             input: ['MSFT'],
-            output: 405.75
+            output: 405.75,
+            timing: {
+              startTime: 2200,
+              endTime: 2300,
+              duration: 100
+            }
           },
           {
             input: ['GOOGL'],
-            error: 'Price data not available for ticker: GOOGL'
+            error: 'Price data not available for ticker: GOOGL',
+            timing: {
+              startTime: 2300,
+              endTime: 2350,
+              duration: 50
+            }
           }
         ]
       }
@@ -304,6 +360,15 @@ describe('Complex boundary replay tests', () => {
     )
     expect(googPriceCall).toBeDefined()
     expect(googPriceCall?.error).toBe('Price data not available for ticker: GOOGL')
+
+    // Verify timing information is preserved even with errors
+    expect(googPriceCall).toMatchObject({
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
   })
 
   it('Should support mixed replay with some boundaries in replay mode and others in proxy mode', async () => {
@@ -335,21 +400,41 @@ describe('Complex boundary replay tests', () => {
                 { ticker: 'MSFT', quantity: 5 },
                 { ticker: 'GOOGL', quantity: 8 }
               ]
+            },
+            timing: {
+              startTime: 3000,
+              endTime: 3100,
+              duration: 100
             }
           }
         ],
         fetchPrice: [
           {
             input: ['AAPL'],
-            output: 190.50
+            output: 190.50,
+            timing: {
+              startTime: 3100,
+              endTime: 3200,
+              duration: 100
+            }
           },
           {
             input: ['MSFT'],
-            output: 405.75
+            output: 405.75,
+            timing: {
+              startTime: 3200,
+              endTime: 3300,
+              duration: 100
+            }
           },
           {
             input: ['GOOGL'],
-            output: 161.16
+            output: 161.16,
+            timing: {
+              startTime: 3300,
+              endTime: 3400,
+              duration: 100
+            }
           }
         ]
       }
@@ -389,5 +474,25 @@ describe('Complex boundary replay tests', () => {
     // Verify the log shows the mixed sources correctly
     expect(replayLog.boundaries.fetchPortfolio).toHaveLength(1)
     expect(replayLog.boundaries.fetchPrice).toHaveLength(3)
+
+    // Verify timing information for mixed execution
+    expect(replayLog.boundaries.fetchPortfolio[0]).toMatchObject({
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
+
+    // All price fetches should have timing since they execute in proxy mode
+    replayLog.boundaries.fetchPrice.forEach((call: BoundaryRecord) => {
+      expect(call).toMatchObject({
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
+      })
+    })
   })
 })

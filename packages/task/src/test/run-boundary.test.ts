@@ -12,7 +12,15 @@ describe('Run boundary tests', function () {
     const runTape = identity.getRunData()
 
     expect(runTape.length).toBe(1)
-    expect(runTape[0]).toEqual({ input: [{ value: 5 }], output: { value: 5 } })
+    expect(runTape[0]).toEqual({
+      input: [{ value: 5 }],
+      output: { value: 5 },
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
   })
 
   it('Should only add a record if run is active', async function () {
@@ -41,7 +49,15 @@ describe('Run boundary tests', function () {
     const runTape = identity.getRunData()
 
     expect(runTape.length).toBe(1)
-    expect(runTape[0]).toEqual({ input: [{ value: 5 }], output: { value: 5 } })
+    expect(runTape[0]).toEqual({
+      input: [{ value: 5 }],
+      output: { value: 5 },
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
   })
 
   it('Should have run elements from this run', async function () {
@@ -59,6 +75,14 @@ describe('Run boundary tests', function () {
     const runTape = identity.getRunData()
 
     expect(runTape.length).toBe(1)
-    expect(runTape[0]).toEqual({ input: [{ value: 5 }], output: { value: 5 } })
+    expect(runTape[0]).toEqual({
+      input: [{ value: 5 }],
+      output: { value: 5 },
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
+    })
   })
 })

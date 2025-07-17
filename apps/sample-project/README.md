@@ -11,6 +11,8 @@ This project showcases how to use the ForgeHive framework's task execution and l
 - Task execution using `@forgehive/task`
 - Automatic execution logging using `@forgehive/hive-sdk`
 - Global execution listeners with `Task.listenExecutionRecords()`
+- **NEW**: Comprehensive metrics collection with `setMetrics` boundary
+- **NEW**: Performance timing tracking for all task executions
 - Type-safe operations with TypeScript
 - PII filtering and task filtering examples
 
@@ -34,6 +36,8 @@ pnpm start
   - `listenExecutionRecords.ts` - Global listener setup
   - `manualFiltering.ts` - Manual logging with filtering and PII removal
   - `directLogging.ts` - Direct sendLog usage for one-off logging
+  - **NEW**: `metricsDemo.ts` - Comprehensive metrics collection demonstration
+  - **NEW**: `stockMetrics.ts` - Real-world stock metrics example
 - `src/test/` - Test files
 
 ## New: Automatic Execution Logging
@@ -80,6 +84,57 @@ pnpm build
 node dist/scripts/listenExecutionRecords.js
 node dist/scripts/manualFiltering.js
 node dist/scripts/directLogging.js
+```
+
+### New: Metrics Collection Examples
+```bash
+# Comprehensive metrics demonstration
+pnpm demo:metrics
+
+# Stock price with business and performance metrics
+pnpm demo:stock-metrics
+```
+
+## Metrics Collection
+
+The sample project now demonstrates the new metrics collection functionality:
+
+```typescript
+import { createTask } from '@forgehive/task'
+
+const task = createTask({
+  name: 'userProcessor',
+  boundaries: { /* your boundaries */ },
+  fn: async (input, { setMetrics, /* other boundaries */ }) => {
+    // Collect business metrics
+    await setMetrics({
+      type: 'business',
+      name: 'users_processed',
+      value: 1
+    })
+
+    // Collect performance metrics
+    await setMetrics({
+      type: 'performance', 
+      name: 'api_response_time',
+      value: 250
+    })
+
+    // Collect error tracking metrics
+    await setMetrics({
+      type: 'error',
+      name: 'failed_requests',
+      value: 0
+    })
+
+    return result
+  }
+})
+
+// Execution records now include:
+// - metrics: Metric[] - All collected metrics
+// - timing: TimingInfo - Main function execution timing
+// - boundaries with timing for each boundary call
 ```
 
 For more examples, see the scripts in `src/scripts/`. 

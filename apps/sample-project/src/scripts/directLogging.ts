@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 import dotenv from 'dotenv'
-import { Task } from '@forgehive/task'
 import { createHiveLogClient } from '@forgehive/hive-sdk'
 import { getPrice } from '../tasks/stock/getPrice'
 
@@ -23,10 +22,6 @@ async function main(): Promise<void> {
   try {
     console.log('Running tasks with direct logging...')
 
-    // Execute a task without global listener
-    const originalListener = Task.globalListener
-    Task.globalListener = undefined // Temporarily disable global listener
-
     const [, , record] = await getPrice.safeRun({ ticker: 'NVDA' })
 
     // Manually log this specific execution
@@ -38,9 +33,6 @@ async function main(): Promise<void> {
       })
       console.log('Direct logging result:', logResult)
     }
-
-    // Restore the global listener
-    Task.globalListener = originalListener
 
     console.log('\n=== Example completed ===')
   } catch (error) {

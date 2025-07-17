@@ -1,6 +1,6 @@
 {
   "name": "@forgehive/task",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "license": "MIT",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -15,7 +15,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "test": "jest"
+    "test": "jest",
+    "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
     "@forgehive/schema": "workspace:*"

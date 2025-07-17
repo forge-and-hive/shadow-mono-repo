@@ -10,7 +10,7 @@ const schema = new Schema({
   ticker: Schema.string()
 })
 
-const name = 'getPrice'
+const name = 'stock:getPrice'
 const description = 'Get the price of a stock'
 
 const boundaries = {
@@ -33,11 +33,12 @@ export const getPrice = createTask({
   description,
   schema,
   boundaries,
-  fn: async function ({ ticker }, { fetchStockPrice, setMetadata }): Promise<{ ticker: string, price: number }> {
+  fn: async function ({ ticker }, { fetchStockPrice, setMetadata, setMetrics }): Promise<{ ticker: string, price: number }> {
     const { price } = await fetchStockPrice(ticker as string)
 
     setMetadata('environment', 'sample-script')
     setMetadata('ticker', ticker)
+    setMetrics({ type: 'stock', name: 'price', value: price })
 
     return {
       ticker,

@@ -34,8 +34,13 @@ describe('HiveLogClient getLog', () => {
           output: { success: true, sessionId: 'abc123' },
           error: undefined,
           boundaries: {
-            database: [{ input: 'SELECT * FROM users', output: [{ id: 123 }], error: null }]
-          }
+            database: [{
+              input: ['SELECT * FROM users'],
+              output: [{ id: 123 }],
+              timing: { startTime: 1000, endTime: 1100, duration: 100 }
+            }]
+          },
+          type: 'success' as const
         },
         replayFrom: 'some-replay-id',
         createdAt: '2023-12-01T10:00:00Z'
@@ -78,7 +83,9 @@ describe('HiveLogClient getLog', () => {
         taskName: 'minimal-task',
         projectName: 'test-project',
         logItem: {
-          input: 'simple input'
+          input: 'simple input',
+          boundaries: {},
+          type: 'pending' as const
         },
         createdAt: '2023-12-01T10:00:00Z'
       }
@@ -129,7 +136,11 @@ describe('HiveLogClient getLog', () => {
         uuid: 'uuid-with-special-chars-!@#',
         taskName: 'task-with-special-chars-!@#',
         projectName: 'test-project',
-        logItem: { input: 'test' },
+        logItem: {
+          input: 'test',
+          boundaries: {},
+          type: 'pending' as const
+        },
         createdAt: '2023-12-01T10:00:00Z'
       }
 
@@ -157,7 +168,11 @@ describe('isApiError type guard', () => {
       uuid: 'test-uuid',
       taskName: 'test-task',
       projectName: 'test-project',
-      logItem: { input: 'test' },
+      logItem: {
+        input: 'test',
+        boundaries: {},
+        type: 'pending' as const
+      },
       createdAt: '2023-12-01T10:00:00Z'
     }
     expect(isApiError(logResponse)).toBe(false)
