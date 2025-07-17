@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import dotenv from 'dotenv'
-import { Task, createTask } from '@forgehive/task'
+import { createTask } from '@forgehive/task'
 import { createHiveLogClient } from '@forgehive/hive-sdk'
 import { Schema } from '@forgehive/schema'
 
@@ -288,15 +288,8 @@ async function demonstrateMultipleRuns(): Promise<void> {
 // Run the demonstrations
 async function main(): Promise<void> {
   try {
-    // Disable global listener for this demo
-    const originalListener = Task.globalListener
-    Task.globalListener = undefined
-
     await demonstrateMetrics()
     await demonstrateMultipleRuns()
-
-    // Restore global listener
-    Task.globalListener = originalListener
   } catch (error) {
     console.error('Error in main:', error)
   }
