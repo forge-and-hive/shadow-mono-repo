@@ -34,7 +34,13 @@ describe('Safe run', () => {
       output: { doubled: 10 },
       boundaries: {},
       metadata: {},
-      taskName: 'simple-task'
+      metrics: [],
+      taskName: 'simple-task',
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
     })
   })
 
@@ -82,6 +88,7 @@ describe('Safe run', () => {
         multiply: []
       },
       metadata: {},
+      metrics: [],
       taskName: 'test'
     })
 
@@ -92,11 +99,22 @@ describe('Safe run', () => {
       boundaries: {
         multiply: [{
           input: [15],
-          output: 30
+          output: 30,
+          timing: expect.objectContaining({
+            startTime: expect.any(Number),
+            endTime: expect.any(Number),
+            duration: expect.any(Number)
+          })
         }]
       },
       metadata: {},
-      taskName: 'test'
+      metrics: [],
+      taskName: 'test',
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
     })
   })
 
@@ -146,11 +164,22 @@ describe('Safe run', () => {
       boundaries: {
         divide: [{
           input: [0],
-          error: 'Division by zero'
+          error: 'Division by zero',
+          timing: expect.objectContaining({
+            startTime: expect.any(Number),
+            endTime: expect.any(Number),
+            duration: expect.any(Number)
+          })
         }]
       },
       metadata: {},
-      taskName: 'test'
+      metrics: [],
+      taskName: 'test',
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
     })
 
     expect(log[1]).toEqual({
@@ -160,11 +189,22 @@ describe('Safe run', () => {
       boundaries: {
         divide: [{
           input: [10],
-          output: 10
+          output: 10,
+          timing: expect.objectContaining({
+            startTime: expect.any(Number),
+            endTime: expect.any(Number),
+            duration: expect.any(Number)
+          })
         }]
       },
       metadata: {},
-      taskName: 'test'
+      metrics: [],
+      taskName: 'test',
+      timing: expect.objectContaining({
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        duration: expect.any(Number)
+      })
     })
   })
 })

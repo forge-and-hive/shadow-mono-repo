@@ -20,7 +20,20 @@ describe('Task listener', () => {
     await task.run({})
 
     expect(tape.getLog()).toEqual([
-      { type: 'success', input: {}, output: { value: 1, foo: true }, boundaries: {}, metadata: {}, taskName: 'test' }
+      {
+        type: 'success',
+        input: {},
+        output: { value: 1, foo: true },
+        boundaries: {},
+        metadata: {},
+        metrics: [],
+        taskName: 'test',
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
+      }
     ])
   })
 
@@ -53,8 +66,35 @@ describe('Task listener', () => {
     const log = tape.getLog()
 
     expect(log).toEqual([
-      { type: 'error', input: { value: 5 }, error: 'Value is not between 10 and 20', boundaries: {}, metadata: {}, output: undefined, taskName: 'test' },
-      { type: 'success', input: { value: 15 }, output: { result: 30 }, boundaries: {}, metadata: {}, taskName: 'test' }
+      {
+        type: 'error',
+        input: { value: 5 },
+        error: 'Value is not between 10 and 20',
+        boundaries: {},
+        metadata: {},
+        metrics: [],
+        output: undefined,
+        taskName: 'test',
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
+      },
+      {
+        type: 'success',
+        input: { value: 15 },
+        output: { result: 30 },
+        boundaries: {},
+        metadata: {},
+        metrics: [],
+        taskName: 'test',
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
+      }
     ])
   })
 
@@ -98,10 +138,24 @@ describe('Task listener', () => {
         input: { value: 5 },
         output: { result: 10 },
         boundaries: {
-          multiply: [{ input: [5], output: 10 }]
+          multiply: [{
+            input: [5],
+            output: 10,
+            timing: expect.objectContaining({
+              startTime: expect.any(Number),
+              endTime: expect.any(Number),
+              duration: expect.any(Number)
+            })
+          }]
         },
         metadata: {},
-        taskName: undefined
+        metrics: [],
+        taskName: undefined,
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
       }
     ])
   })
@@ -146,10 +200,24 @@ describe('Task listener', () => {
         input: { value: 5 },
         output: { result: 10 },
         boundaries: {
-          multiply: [{ input: [5], output: 10 }]
+          multiply: [{
+            input: [5],
+            output: 10,
+            timing: expect.objectContaining({
+              startTime: expect.any(Number),
+              endTime: expect.any(Number),
+              duration: expect.any(Number)
+            })
+          }]
         },
         metadata: {},
-        taskName: undefined
+        metrics: [],
+        taskName: undefined,
+        timing: expect.objectContaining({
+          startTime: expect.any(Number),
+          endTime: expect.any(Number),
+          duration: expect.any(Number)
+        })
       }
     ])
   })
