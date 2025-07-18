@@ -120,6 +120,39 @@
     - Enhanced variable type tracking to preserve boundary call result structures
     - _Requirements: 2.1, 2.2_
 
+- [x] 8.4 Implement runtime error collection system
+  - [x] 8.4.1 Add main task function error detection
+    - Implemented analyzeMainTaskFunctionErrors function to detect throw statements in main task functions
+    - Added support for template literal error messages (e.g., `User with ID ${userId} not found`)
+    - Integrated main function error collection into task fingerprinting workflow
+    - _Requirements: 2.1, 2.3_
+
+  - [x] 8.4.2 Enhance boundary error collection
+    - Enhanced boundary error detection to capture throw statements in boundary functions
+    - Added support for both string literal and template expression error messages
+    - Integrated boundary error collection into boundary fingerprinting
+    - _Requirements: 2.1, 2.2_
+
+  - [x] 8.4.3 Improve error formatting and location tracking
+    - Added precise line and column position tracking for all errors using TypeScript AST
+    - Removed details object from error format for cleaner output
+    - Implemented consistent error location format across all error types
+    - Fixed error type classification (main function errors as 'analysis', boundary errors as 'boundary')
+    - _Requirements: 2.4, 2.5_
+
+  - [x] 8.4.4 Fix error duplication issues
+    - Implemented deduplication logic to prevent same createTask node from being processed twice
+    - Removed duplicate backward compatibility function causing error duplication
+    - Added processedNodes tracking to prevent duplicate error collection
+    - _Requirements: 2.3, 2.4_
+
+  - [x] 8.4.5 Update fingerprint specification documentation
+    - Updated fingerprint.md with comprehensive error collection documentation
+    - Added detailed error type explanations and examples
+    - Updated core interfaces to reflect new error collection structure
+    - Documented location tracking and error categorization features
+    - _Requirements: 2.5_
+
 - [ ] 9. Update configuration loading to support fingerprints path
   - [x] 9.1 Modify conf:load task to include fingerprints path
     - Update configuration loading to read fingerprints path
