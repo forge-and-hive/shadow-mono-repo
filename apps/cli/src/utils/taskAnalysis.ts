@@ -103,6 +103,7 @@ function extractTaskFingerprintsInternal(sourceCode: string, filePath: string, e
   )
 
   const fingerprints: TaskFingerprint[] = []
+  const processedNodes = new Set<ts.Node>() // Track processed createTask nodes to prevent duplicates
   let schemaNode: ts.Expression | null = null
   let boundariesNode: ts.Expression | null = null
 
@@ -129,11 +130,14 @@ function extractTaskFingerprintsInternal(sourceCode: string, filePath: string, e
       ts.isIdentifier(node.expression) &&
       node.expression.text === 'createTask') {
 
-      const taskName = extractTaskName(node, sourceFile)
-      if (taskName) {
-        const fingerprint = analyzeCreateTaskCall(node, sourceFile, filePath, taskName, schemaNode, boundariesNode, errors)
-        if (fingerprint) {
-          fingerprints.push(fingerprint)
+      if (!processedNodes.has(node)) {
+        processedNodes.add(node)
+        const taskName = extractTaskName(node, sourceFile)
+        if (taskName) {
+          const fingerprint = analyzeCreateTaskCall(node, sourceFile, filePath, taskName, schemaNode, boundariesNode, errors)
+          if (fingerprint) {
+            fingerprints.push(fingerprint)
+          }
         }
       }
     }
@@ -147,83 +151,13 @@ function extractTaskFingerprintsInternal(sourceCode: string, filePath: string, e
           ts.isIdentifier(decl.initializer.expression) &&
           decl.initializer.expression.text === 'createTask') {
 
-          const taskName = ts.isIdentifier(decl.name) ? decl.name.text : 'unknown'
-          const fingerprint = analyzeCreateTaskCall(decl.initializer, sourceFile, filePath, taskName, schemaNode, boundariesNode, errors)
-          if (fingerprint) {
-            fingerprints.push(fingerprint)
-          }
-        }
-      })
-    }
-
-    ts.forEachChild(node, findCreateTask)
-  }
-
-  // Execute both passes
-  findVariables(sourceFile)
-  findCreateTask(sourceFile)
-
-  return fingerprints
-}
-
-// TypeScript AST analysis function (backward compatibility)
-function extractTaskFingerprints(sourceCode: string, filePath: string): TaskFingerprint[] {
-  const sourceFile = ts.createSourceFile(
-    filePath,
-    sourceCode,
-    ts.ScriptTarget.Latest,
-    true
-  )
-
-  const fingerprints: TaskFingerprint[] = []
-  let schemaNode: ts.Expression | null = null
-  let boundariesNode: ts.Expression | null = null
-
-  // First pass: find schema and boundaries variable declarations
-  function findVariables(node: ts.Node): void {
-    if (ts.isVariableStatement(node)) {
-      node.declarationList.declarations.forEach(decl => {
-        if (ts.isIdentifier(decl.name)) {
-          if (decl.name.text === 'schema' && decl.initializer) {
-            schemaNode = decl.initializer
-          } else if (decl.name.text === 'boundaries' && decl.initializer) {
-            boundariesNode = decl.initializer
-          }
-        }
-      })
-    }
-    ts.forEachChild(node, findVariables)
-  }
-
-  // Second pass: find createTask calls
-  function findCreateTask(node: ts.Node): void {
-    // Look for createTask calls
-    if (ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === 'createTask') {
-
-      const taskName = extractTaskName(node, sourceFile)
-      if (taskName) {
-        const fingerprint = analyzeCreateTaskCall(node, sourceFile, filePath, taskName, schemaNode, boundariesNode)
-        if (fingerprint) {
-          fingerprints.push(fingerprint)
-        }
-      }
-    }
-
-    // Look for exported createTask assignments
-    if (ts.isVariableStatement(node) && node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
-      node.declarationList.declarations.forEach(decl => {
-        if (ts.isVariableDeclaration(decl) &&
-          decl.initializer &&
-          ts.isCallExpression(decl.initializer) &&
-          ts.isIdentifier(decl.initializer.expression) &&
-          decl.initializer.expression.text === 'createTask') {
-
-          const taskName = ts.isIdentifier(decl.name) ? decl.name.text : 'unknown'
-          const fingerprint = analyzeCreateTaskCall(decl.initializer, sourceFile, filePath, taskName, schemaNode, boundariesNode)
-          if (fingerprint) {
-            fingerprints.push(fingerprint)
+          if (!processedNodes.has(decl.initializer)) {
+            processedNodes.add(decl.initializer)
+            const taskName = ts.isIdentifier(decl.name) ? decl.name.text : 'unknown'
+            const fingerprint = analyzeCreateTaskCall(decl.initializer, sourceFile, filePath, taskName, schemaNode, boundariesNode, errors)
+            if (fingerprint) {
+              fingerprints.push(fingerprint)
+            }
           }
         }
       })
@@ -352,6 +286,10 @@ function analyzeCreateTaskCall(
 
     if (functionArg) {
       if (ts.isFunctionExpression(functionArg) || ts.isArrowFunction(functionArg)) {
+        // Collect errors from main task function
+        const mainFunctionErrors = analyzeMainTaskFunctionErrors(functionArg, sourceFile, taskName)
+        errors.push(...mainFunctionErrors)
+
         // Better return type extraction
         if (functionArg.type) {
           const typeString = cleanTypeString(functionArg.type.getText(sourceFile))
@@ -690,17 +628,25 @@ function analyzeBoundariesWithTypes(node: ts.Expression, sourceFile: ts.SourceFi
         // Try to analyze the boundary function to extract input and output types
         if (ts.isArrowFunction(prop.initializer) || ts.isFunctionExpression(prop.initializer)) {
           try {
-            const returnType = analyzeBoundaryReturnType(prop.initializer, sourceFile)
-            types.set(boundaryName, returnType)
+            // Analyze input parameters with error collection
+            const inputAnalysis = analyzeBoundaryInputTypesWithErrors(prop.initializer, sourceFile, boundaryName)
+            boundaryErrors.push(...inputAnalysis.errors)
 
-            // Analyze input parameters
-            const inputTypes = analyzeBoundaryInputTypes(prop.initializer, sourceFile)
+            // Analyze return type with error collection
+            const returnAnalysis = analyzeBoundaryReturnTypeWithErrors(prop.initializer, sourceFile, boundaryName)
+            boundaryErrors.push(...returnAnalysis.errors)
+
+            types.set(boundaryName, returnAnalysis.returnType)
+
+            // Validate boundary structure and collect structural errors
+            const structuralErrors = validateBoundaryStructure(prop.initializer, sourceFile, boundaryName)
+            boundaryErrors.push(...structuralErrors)
 
             // Create boundary fingerprint
             const boundaryFingerprint: BoundaryFingerprint = {
               name: boundaryName,
-              input: inputTypes,
-              output: returnType,
+              input: inputAnalysis.inputTypes,
+              output: returnAnalysis.returnType,
               errors: boundaryErrors
             }
 
@@ -710,7 +656,7 @@ function analyzeBoundariesWithTypes(node: ts.Expression, sourceFile: ts.SourceFi
               type: 'boundary',
               message: error instanceof Error ? error.message : 'Boundary analysis failed',
               location: { file: sourceFile.fileName },
-              details: { boundaryName }
+              details: { boundaryName, errorType: 'critical_analysis_failure' }
             })
 
             // Create boundary fingerprint with error
@@ -723,6 +669,23 @@ function analyzeBoundariesWithTypes(node: ts.Expression, sourceFile: ts.SourceFi
 
             boundaries.push(boundaryFingerprint)
           }
+        } else {
+          // Not a function - this is an error
+          boundaryErrors.push({
+            type: 'boundary',
+            message: 'Boundary is not a function',
+            location: { file: sourceFile.fileName },
+            details: { boundaryName, nodeType: ts.SyntaxKind[prop.initializer.kind] }
+          })
+
+          const boundaryFingerprint: BoundaryFingerprint = {
+            name: boundaryName,
+            input: [],
+            output: { type: 'unknown' },
+            errors: boundaryErrors
+          }
+
+          boundaries.push(boundaryFingerprint)
         }
       }
     })
@@ -731,27 +694,58 @@ function analyzeBoundariesWithTypes(node: ts.Expression, sourceFile: ts.SourceFi
   return { names, types, boundaries }
 }
 
-// Analyze boundary function input parameter types
-function analyzeBoundaryInputTypes(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile): SchemaProperty[] {
+// Analyze boundary function input parameter types with error collection
+function analyzeBoundaryInputTypesWithErrors(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile, boundaryName: string): { inputTypes: SchemaProperty[], errors: FingerprintError[] } {
   const inputTypes: SchemaProperty[] = []
+  const errors: FingerprintError[] = []
 
   if (func.parameters) {
-    func.parameters.forEach(param => {
+    func.parameters.forEach((param, index) => {
       if (ts.isIdentifier(param.name)) {
         const paramName = param.name.text
         
         if (param.type) {
-          const typeText = param.type.getText(sourceFile)
-          const schemaProperty = parseTypeToSchemaProperty(typeText)
-          inputTypes.push({ ...schemaProperty, name: paramName })
+          try {
+            const typeText = param.type.getText(sourceFile)
+            const schemaProperty = parseTypeToSchemaProperty(typeText)
+            inputTypes.push({ ...schemaProperty, name: paramName })
+          } catch (error) {
+            errors.push({
+              type: 'boundary',
+              message: `Failed to parse parameter type for '${paramName}': ${error instanceof Error ? error.message : 'Unknown error'}`,
+              location: { file: sourceFile.fileName },
+              details: { boundaryName, parameterName: paramName, parameterIndex: index }
+            })
+            inputTypes.push({ name: paramName, type: 'unknown' })
+          }
         } else {
+          // No type annotation - just use unknown
           inputTypes.push({ name: paramName, type: 'unknown' })
         }
+      } else {
+        // Complex parameter patterns (destructuring, etc.) - just use unknown
+        inputTypes.push({ name: `param${index}`, type: 'unknown' })
       }
     })
+
+    // Only check for obvious parameter issues
+    if (func.parameters.length === 0) {
+      errors.push({
+        type: 'boundary',
+        message: 'Boundary function has no parameters',
+        location: { file: sourceFile.fileName },
+        details: { boundaryName, issue: 'no_parameters' }
+      })
+    }
   }
 
-  return inputTypes
+  return { inputTypes, errors }
+}
+
+// Analyze boundary function input parameter types (backward compatibility)
+function analyzeBoundaryInputTypes(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile): SchemaProperty[] {
+  const result = analyzeBoundaryInputTypesWithErrors(func, sourceFile, 'unknown')
+  return result.inputTypes
 }
 
 // Helper function to convert TypeScript type text to SchemaProperty
@@ -814,39 +808,182 @@ function inferTypeFromIdentifier(identifierText: string, boundaryTypes: Map<stri
   return 'unknown'
 }
 
-// Analyze boundary function return type with detailed structure
-function analyzeBoundaryReturnType(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile): any {
+// Analyze boundary function return type with error collection
+function analyzeBoundaryReturnTypeWithErrors(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile, boundaryName: string): { returnType: any, errors: FingerprintError[] } {
+  const errors: FingerprintError[] = []
+  
   // Check if function has explicit return type annotation
   if (func.type) {
-    const typeText = func.type.getText(sourceFile)
-    // Handle Promise<T> types - extract T
-    const promiseMatch = typeText.match(/Promise<(.+)>/)
-    if (promiseMatch) {
-      const innerType = promiseMatch[1]
-      // Parse detailed type patterns
-      if (innerType.includes('[]') || innerType.includes('Array<')) {
-        return { type: 'array' }
-      } else if (innerType === 'string') {
-        return { type: 'string' }
-      } else if (innerType === 'number') {
-        return { type: 'number' }
-      } else if (innerType === 'boolean') {
-        return { type: 'boolean' }
-      } else if (innerType.includes('{') && innerType.includes('}')) {
-        // Try to parse object type structure from string
-        return parseObjectTypeFromString(innerType)
+    try {
+      const typeText = func.type.getText(sourceFile)
+      
+      // Handle Promise<T> types - extract T
+      const promiseMatch = typeText.match(/Promise<(.+)>/)
+      if (promiseMatch) {
+        const innerType = promiseMatch[1]
+        
+        // Just process the type without validation
+        
+        // Parse detailed type patterns
+        if (innerType.includes('[]') || innerType.includes('Array<')) {
+          return { returnType: { type: 'array' }, errors }
+        } else if (innerType === 'string') {
+          return { returnType: { type: 'string' }, errors }
+        } else if (innerType === 'number') {
+          return { returnType: { type: 'number' }, errors }
+        } else if (innerType === 'boolean') {
+          return { returnType: { type: 'boolean' }, errors }
+        } else if (innerType.includes('{') && innerType.includes('}')) {
+          // Try to parse object type structure from string
+          try {
+            const parsedType = parseObjectTypeFromString(innerType)
+            return { returnType: parsedType, errors }
+          } catch (parseError) {
+            errors.push({
+              type: 'boundary',
+              message: `Failed to parse return type object structure: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`,
+              location: { file: sourceFile.fileName },
+              details: { boundaryName, returnType: innerType, issue: 'object_parse_failure' }
+            })
+            return { returnType: { type: 'object' }, errors }
+          }
+        }
+      } else {
+        // Not a Promise type - just use the type as-is
       }
+      
+      return { returnType: { type: cleanTypeString(typeText) }, errors }
+    } catch (error) {
+      errors.push({
+        type: 'boundary',
+        message: `Failed to analyze return type: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        location: { file: sourceFile.fileName },
+        details: { boundaryName, issue: 'return_type_analysis_failure' }
+      })
+      return { returnType: { type: 'unknown' }, errors }
     }
-    return { type: cleanTypeString(typeText) }
+  } else {
+    // No return type annotation - will try to infer
   }
 
   // If no explicit type, try to infer from return statements
   if (func.body) {
-    const returnType = inferDetailedReturnType(func, sourceFile, new Map())
-    return returnType
+    try {
+      const returnType = inferDetailedReturnType(func, sourceFile, new Map())
+      return { returnType, errors }
+    } catch (error) {
+      errors.push({
+        type: 'boundary',
+        message: `Failed to infer return type from function body: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        location: { file: sourceFile.fileName },
+        details: { boundaryName, issue: 'return_type_inference_failure' }
+      })
+    }
   }
 
-  return { type: 'unknown' }
+  return { returnType: { type: 'unknown' }, errors }
+}
+
+// Analyze boundary function return type with detailed structure (backward compatibility)
+function analyzeBoundaryReturnType(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile): any {
+  const result = analyzeBoundaryReturnTypeWithErrors(func, sourceFile, 'unknown')
+  return result.returnType
+}
+
+// Validate boundary structure and collect structural errors (simplified to focus on runtime errors)
+function validateBoundaryStructure(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile, boundaryName: string): FingerprintError[] {
+  const errors: FingerprintError[] = []
+
+  // Check function body for potential runtime errors
+  if (func.body) {
+    if (ts.isBlock(func.body)) {
+      // Check for throw statements - these are potential runtime errors
+      function checkForThrowStatements(node: ts.Node): void {
+        if (ts.isThrowStatement(node)) {
+          let errorMessage = 'Boundary function contains throw statement'
+          
+          // Try to extract error message if it's a simple throw new Error('message')
+          if (node.expression && ts.isNewExpression(node.expression)) {
+            if (ts.isIdentifier(node.expression.expression) && 
+                node.expression.expression.text === 'Error' &&
+                node.expression.arguments && 
+                node.expression.arguments.length > 0) {
+              const errorArg = node.expression.arguments[0]
+              if (ts.isStringLiteral(errorArg)) {
+                errorMessage = `Boundary function throws: ${errorArg.text}`
+              }
+            }
+          }
+          
+          const position = sourceFile.getLineAndCharacterOfPosition(node.getStart())
+          errors.push({
+            type: 'boundary',
+            message: errorMessage,
+            location: { 
+              file: sourceFile.fileName,
+              line: position.line + 1,
+              column: position.character + 1
+            }
+          })
+        }
+        ts.forEachChild(node, checkForThrowStatements)
+      }
+      
+      checkForThrowStatements(func.body)
+    }
+  }
+
+  return errors
+}
+
+// Analyze main task function for throw statements and runtime errors
+function analyzeMainTaskFunctionErrors(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile, taskName: string): FingerprintError[] {
+  const errors: FingerprintError[] = []
+
+  // Check function body for potential runtime errors
+  if (func.body) {
+    if (ts.isBlock(func.body)) {
+      // Check for throw statements - these are potential runtime errors
+      function checkForThrowStatements(node: ts.Node): void {
+        if (ts.isThrowStatement(node)) {
+          let errorMessage = 'Main task function contains throw statement'
+          
+          // Try to extract error message if it's a simple throw new Error('message')
+          if (node.expression && ts.isNewExpression(node.expression)) {
+            if (ts.isIdentifier(node.expression.expression) && 
+                node.expression.expression.text === 'Error' &&
+                node.expression.arguments && 
+                node.expression.arguments.length > 0) {
+              const errorArg = node.expression.arguments[0]
+              if (ts.isStringLiteral(errorArg)) {
+                errorMessage = `Main task function throws: ${errorArg.text}`
+              } else if (ts.isTemplateExpression(errorArg)) {
+                // Handle template literals like `User with ID ${userId} not found`
+                const templateText = errorArg.getText(sourceFile)
+                errorMessage = `Main task function throws: ${templateText.replace(/`/g, '')}`
+              }
+            }
+          }
+          
+          const position = sourceFile.getLineAndCharacterOfPosition(node.getStart())
+          errors.push({
+            type: 'analysis',
+            message: errorMessage,
+            location: { 
+              file: sourceFile.fileName,
+              line: position.line + 1,
+              column: position.character + 1
+            }
+          })
+        }
+        ts.forEachChild(node, checkForThrowStatements)
+      }
+      
+      checkForThrowStatements(func.body)
+    }
+  }
+
+  return errors
 }
 
 // Helper function to parse object type structure from type string

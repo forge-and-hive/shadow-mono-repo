@@ -1,32 +1,53 @@
 // TASK: errors
 // Run this task with:
-// forge task:run test:errors
+// forge task:run test:errors --userId=1 (will work)
+// forge task:run test:errors --userId=2 (will work)
+// forge task:run test:errors --userId=3 (will fail - user not found)
+// forge task:run test:errors --userId=4 (will fail - API error)
 
 import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 
 const name = 'test:errors'
-const description = 'Test task with intentional errors for error collection testing'
+const description = 'Test task with intentional runtime errors for error collection testing'
 
-// This should work fine - no schema errors expected
 const schema = new Schema({
-  testParam: Schema.string(),
-  optionalParam: Schema.number().optional()
+  userId: Schema.string()
 })
 
-// This will cause boundary analysis issues - intentional malformed boundary
+interface User {
+  id: string
+  name: string
+  email: string
+}
+
 const boundaries = {
-  workingBoundary: async (input: { data: string }): Promise<{ result: string }> => {
-    return { result: input.data.toUpperCase() }
+  // This boundary returns user for IDs 1 and 2, null for others
+  getUserById: async (input: { userId: string }): Promise<User | null> => {
+    if (input.userId === '1') {
+      return { id: '1', name: 'John Doe', email: 'john@example.com' }
+    }
+    if (input.userId === '2') {
+      return { id: '2', name: 'Jane Smith', email: 'jane@example.com' }
+    }
+    return null // User not found
   },
-  // This boundary has a problematic signature that might cause analysis issues
-  problematicBoundary: async (param1: string, param2: number, param3: boolean): Promise<string> => {
-    return `${param1}-${param2}-${param3}`
-  },
-  // This boundary has a syntax error - missing implementation
-  brokenBoundary: async (input: { value: string }): Promise<{ output: string }> => {
-    // Missing return statement - this will cause runtime issues but not parsing errors
-    throw new Error('Intentionally broken boundary')
+  
+  // This boundary simulates an API call that randomly throws errors
+  fetchUserProfile: async (input: { userId: string }): Promise<{ profile: string; lastLogin: string }> => {
+    // Simulate random API failures
+    if (Math.random() > 0.7) {
+      throw new Error('API temporarily unavailable')
+    }
+    
+    if (input.userId === '4') {
+      throw new Error('External API authentication failed')
+    }
+    
+    return {
+      profile: `Profile data for user ${input.userId}`,
+      lastLogin: new Date().toISOString()
+    }
   }
 }
 
@@ -35,17 +56,27 @@ export const errors = createTask({
   description,
   schema,
   boundaries,
-  fn: async function ({ testParam, optionalParam }, { workingBoundary, problematicBoundary }) {
-    // Test the working boundary
-    const result1 = await workingBoundary({ data: testParam })
+  fn: async function ({ userId }, { getUserById, fetchUserProfile }) {
+    // Get user by ID
+    const user = await getUserById({ userId })
     
-    // Test the problematic boundary (this should work at runtime but might cause fingerprint analysis issues)
-    const result2 = await problematicBoundary(testParam, optionalParam || 42, true)
+    // Check if user exists - this should be caught as a business logic error
+    if (!user) {
+      throw new Error(`User with ID ${userId} not found`)
+    }
     
-    // Return a properly structured response
+    // Fetch additional profile data - this can throw API errors (no try-catch intentionally)
+    const profile = await fetchUserProfile({ userId })
+    
+    // Return combined user data
     return {
-      workingResult: result1.result,
-      problematicResult: result2,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      },
+      profile: profile.profile,
+      lastLogin: profile.lastLogin,
       processed: true
     }
   }
