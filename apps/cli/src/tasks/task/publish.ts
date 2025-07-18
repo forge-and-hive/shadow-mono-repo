@@ -14,8 +14,10 @@ import { load as loadConf } from '../conf/load'
 import { create as bundleCreate } from '../bundle/create'
 import { load as bundleLoad } from '../bundle/load'
 import { zip as bundleZip } from '../bundle/zip'
+import { fingerprint as bundleFingerprint } from '../bundle/fingerprint'
 import { loadCurrent as loadCurrentProfile } from '../auth/loadCurrent'
 import { Profile } from '../types'
+import { TaskFingerprintOutput } from '../../utils/taskAnalysis'
 
 const schema = new Schema({
   descriptorName: Schema.string()
@@ -30,11 +32,29 @@ const boundaries = {
   bundleCreate: bundleCreate.asBoundary(),
   bundleLoad: bundleLoad.asBoundary(),
   bundleZip: bundleZip.asBoundary(),
+  bundleFingerprint: bundleFingerprint.asBoundary(),
   readFileUtf8: async (filePath: string): Promise<string> => {
     return fs.readFile(filePath, 'utf-8')
   },
   readFileBinary: async (filePath: string): Promise<Buffer> => {
     return fs.readFile(filePath)
+  },
+  readFingerprintFile: async (filePath: string): Promise<TaskFingerprintOutput | null> => {
+    try {
+      const content = await fs.readFile(filePath, 'utf-8')
+      const data = JSON.parse(content)
+      
+      // Handle both direct taskFingerprint and wrapped format
+      if (data.taskFingerprint) {
+        return data.taskFingerprint
+      } else if (data.tasks && data.tasks.length > 0) {
+        return data.tasks[0]
+      }
+      
+      return null
+    } catch {
+      return null
+    }
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   publishTask: async (data: any, profile: Profile): Promise<any> => {
@@ -91,8 +111,10 @@ export const publish = createTask({
     bundleCreate,
     bundleLoad,
     bundleZip,
+    bundleFingerprint,
     readFileUtf8,
     readFileBinary,
+    readFingerprintFile,
     publishTask,
     loadCurrentProfile,
     uploadBundleWithPresignedUrl
@@ -130,6 +152,26 @@ export const publish = createTask({
 
     console.log('Bundle zipped...')
 
+    // Generate task fingerprint
+    console.log('Generating task fingerprint...')
+    let taskFingerprint: TaskFingerprintOutput | null = null
+    try {
+      const fingerprintResult = await bundleFingerprint({
+        descriptorName
+      })
+      
+      // If fingerprint generation returned a file path, read the fingerprint using the boundary
+      if (fingerprintResult.fingerprintsFile) {
+        taskFingerprint = await readFingerprintFile(fingerprintResult.fingerprintsFile)
+        if (taskFingerprint) {
+          console.log('Task fingerprint generated and loaded successfully')
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to generate task fingerprint:', error instanceof Error ? error.message : String(error))
+      console.warn('Publishing without fingerprint data...')
+    }
+
     // Load the bundled task
     const bundle = await bundleLoad({
       bundlePath: outputFile
@@ -161,7 +203,8 @@ export const publish = createTask({
       schemaDescriptor: JSON.stringify(schemaDescriptor),
       boundaries,
       sourceCode,
-      bundleSize
+      bundleSize,
+      ...(taskFingerprint && { fingerprint: taskFingerprint })
     }
 
     // Publish metadata to hive api server
@@ -178,7 +221,8 @@ export const publish = createTask({
 
       return {
         descriptor: taskDescriptor,
-        publish: true
+        publish: true,
+        fingerprint: taskFingerprint !== null
       }
     } else {
       throw new Error('Bundle upload failed')

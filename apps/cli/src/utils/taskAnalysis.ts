@@ -24,7 +24,7 @@ interface OutputType {
   properties?: Record<string, SchemaProperty>
 }
 
-interface FingerprintError {
+export interface FingerprintError {
   type: 'parsing' | 'analysis' | 'boundary' | 'schema'
   message: string
   location?: {
