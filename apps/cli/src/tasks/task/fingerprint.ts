@@ -63,7 +63,7 @@ export const fingerprint = createTask({
 
     const filePath = path.join(cwd, taskDescriptor.path)
     const fingerprintsPath = await ensureFingerprintsFolder(cwd, forgeJson)
-    const fingerprintFile = path.join(fingerprintsPath, `${descriptorName}.task-fingerprint.json`)
+    const fingerprintFile = path.join(fingerprintsPath, `${descriptorName}.fingerprint.json`)
 
     console.log(`Analyzing task: ${descriptorName}`)
     console.log(`Task file: ${filePath}`)

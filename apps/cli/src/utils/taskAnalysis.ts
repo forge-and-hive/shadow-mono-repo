@@ -84,8 +84,8 @@ function extractTaskFingerprints(sourceCode: string, filePath: string): TaskFing
   function findCreateTask(node: ts.Node): void {
     // Look for createTask calls
     if (ts.isCallExpression(node) &&
-        ts.isIdentifier(node.expression) &&
-        node.expression.text === 'createTask') {
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'createTask') {
 
       const taskName = extractTaskName(node, sourceFile)
       if (taskName) {
@@ -100,10 +100,10 @@ function extractTaskFingerprints(sourceCode: string, filePath: string): TaskFing
     if (ts.isVariableStatement(node) && node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
       node.declarationList.declarations.forEach(decl => {
         if (ts.isVariableDeclaration(decl) &&
-            decl.initializer &&
-            ts.isCallExpression(decl.initializer) &&
-            ts.isIdentifier(decl.initializer.expression) &&
-            decl.initializer.expression.text === 'createTask') {
+          decl.initializer &&
+          ts.isCallExpression(decl.initializer) &&
+          ts.isIdentifier(decl.initializer.expression) &&
+          decl.initializer.expression.text === 'createTask') {
 
           const taskName = ts.isIdentifier(decl.name) ? decl.name.text : 'unknown'
           const fingerprint = analyzeCreateTaskCall(decl.initializer, sourceFile, filePath, taskName, schemaNode, boundariesNode)
@@ -156,12 +156,17 @@ function analyzeCreateTaskCall(
       inputSchema = analyzeSchemaArg(args[0], sourceFile)
     }
 
-    // Use pre-found boundaries or fall back to argument analysis - simplified to just names
+    // Analyze boundaries to get both names and return types
     let boundaries: string[] = []
+    let boundaryTypes: Map<string, string> = new Map()
     if (boundariesNode) {
-      boundaries = analyzeBoundariesArg(boundariesNode, sourceFile)
+      const boundaryInfo = analyzeBoundariesWithTypes(boundariesNode, sourceFile)
+      boundaries = boundaryInfo.names
+      boundaryTypes = boundaryInfo.types
     } else if (args[1]) {
-      boundaries = analyzeBoundariesArg(args[1], sourceFile)
+      const boundaryInfo = analyzeBoundariesWithTypes(args[1], sourceFile)
+      boundaries = boundaryInfo.names
+      boundaryTypes = boundaryInfo.types
     }
 
     // Extract function output type with better detection
@@ -175,8 +180,8 @@ function analyzeCreateTaskCall(
           const typeString = cleanTypeString(functionArg.type.getText(sourceFile))
           outputType = { type: typeString }
         } else {
-          // Try to infer from return statements with better object analysis
-          outputType = inferDetailedReturnType(functionArg, sourceFile)
+          // Try to infer from return statements with boundary type information
+          outputType = inferDetailedReturnType(functionArg, sourceFile, boundaryTypes)
         }
       }
     }
@@ -204,8 +209,20 @@ function analyzeCreateTaskCall(
 }
 
 // Enhanced return type inference with detailed object analysis
-function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction, _sourceFile: ts.SourceFile): OutputType {
+function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction, sourceFile: ts.SourceFile, boundaryTypes: Map<string, string> = new Map()): OutputType {
   let returnType: OutputType = { type: 'unknown' }
+
+  // First, collect variable declarations and their types within the function
+  const variableTypes = new Map<string, string>()
+
+  function collectVariableDeclarations(node: ts.Node): void {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+      const varName = node.name.text
+      const varType = inferTypeFromExpression(node.initializer, sourceFile, variableTypes, boundaryTypes)
+      variableTypes.set(varName, varType)
+    }
+    ts.forEachChild(node, collectVariableDeclarations)
+  }
 
   function visitReturnStatements(node: ts.Node): void {
     if (ts.isReturnStatement(node) && node.expression) {
@@ -216,30 +233,12 @@ function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction,
           if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
             // Handle explicit property assignments: { propName: value }
             const propName = prop.name.text
-            let propType = 'unknown'
-
-            // Try to infer property type from the initializer
-            if (ts.isStringLiteral(prop.initializer)) {
-              propType = 'string'
-            } else if (ts.isNumericLiteral(prop.initializer)) {
-              propType = 'number'
-            } else if (prop.initializer.kind === ts.SyntaxKind.TrueKeyword ||
-                       prop.initializer.kind === ts.SyntaxKind.FalseKeyword) {
-              propType = 'boolean'
-            } else if (ts.isIdentifier(prop.initializer)) {
-              // Variable reference - try to infer from name
-              const varName = prop.initializer.text
-              propType = inferTypeFromVariableName(varName)
-            } else if (ts.isPropertyAccessExpression(prop.initializer)) {
-              // Property access like response.handler
-              propType = 'unknown'
-            }
-
+            const propType = inferTypeFromExpression(prop.initializer, sourceFile, variableTypes, boundaryTypes)
             properties[propName] = { type: propType }
           } else if (ts.isShorthandPropertyAssignment(prop)) {
             // Handle shorthand properties: { propName } (equivalent to { propName: propName })
             const propName = prop.name.text
-            const propType = inferTypeFromVariableName(propName)
+            const propType = variableTypes.get(propName) || 'unknown'
             properties[propName] = { type: propType }
           }
         })
@@ -257,11 +256,11 @@ function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction,
       } else if (ts.isNumericLiteral(node.expression)) {
         returnType = { type: 'number' }
       } else if (node.expression.kind === ts.SyntaxKind.TrueKeyword ||
-                 node.expression.kind === ts.SyntaxKind.FalseKeyword) {
+        node.expression.kind === ts.SyntaxKind.FalseKeyword) {
         returnType = { type: 'boolean' }
       } else if (ts.isIdentifier(node.expression)) {
         // Single variable return
-        const varType = inferTypeFromVariableName(node.expression.text)
+        const varType = variableTypes.get(node.expression.text) || 'unknown'
         returnType = { type: varType }
       }
     }
@@ -269,40 +268,73 @@ function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction,
   }
 
   if (func.body) {
+    // First pass: collect variable declarations
+    collectVariableDeclarations(func.body)
+    // Second pass: analyze return statements
     visitReturnStatements(func.body)
   }
 
   return returnType
 }
 
-// Helper function to infer types from variable names
-function inferTypeFromVariableName(varName: string): string {
-  // Common patterns for type inference based on variable names
-  if (varName.includes('path') || varName.includes('Path') ||
-      varName.includes('name') || varName.includes('Name') ||
-      varName.includes('descriptor') || varName.includes('Descriptor') ||
-      varName.includes('fileName') || varName.includes('handler') ||
-      varName.includes('url') || varName.includes('id') ||
-      varName.includes('uuid') || varName.includes('token')) {
+// Helper function to infer type from any expression
+function inferTypeFromExpression(expr: ts.Expression, sourceFile: ts.SourceFile, variableTypes: Map<string, string>, boundaryTypes: Map<string, string> = new Map()): string {
+  if (ts.isStringLiteral(expr)) {
     return 'string'
-  } else if (varName.includes('count') || varName.includes('Count') ||
-             varName.includes('size') || varName.includes('Size') ||
-             varName.includes('length') || varName.includes('Length') ||
-             varName.includes('index') || varName.includes('Index')) {
+  } else if (ts.isNumericLiteral(expr)) {
     return 'number'
-  } else if (varName.includes('is') || varName.includes('has') ||
-             varName.includes('can') || varName.includes('should') ||
-             varName.includes('enabled') || varName.includes('success')) {
+  } else if (expr.kind === ts.SyntaxKind.TrueKeyword || expr.kind === ts.SyntaxKind.FalseKeyword) {
     return 'boolean'
-  } else if (varName.includes('config') || varName.includes('Config') ||
-             varName.includes('options') || varName.includes('Options') ||
-             varName.includes('data') || varName.includes('result') ||
-             varName.includes('response') || varName.includes('error')) {
+  } else if (ts.isArrayLiteralExpression(expr)) {
+    return 'array'
+  } else if (ts.isObjectLiteralExpression(expr)) {
+    return 'object'
+  } else if (ts.isIdentifier(expr)) {
+    // Check if we know the type from variable declarations
+    return variableTypes.get(expr.text) || 'unknown'
+  } else if (ts.isCallExpression(expr)) {
+    // Handle method calls like array.reduce(), boundary calls, etc.
+    if (ts.isPropertyAccessExpression(expr.expression)) {
+      const methodName = expr.expression.name.text
+      if (methodName === 'reduce') {
+        // For reduce, infer type from initial value (second argument)
+        if (expr.arguments.length > 1) {
+          const initialValue = expr.arguments[1]
+          return inferTypeFromExpression(initialValue, sourceFile, variableTypes, boundaryTypes)
+        }
+        return 'unknown'
+      } else if (methodName === 'map' || methodName === 'filter') {
+        // These typically return arrays
+        return 'array'
+      } else if (methodName === 'join' || methodName === 'toString') {
+        // These return strings
+        return 'string'
+      } else if (methodName === 'length' || methodName === 'indexOf' || methodName === 'findIndex') {
+        // These return numbers
+        return 'number'
+      }
+    } else if (ts.isIdentifier(expr.expression)) {
+      // Direct function calls - could be boundary functions
+      const functionName = expr.expression.text
+      const boundaryType = boundaryTypes.get(functionName)
+      if (boundaryType) {
+        return boundaryType
+      }
+      return 'unknown'
+    }
+    return 'unknown'
+  } else if (ts.isAwaitExpression(expr)) {
+    // Handle await expressions - analyze the awaited expression
+    return inferTypeFromExpression(expr.expression, sourceFile, variableTypes, boundaryTypes)
+  } else if (ts.isPropertyAccessExpression(expr)) {
+    // Handle property access like obj.prop
     return 'unknown'
   }
 
   return 'unknown'
 }
+
+
 
 // Clean up type strings (remove Promise wrappers for boundaries)
 function cleanTypeString(typeString: string): string {
@@ -344,8 +376,8 @@ function analyzeSchemaProp(node: ts.Expression, _sourceFile: ts.SourceFile): Sch
   // Analyze Schema.string(), Schema.number(), etc.
   if (ts.isCallExpression(node)) {
     if (ts.isPropertyAccessExpression(node.expression) &&
-        ts.isIdentifier(node.expression.expression) &&
-        node.expression.expression.text === 'Schema') {
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === 'Schema') {
 
       const methodName = node.expression.name.text
       let baseType: SchemaProperty = { type: getSchemaTypeFromMethod(methodName) }
@@ -400,6 +432,64 @@ function analyzeBoundariesArg(node: ts.Expression, _sourceFile: ts.SourceFile): 
   }
 
   return boundaries
+}
+
+// Enhanced boundary analysis that extracts both names and return types
+function analyzeBoundariesWithTypes(node: ts.Expression, sourceFile: ts.SourceFile): { names: string[], types: Map<string, string> } {
+  const names: string[] = []
+  const types = new Map<string, string>()
+
+  if (ts.isObjectLiteralExpression(node)) {
+    node.properties.forEach(prop => {
+      if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
+        const boundaryName = prop.name.text
+        names.push(boundaryName)
+
+        // Try to analyze the boundary function to extract return type
+        if (ts.isArrowFunction(prop.initializer) || ts.isFunctionExpression(prop.initializer)) {
+          const returnType = analyzeBoundaryReturnType(prop.initializer, sourceFile)
+          types.set(boundaryName, returnType)
+        }
+      }
+    })
+  }
+
+  return { names, types }
+}
+
+// Analyze boundary function return type
+function analyzeBoundaryReturnType(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile): string {
+  // Check if function has explicit return type annotation
+  if (func.type) {
+    const typeText = func.type.getText(sourceFile)
+    // Handle Promise<T> types - extract T
+    const promiseMatch = typeText.match(/Promise<(.+)>/)
+    if (promiseMatch) {
+      const innerType = promiseMatch[1]
+      // Parse common type patterns
+      if (innerType.includes('[]') || innerType.includes('Array<')) {
+        return 'array'
+      } else if (innerType === 'string') {
+        return 'string'
+      } else if (innerType === 'number') {
+        return 'number'
+      } else if (innerType === 'boolean') {
+        return 'boolean'
+      } else if (innerType.includes('{') || innerType.includes('object')) {
+        return 'object'
+      }
+    }
+    return cleanTypeString(typeText)
+  }
+
+  // If no explicit type, try to infer from return statements
+  if (func.body) {
+    const variableTypes = new Map<string, string>()
+    const returnType = inferDetailedReturnType(func, sourceFile, new Map())
+    return returnType.type
+  }
+
+  return 'unknown'
 }
 
 // Export the core analysis function for reuse
