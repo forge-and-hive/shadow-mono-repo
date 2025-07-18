@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Update forge.json configuration to include fingerprints folder
+- [x] 1. Update forge.json configuration to include fingerprints folder
   - Add fingerprints path to the paths configuration in forge.json
   - Ensure the path follows the same pattern as logs and fixtures
   - Modify apps/cli/src/tasks/bundle/fingerprint.ts to use project fingerprints folder instead of .forge folder
@@ -8,8 +8,8 @@
 
 - [ ] 2. Create project fingerprints folder utilities
   - [ ] 2.1 Add ensureFingerprintsFolder boundary to bundle:fingerprint task
-    - Replace ensureForgeFolder with ensureFingerprintsFolder function
-    - Create fingerprints folder in project directory using forge.json paths config
+    - Replace ensureForgeFolder with ensureFingerprintsFolder function that takes (cwd, conf) as arguments
+    - Create fingerprints folder in project directory using forge.json paths config passed as parameter
     - Add error handling for folder creation failures
     - _Requirements: 1.1, 1.2_
 
@@ -111,7 +111,7 @@
     - _Requirements: 2.5_
 
 - [ ] 9. Update configuration loading to support fingerprints path
-  - [ ] 9.1 Modify conf:load task to include fingerprints path
+  - [x] 9.1 Modify conf:load task to include fingerprints path
     - Update configuration loading to read fingerprints path
     - Add validation for fingerprints path configuration
     - Ensure default path is provided if not configured

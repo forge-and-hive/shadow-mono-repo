@@ -8,6 +8,7 @@
     "tasks": "src/tasks/",
     "runners": "src/runners/",
     "fixtures": "fixtures",
+    "fingerprints": "fingerprints/",
     "tests": "src/tests/"
   },
   "infra": {
