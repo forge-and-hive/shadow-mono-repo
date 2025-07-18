@@ -3,20 +3,21 @@
 - [ ] 1. Update forge.json configuration to include fingerprints folder
   - Add fingerprints path to the paths configuration in forge.json
   - Ensure the path follows the same pattern as logs and fixtures
-  - _Requirements: 1.3_
+  - Modify apps/cli/src/tasks/bundle/fingerprint.ts to use project fingerprints folder instead of .forge folder
+  - _Requirements: 1.3, 1.4_
 
-- [ ] 2. Create fingerprint storage service infrastructure
-  - [ ] 2.1 Create FingerprintStorageService class
-    - Write service class to handle fingerprint file operations
-    - Implement methods for saving, loading, and listing fingerprints
-    - Add error handling for file system operations
-    - _Requirements: 1.1, 1.2, 1.4_
+- [ ] 2. Create project fingerprints folder utilities
+  - [ ] 2.1 Add ensureFingerprintsFolder boundary to bundle:fingerprint task
+    - Replace ensureForgeFolder with ensureFingerprintsFolder function
+    - Create fingerprints folder in project directory using forge.json paths config
+    - Add error handling for folder creation failures
+    - _Requirements: 1.1, 1.2_
 
-  - [ ] 2.2 Add fingerprints folder creation utilities
-    - Write utility function to ensure fingerprints folder exists
-    - Implement automatic folder creation when needed
-    - Add proper error handling for folder creation failures
-    - _Requirements: 1.2_
+  - [ ] 2.2 Update fingerprint file paths in bundle:fingerprint task
+    - Change fingerprintsFile path from .forge folder to project fingerprints folder
+    - Update console logging to show correct fingerprint save location
+    - Ensure consistent naming conventions for fingerprint files
+    - _Requirements: 1.1, 1.5_
 
 - [ ] 3. Enhance error collection in task analysis
   - [ ] 3.1 Update TaskFingerprintOutput interface to include errors

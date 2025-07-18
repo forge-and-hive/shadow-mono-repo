@@ -2,21 +2,21 @@
 
 ## Introduction
 
-This feature enhances the CLI's boundary system and fingerprinting capabilities to improve task analysis, error handling, and publishing workflows. The improvements focus on standardizing boundary input/output as objects, collecting file errors during fingerprinting, and integrating fingerprint generation into the publish task workflow.
+This feature enhances the CLI's boundary system and fingerprinting capabilities to improve task analysis, error handling, and publishing workflows. The improvements focus on moving fingerprint storage from the global .forge folder to a project-local fingerprints folder, standardizing boundary input/output as objects, collecting file errors during fingerprinting, and integrating fingerprint generation into the publish task workflow.
 
 ## Requirements
 
 ### Requirement 1
 
-**User Story:** As a CLI user, I want fingerprints to be stored in a dedicated fingerprints folder similar to logs and fixtures, so that fingerprint files are organized and easily accessible.
+**User Story:** As a CLI user, I want fingerprints to be stored in a dedicated fingerprints folder within my project (similar to logs and fixtures) instead of the global .forge folder, so that fingerprint files are project-specific and easily accessible.
 
 #### Acceptance Criteria
 
-1. WHEN the CLI generates fingerprints THEN the system SHALL store them in a `fingerprints` folder within the project directory
+1. WHEN the CLI generates fingerprints THEN the system SHALL store them in a `fingerprints` folder within the project directory instead of the global .forge folder
 2. WHEN the fingerprints folder does not exist THEN the system SHALL create it automatically
 3. WHEN the forge.json configuration is updated THEN the system SHALL include fingerprints folder configuration alongside logs and fixtures
-4. WHEN fingerprint files are created THEN the system SHALL use consistent naming conventions within the fingerprints folder
-5. WHEN multiple fingerprints are generated THEN the system SHALL organize them by task name or timestamp to avoid conflicts
+4. WHEN the bundle:fingerprint task runs THEN the system SHALL save fingerprint files to the project fingerprints folder instead of .forge folder
+5. WHEN fingerprint files are created THEN the system SHALL use consistent naming conventions within the fingerprints folder
 
 ### Requirement 2
 

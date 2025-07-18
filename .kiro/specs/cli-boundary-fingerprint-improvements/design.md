@@ -2,9 +2,9 @@
 
 ## Overview
 
-This design enhances the CLI's boundary system and fingerprinting capabilities through four key improvements: adding a dedicated fingerprints folder structure, standardizing boundary input/output as objects, enhancing error collection during fingerprinting, and integrating fingerprint generation into the publish workflow.
+This design enhances the CLI's existing fingerprinting capabilities by migrating from global .forge folder storage to project-local fingerprints folder, standardizing boundary input/output as objects, enhancing error collection during fingerprinting, and integrating fingerprint generation into the publish workflow.
 
-The design maintains backward compatibility while introducing structured improvements that enhance type safety, error handling, and organizational clarity.
+The design builds upon the existing fingerprinting infrastructure in `bundle:fingerprint` and `task:fingerprint` tasks while introducing structured improvements that enhance type safety, error handling, and project organization.
 
 ## Architecture
 
@@ -119,25 +119,19 @@ export interface EnhancedTaskFingerprintOutput extends TaskFingerprintOutput {
 }
 ```
 
-### 4. Fingerprint Storage Service
+### 4. Migration from .forge to Project Fingerprints Folder
 
-**File:** `src/services/fingerprintStorage.ts` (new)
+**Current Implementation:** The existing `bundle:fingerprint` task uses:
+- `ensureForgeFolder()` - creates `~/.forge` directory
+- Saves fingerprints to `~/.forge/{taskName}.fingerprints.json`
 
-```typescript
-export class FingerprintStorageService {
-  private fingerprintsPath: string
+**New Implementation:** Update to use project-local storage:
+- `ensureFingerprintsFolder()` - creates `{project}/fingerprints` directory
+- Save fingerprints to `{project}/fingerprints/{taskName}.fingerprints.json`
 
-  constructor(projectRoot: string, config: ForgeConfig) {
-    this.fingerprintsPath = path.join(projectRoot, config.paths.fingerprints)
-  }
-
-  async ensureFingerprintsFolder(): Promise<void>
-  async saveFingerprint(taskName: string, fingerprint: EnhancedTaskFingerprintOutput): Promise<string>
-  async loadFingerprint(taskName: string): Promise<EnhancedTaskFingerprintOutput | null>
-  async listFingerprints(): Promise<string[]>
-  async saveErrorFingerprint(taskName: string, errors: FingerprintError[]): Promise<string>
-}
-```
+**Files to Update:**
+- `apps/cli/src/tasks/bundle/fingerprint.ts` - Replace .forge storage with project fingerprints folder
+- `apps/cli/src/tasks/task/fingerprint.ts` - Replace .forge storage with project fingerprints folder
 
 ## Data Models
 
