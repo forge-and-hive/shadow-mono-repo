@@ -43,21 +43,20 @@ const boundaries = {
     try {
       const content = await fs.readFile(filePath, 'utf-8')
       const data = JSON.parse(content)
-      
+
       // Handle both direct taskFingerprint and wrapped format
       if (data.taskFingerprint) {
         return data.taskFingerprint
       } else if (data.tasks && data.tasks.length > 0) {
         return data.tasks[0]
       }
-      
+
       return null
     } catch {
       return null
     }
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  publishTask: async (data: any, profile: Profile): Promise<any> => {
+  publishTask: async (data: Record<string, unknown>, profile: Profile): Promise<{ bundleUploadUrl?: string }> => {
     const publishUrl = `${profile.url}/api/tasks/publish`
     const authToken = `${profile.apiKey}:${profile.apiSecret}`
 
@@ -70,17 +69,18 @@ const boundaries = {
       })
 
       return response.data
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      if (error.response?.data?.error.includes('Bundle size')) {
-        throw new Error('Bundle size exceeds the maximum allowed size of 25MB')
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { error?: string } } }
+        if (axiosError.response?.data?.error?.includes('Bundle size')) {
+          throw new Error('Bundle size exceeds the maximum allowed size of 25MB')
+        }
       }
 
       throw new Error('Failed to publish task source code and metadata')
     }
   },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  uploadBundleWithPresignedUrl: async (presignedUrl: string, bundleContent: Buffer): Promise<any> => {
+  uploadBundleWithPresignedUrl: async (presignedUrl: string, bundleContent: Buffer): Promise<boolean> => {
     const response = await axios.put(presignedUrl, bundleContent, {
       headers: {
         'Content-Type': 'application/octet-stream'
@@ -159,7 +159,7 @@ export const publish = createTask({
       const fingerprintResult = await bundleFingerprint({
         descriptorName
       })
-      
+
       // If fingerprint generation returned a file path, read the fingerprint using the boundary
       if (fingerprintResult.fingerprintsFile) {
         taskFingerprint = await readFingerprintFile(fingerprintResult.fingerprintsFile)

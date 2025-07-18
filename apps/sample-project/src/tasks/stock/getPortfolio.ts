@@ -49,8 +49,8 @@ export const getPortfolio = createTask({
 
     const totalValue = portfolio.reduce((acc: number, stock: { quantity: number, price: number }) => acc + stock.quantity * stock.price, 0)
 
-    return { 
-      portfolio: portfolio, 
+    return {
+      portfolio: portfolio,
       totalValue: totalValue
     }
   }

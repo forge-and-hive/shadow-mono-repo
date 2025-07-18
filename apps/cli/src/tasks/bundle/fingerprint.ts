@@ -58,8 +58,8 @@ const boundaries = {
   writeFile: async (filePath: string, content: string): Promise<void> => {
     return fs.writeFile(filePath, content)
   },
-  ensureFingerprintsFolder: async (cwd: string, conf: any): Promise<string> => {
-    const fingerprintsPath = path.join(cwd, conf.paths.fingerprints || 'fingerprints/')
+  ensureFingerprintsFolder: async (cwd: string, conf: { paths?: { fingerprints?: string } }): Promise<string> => {
+    const fingerprintsPath = path.join(cwd, conf.paths?.fingerprints || 'fingerprints/')
     try {
       await fs.access(fingerprintsPath)
     } catch {

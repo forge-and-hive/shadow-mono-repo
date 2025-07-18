@@ -8,18 +8,20 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 import { loadCurrent as loadCurrentProfile } from '../auth/loadCurrent'
+import { load as loadConfig } from '../conf/load'
 
 const schema = new Schema({})
 
 const boundaries = {
   readFile: async (filePath: string): Promise<string> => fs.promises.readFile(filePath, 'utf-8'),
+  loadConfig: loadConfig.asBoundary(),
   loadCurrentProfile: loadCurrentProfile.asBoundary()
 }
 
 export const info = createTask({
   schema,
   boundaries,
-  fn: async function (_argv, { loadCurrentProfile, readFile }) {
+  fn: async function (_argv, { loadCurrentProfile, loadConfig, readFile }) {
     const packageJsonPath = path.join(__dirname, '../../../package.json')
 
     const packageJsonContent = await readFile(packageJsonPath)
@@ -27,7 +29,16 @@ export const info = createTask({
 
     const info = {
       version: packageJson.version,
-      profile: {}
+      profile: {},
+      paths: {}
+    }
+
+    const config = await loadConfig({})
+
+    info.paths = {
+      logs: config.paths.logs,
+      fixtures: config.paths.fixtures,
+      fingerprints: config.paths.fingerprints
     }
 
     let profile

@@ -32,18 +32,18 @@ const boundaries = {
     }
     return null // User not found
   },
-  
+
   // This boundary simulates an API call that randomly throws errors
   fetchUserProfile: async (input: { userId: string }): Promise<{ profile: string; lastLogin: string }> => {
     // Simulate random API failures
     if (Math.random() > 0.7) {
       throw new Error('API temporarily unavailable')
     }
-    
+
     if (input.userId === '4') {
       throw new Error('External API authentication failed')
     }
-    
+
     return {
       profile: `Profile data for user ${input.userId}`,
       lastLogin: new Date().toISOString()
@@ -59,15 +59,15 @@ export const errors = createTask({
   fn: async function ({ userId }, { getUserById, fetchUserProfile }) {
     // Get user by ID
     const user = await getUserById({ userId })
-    
+
     // Check if user exists - this should be caught as a business logic error
     if (!user) {
       throw new Error(`User with ID ${userId} not found`)
     }
-    
+
     // Fetch additional profile data - this can throw API errors (no try-catch intentionally)
     const profile = await fetchUserProfile({ userId })
-    
+
     // Return combined user data
     return {
       user: {

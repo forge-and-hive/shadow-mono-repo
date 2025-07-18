@@ -201,17 +201,17 @@ function analyzeCreateTaskCall(
     // Analyze createTask({ schema, boundaries, fn }) structure
     let inputSchema: InputSchema = { type: 'object', properties: {} }
     let boundaries: BoundaryFingerprint[] = []
-    let boundaryTypes: Map<string, any> = new Map()
+    let boundaryTypes: Map<string, OutputType> = new Map()
 
     if (args[0] && ts.isObjectLiteralExpression(args[0])) {
-      const schemaProperty = args[0].properties.find(prop => 
-        ts.isPropertyAssignment(prop) && 
-        ts.isIdentifier(prop.name) && 
+      const schemaProperty = args[0].properties.find(prop =>
+        ts.isPropertyAssignment(prop) &&
+        ts.isIdentifier(prop.name) &&
         prop.name.text === 'schema'
       )
-      const boundariesProperty = args[0].properties.find(prop => 
-        ts.isPropertyAssignment(prop) && 
-        ts.isIdentifier(prop.name) && 
+      const boundariesProperty = args[0].properties.find(prop =>
+        ts.isPropertyAssignment(prop) &&
+        ts.isIdentifier(prop.name) &&
         prop.name.text === 'boundaries'
       )
 
@@ -274,9 +274,9 @@ function analyzeCreateTaskCall(
 
     // Extract function from createTask({ fn }) structure
     if (args[0] && ts.isObjectLiteralExpression(args[0])) {
-      const fnProperty = args[0].properties.find(prop => 
-        ts.isPropertyAssignment(prop) && 
-        ts.isIdentifier(prop.name) && 
+      const fnProperty = args[0].properties.find(prop =>
+        ts.isPropertyAssignment(prop) &&
+        ts.isIdentifier(prop.name) &&
         prop.name.text === 'fn'
       )
       if (fnProperty && ts.isPropertyAssignment(fnProperty)) {
@@ -325,34 +325,34 @@ function analyzeCreateTaskCall(
 }
 
 // Enhanced return type inference with detailed object analysis
-function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction, sourceFile: ts.SourceFile, boundaryTypes: Map<string, any> = new Map()): OutputType {
+function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction, sourceFile: ts.SourceFile, boundaryTypes: Map<string, OutputType> = new Map()): OutputType {
   let returnType: OutputType = { type: 'unknown' }
 
   // First, collect variable declarations and their types within the function
-  const variableTypes = new Map<string, any>()
+  const variableTypes = new Map<string, OutputType>()
 
   function collectVariableDeclarations(node: ts.Node): void {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
       const varName = node.name.text
-      
+
       // Handle await expressions specially for boundary calls
-      if (ts.isAwaitExpression(node.initializer) && 
+      if (ts.isAwaitExpression(node.initializer) &&
           ts.isCallExpression(node.initializer.expression) &&
           ts.isIdentifier(node.initializer.expression.expression)) {
-        
+
         const boundaryName = node.initializer.expression.expression.text
         const boundaryType = boundaryTypes.get(boundaryName)
-        
+
         if (boundaryType && typeof boundaryType === 'object') {
           // Store the detailed type information
           variableTypes.set(varName, boundaryType)
         } else {
           const varType = inferTypeFromExpression(node.initializer, sourceFile, variableTypes, boundaryTypes)
-          variableTypes.set(varName, varType)
+          variableTypes.set(varName, { type: varType })
         }
       } else {
         const varType = inferTypeFromExpression(node.initializer, sourceFile, variableTypes, boundaryTypes)
-        variableTypes.set(varName, varType)
+        variableTypes.set(varName, { type: varType })
       }
     }
     ts.forEachChild(node, collectVariableDeclarations)
@@ -367,12 +367,12 @@ function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction,
           if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
             // Handle explicit property assignments: { propName: value }
             const propName = prop.name.text
-            
+
             // Check if it's a property access like result1.result
             if (ts.isPropertyAccessExpression(prop.initializer)) {
               const baseExpr = prop.initializer.expression
               const propertyName = prop.initializer.name.text
-              
+
               if (ts.isIdentifier(baseExpr)) {
                 const baseVarType = variableTypes.get(baseExpr.text)
                 if (baseVarType && typeof baseVarType === 'object' && baseVarType.properties) {
@@ -390,7 +390,7 @@ function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction,
               }
             } else {
               const propType = inferTypeFromExpression(prop.initializer, sourceFile, variableTypes, boundaryTypes)
-              
+
               // Handle identifiers that might reference boundary call results
               if (ts.isIdentifier(prop.initializer)) {
                 const varType = variableTypes.get(prop.initializer.text)
@@ -407,7 +407,7 @@ function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction,
             // Handle shorthand properties: { propName } (equivalent to { propName: propName })
             const propName = prop.name.text
             const varType = variableTypes.get(propName)
-            
+
             if (varType && typeof varType === 'object' && varType.type) {
               // If we have detailed type information from boundary calls
               if (varType.type === 'object' && varType.properties) {
@@ -416,7 +416,7 @@ function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction,
                 properties[propName] = { type: varType.type }
               }
             } else {
-              const propType = varType || inferTypeFromIdentifier(prop.name.text, boundaryTypes)
+              const propType = varType ? (varType.type || 'unknown') : inferTypeFromIdentifier(prop.name.text, boundaryTypes)
               properties[propName] = { type: propType }
             }
           }
@@ -439,8 +439,13 @@ function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction,
         returnType = { type: 'boolean' }
       } else if (ts.isIdentifier(node.expression)) {
         // Single variable return
-        const varType = variableTypes.get(node.expression.text) || inferTypeFromIdentifier(node.expression.text, boundaryTypes)
-        returnType = { type: varType }
+        const varType = variableTypes.get(node.expression.text)
+        if (varType) {
+          returnType = varType
+        } else {
+          const inferredType = inferTypeFromIdentifier(node.expression.text, boundaryTypes)
+          returnType = { type: inferredType }
+        }
       }
     }
     ts.forEachChild(node, visitReturnStatements)
@@ -457,7 +462,7 @@ function inferDetailedReturnType(func: ts.FunctionExpression | ts.ArrowFunction,
 }
 
 // Helper function to infer type from any expression
-function inferTypeFromExpression(expr: ts.Expression, sourceFile: ts.SourceFile, variableTypes: Map<string, any>, boundaryTypes: Map<string, any> = new Map()): string {
+function inferTypeFromExpression(expr: ts.Expression, sourceFile: ts.SourceFile, variableTypes: Map<string, OutputType>, boundaryTypes: Map<string, OutputType> = new Map()): string {
   if (ts.isStringLiteral(expr)) {
     return 'string'
   } else if (ts.isNumericLiteral(expr)) {
@@ -470,7 +475,11 @@ function inferTypeFromExpression(expr: ts.Expression, sourceFile: ts.SourceFile,
     return 'object'
   } else if (ts.isIdentifier(expr)) {
     // Check if we know the type from variable declarations
-    return variableTypes.get(expr.text) || inferTypeFromIdentifier(expr.text, boundaryTypes)
+    const varType = variableTypes.get(expr.text)
+    if (varType) {
+      return varType.type || 'unknown'
+    }
+    return inferTypeFromIdentifier(expr.text, boundaryTypes)
   } else if (ts.isCallExpression(expr)) {
     // Handle method calls like array.reduce(), boundary calls, etc.
     if (ts.isPropertyAccessExpression(expr.expression)) {
@@ -501,7 +510,7 @@ function inferTypeFromExpression(expr: ts.Expression, sourceFile: ts.SourceFile,
         if (typeof boundaryType === 'object' && boundaryType.type) {
           return boundaryType.type
         }
-        return boundaryType
+        return typeof boundaryType === 'string' ? boundaryType : 'unknown'
       }
       return 'unknown'
     }
@@ -567,12 +576,12 @@ function analyzeSchemaProp(node: ts.Expression, sourceFile: ts.SourceFile): Sche
       node.expression.expression.text === 'Schema') {
 
       const methodName = node.expression.name.text
-      let baseType: SchemaProperty = { type: getSchemaTypeFromMethod(methodName) }
+      const baseType: SchemaProperty = { type: getSchemaTypeFromMethod(methodName) }
 
       return baseType
     }
   }
-  
+
   // Handle chained calls like Schema.number().optional()
   if (ts.isCallExpression(node)) {
     if (ts.isPropertyAccessExpression(node.expression)) {
@@ -595,7 +604,7 @@ function analyzeSchemaProp(node: ts.Expression, sourceFile: ts.SourceFile): Sche
       }
     }
   }
-  
+
   return { type: 'unknown' }
 }
 
@@ -612,9 +621,9 @@ function getSchemaTypeFromMethod(methodName: string): string {
 
 
 // Enhanced boundary analysis that extracts detailed boundary information
-function analyzeBoundariesWithTypes(node: ts.Expression, sourceFile: ts.SourceFile): { names: string[], types: Map<string, any>, boundaries: BoundaryFingerprint[] } {
+function analyzeBoundariesWithTypes(node: ts.Expression, sourceFile: ts.SourceFile): { names: string[], types: Map<string, OutputType>, boundaries: BoundaryFingerprint[] } {
   const names: string[] = []
-  const types = new Map<string, any>()
+  const types = new Map<string, OutputType>()
   const boundaries: BoundaryFingerprint[] = []
 
   if (ts.isObjectLiteralExpression(node)) {
@@ -703,7 +712,7 @@ function analyzeBoundaryInputTypesWithErrors(func: ts.ArrowFunction | ts.Functio
     func.parameters.forEach((param, index) => {
       if (ts.isIdentifier(param.name)) {
         const paramName = param.name.text
-        
+
         if (param.type) {
           try {
             const typeText = param.type.getText(sourceFile)
@@ -742,17 +751,12 @@ function analyzeBoundaryInputTypesWithErrors(func: ts.ArrowFunction | ts.Functio
   return { inputTypes, errors }
 }
 
-// Analyze boundary function input parameter types (backward compatibility)
-function analyzeBoundaryInputTypes(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile): SchemaProperty[] {
-  const result = analyzeBoundaryInputTypesWithErrors(func, sourceFile, 'unknown')
-  return result.inputTypes
-}
 
 // Helper function to convert TypeScript type text to SchemaProperty
 function parseTypeToSchemaProperty(typeText: string): SchemaProperty {
   // Remove whitespace
   const cleanType = typeText.trim()
-  
+
   if (cleanType === 'string') {
     return { type: 'string' }
   } else if (cleanType === 'number') {
@@ -767,20 +771,20 @@ function parseTypeToSchemaProperty(typeText: string): SchemaProperty {
     if (objectMatch) {
       const properties: Record<string, SchemaProperty> = {}
       const propsString = objectMatch[1]
-      
+
       // Split by commas and semicolons
       const propPairs = propsString.split(/[,;]/).map(s => s.trim())
-      
+
       for (const propPair of propPairs) {
         const colonIndex = propPair.indexOf(':')
         if (colonIndex > 0) {
           const propName = propPair.substring(0, colonIndex).trim()
           const propType = propPair.substring(colonIndex + 1).trim()
-          
+
           properties[propName] = parseTypeToSchemaProperty(propType)
         }
       }
-      
+
       return {
         type: 'object',
         properties
@@ -793,37 +797,37 @@ function parseTypeToSchemaProperty(typeText: string): SchemaProperty {
 }
 
 // Helper function to infer type from variable names using TypeScript compiler analysis
-function inferTypeFromIdentifier(identifierText: string, boundaryTypes: Map<string, any>): string {
+function inferTypeFromIdentifier(identifierText: string, boundaryTypes: Map<string, OutputType>): string {
   // Check boundary types first
   if (boundaryTypes.has(identifierText)) {
     const boundaryType = boundaryTypes.get(identifierText)
     if (typeof boundaryType === 'object' && boundaryType.type) {
       return boundaryType.type
     }
-    return boundaryType || 'unknown'
+    return (typeof boundaryType === 'object' && boundaryType?.type) ? boundaryType.type : 'unknown'
   }
-  
+
   // Use TypeScript's built-in type inference instead of hardcoded patterns
   // For now, return unknown and let the compiler handle it
   return 'unknown'
 }
 
 // Analyze boundary function return type with error collection
-function analyzeBoundaryReturnTypeWithErrors(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile, boundaryName: string): { returnType: any, errors: FingerprintError[] } {
+function analyzeBoundaryReturnTypeWithErrors(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile, boundaryName: string): { returnType: OutputType, errors: FingerprintError[] } {
   const errors: FingerprintError[] = []
-  
+
   // Check if function has explicit return type annotation
   if (func.type) {
     try {
       const typeText = func.type.getText(sourceFile)
-      
+
       // Handle Promise<T> types - extract T
       const promiseMatch = typeText.match(/Promise<(.+)>/)
       if (promiseMatch) {
         const innerType = promiseMatch[1]
-        
+
         // Just process the type without validation
-        
+
         // Parse detailed type patterns
         if (innerType.includes('[]') || innerType.includes('Array<')) {
           return { returnType: { type: 'array' }, errors }
@@ -851,7 +855,7 @@ function analyzeBoundaryReturnTypeWithErrors(func: ts.ArrowFunction | ts.Functio
       } else {
         // Not a Promise type - just use the type as-is
       }
-      
+
       return { returnType: { type: cleanTypeString(typeText) }, errors }
     } catch (error) {
       errors.push({
@@ -884,102 +888,97 @@ function analyzeBoundaryReturnTypeWithErrors(func: ts.ArrowFunction | ts.Functio
   return { returnType: { type: 'unknown' }, errors }
 }
 
-// Analyze boundary function return type with detailed structure (backward compatibility)
-function analyzeBoundaryReturnType(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile): any {
-  const result = analyzeBoundaryReturnTypeWithErrors(func, sourceFile, 'unknown')
-  return result.returnType
+
+// Helper function to check for throw statements in boundary functions
+function checkForBoundaryThrowStatements(node: ts.Node, sourceFile: ts.SourceFile, errors: FingerprintError[]): void {
+  if (ts.isThrowStatement(node)) {
+    let errorMessage = 'Boundary function contains throw statement'
+
+    // Try to extract error message if it's a simple throw new Error('message')
+    if (node.expression && ts.isNewExpression(node.expression)) {
+      if (ts.isIdentifier(node.expression.expression) &&
+          node.expression.expression.text === 'Error' &&
+          node.expression.arguments &&
+          node.expression.arguments.length > 0) {
+        const errorArg = node.expression.arguments[0]
+        if (ts.isStringLiteral(errorArg)) {
+          errorMessage = `Boundary function throws: ${errorArg.text}`
+        }
+      }
+    }
+
+    const position = sourceFile.getLineAndCharacterOfPosition(node.getStart())
+    errors.push({
+      type: 'boundary',
+      message: errorMessage,
+      location: {
+        file: sourceFile.fileName,
+        line: position.line + 1,
+        column: position.character + 1
+      }
+    })
+  }
+  ts.forEachChild(node, (childNode) => checkForBoundaryThrowStatements(childNode, sourceFile, errors))
 }
 
 // Validate boundary structure and collect structural errors (simplified to focus on runtime errors)
-function validateBoundaryStructure(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile, boundaryName: string): FingerprintError[] {
+function validateBoundaryStructure(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile, _boundaryName: string): FingerprintError[] {
   const errors: FingerprintError[] = []
 
   // Check function body for potential runtime errors
   if (func.body) {
     if (ts.isBlock(func.body)) {
-      // Check for throw statements - these are potential runtime errors
-      function checkForThrowStatements(node: ts.Node): void {
-        if (ts.isThrowStatement(node)) {
-          let errorMessage = 'Boundary function contains throw statement'
-          
-          // Try to extract error message if it's a simple throw new Error('message')
-          if (node.expression && ts.isNewExpression(node.expression)) {
-            if (ts.isIdentifier(node.expression.expression) && 
-                node.expression.expression.text === 'Error' &&
-                node.expression.arguments && 
-                node.expression.arguments.length > 0) {
-              const errorArg = node.expression.arguments[0]
-              if (ts.isStringLiteral(errorArg)) {
-                errorMessage = `Boundary function throws: ${errorArg.text}`
-              }
-            }
-          }
-          
-          const position = sourceFile.getLineAndCharacterOfPosition(node.getStart())
-          errors.push({
-            type: 'boundary',
-            message: errorMessage,
-            location: { 
-              file: sourceFile.fileName,
-              line: position.line + 1,
-              column: position.character + 1
-            }
-          })
-        }
-        ts.forEachChild(node, checkForThrowStatements)
-      }
-      
-      checkForThrowStatements(func.body)
+      checkForBoundaryThrowStatements(func.body, sourceFile, errors)
     }
   }
 
   return errors
 }
 
+// Helper function to check for throw statements in main task functions
+function checkForMainTaskThrowStatements(node: ts.Node, sourceFile: ts.SourceFile, errors: FingerprintError[]): void {
+  if (ts.isThrowStatement(node)) {
+    let errorMessage = 'Main task function contains throw statement'
+
+    // Try to extract error message if it's a simple throw new Error('message')
+    if (node.expression && ts.isNewExpression(node.expression)) {
+      if (ts.isIdentifier(node.expression.expression) &&
+          node.expression.expression.text === 'Error' &&
+          node.expression.arguments &&
+          node.expression.arguments.length > 0) {
+        const errorArg = node.expression.arguments[0]
+        if (ts.isStringLiteral(errorArg)) {
+          errorMessage = `Main task function throws: ${errorArg.text}`
+        } else if (ts.isTemplateExpression(errorArg)) {
+          // Handle template literals like `User with ID ${userId} not found`
+          const templateText = errorArg.getText(sourceFile)
+          errorMessage = `Main task function throws: ${templateText.replace(/`/g, '')}`
+        }
+      }
+    }
+
+    const position = sourceFile.getLineAndCharacterOfPosition(node.getStart())
+    errors.push({
+      type: 'analysis',
+      message: errorMessage,
+      location: {
+        file: sourceFile.fileName,
+        line: position.line + 1,
+        column: position.character + 1
+      }
+    })
+  }
+  ts.forEachChild(node, (childNode) => checkForMainTaskThrowStatements(childNode, sourceFile, errors))
+}
+
 // Analyze main task function for throw statements and runtime errors
-function analyzeMainTaskFunctionErrors(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile, taskName: string): FingerprintError[] {
+function analyzeMainTaskFunctionErrors(func: ts.ArrowFunction | ts.FunctionExpression, sourceFile: ts.SourceFile, _taskName: string): FingerprintError[] {
   const errors: FingerprintError[] = []
 
   // Check function body for potential runtime errors
   if (func.body) {
     if (ts.isBlock(func.body)) {
-      // Check for throw statements - these are potential runtime errors
-      function checkForThrowStatements(node: ts.Node): void {
-        if (ts.isThrowStatement(node)) {
-          let errorMessage = 'Main task function contains throw statement'
-          
-          // Try to extract error message if it's a simple throw new Error('message')
-          if (node.expression && ts.isNewExpression(node.expression)) {
-            if (ts.isIdentifier(node.expression.expression) && 
-                node.expression.expression.text === 'Error' &&
-                node.expression.arguments && 
-                node.expression.arguments.length > 0) {
-              const errorArg = node.expression.arguments[0]
-              if (ts.isStringLiteral(errorArg)) {
-                errorMessage = `Main task function throws: ${errorArg.text}`
-              } else if (ts.isTemplateExpression(errorArg)) {
-                // Handle template literals like `User with ID ${userId} not found`
-                const templateText = errorArg.getText(sourceFile)
-                errorMessage = `Main task function throws: ${templateText.replace(/`/g, '')}`
-              }
-            }
-          }
-          
-          const position = sourceFile.getLineAndCharacterOfPosition(node.getStart())
-          errors.push({
-            type: 'analysis',
-            message: errorMessage,
-            location: { 
-              file: sourceFile.fileName,
-              line: position.line + 1,
-              column: position.character + 1
-            }
-          })
-        }
-        ts.forEachChild(node, checkForThrowStatements)
-      }
-      
-      checkForThrowStatements(func.body)
+      checkForMainTaskThrowStatements(func.body, sourceFile, errors)
     }
   }
 
@@ -987,22 +986,22 @@ function analyzeMainTaskFunctionErrors(func: ts.ArrowFunction | ts.FunctionExpre
 }
 
 // Helper function to parse object type structure from type string
-function parseObjectTypeFromString(typeString: string): any {
+function parseObjectTypeFromString(typeString: string): OutputType {
   // Simple parsing for common object patterns like "{ result: string }"
   const objectMatch = typeString.match(/^\s*\{\s*(.+)\s*\}\s*$/)
   if (objectMatch) {
-    const properties: Record<string, any> = {}
+    const properties: Record<string, SchemaProperty> = {}
     const propsString = objectMatch[1]
-    
+
     // Split by commas (simple approach - doesn't handle nested objects)
     const propPairs = propsString.split(',').map(s => s.trim())
-    
+
     for (const propPair of propPairs) {
       const colonIndex = propPair.indexOf(':')
       if (colonIndex > 0) {
         const propName = propPair.substring(0, colonIndex).trim()
         const propType = propPair.substring(colonIndex + 1).trim()
-        
+
         if (propType === 'string') {
           properties[propName] = { type: 'string' }
         } else if (propType === 'number') {
@@ -1016,13 +1015,13 @@ function parseObjectTypeFromString(typeString: string): any {
         }
       }
     }
-    
+
     return {
       type: 'object',
       properties
     }
   }
-  
+
   return { type: 'object' }
 }
 
@@ -1039,7 +1038,7 @@ export function analyzeTaskFile(sourceCode: string, filePath: string, _expectedT
   try {
     const taskFingerprints = extractTaskFingerprintsWithErrors(sourceCode, filePath, errors)
     const taskFingerprint = taskFingerprints[0]
-    
+
     if (!taskFingerprint) {
       errors.push({
         type: 'analysis',
@@ -1048,7 +1047,7 @@ export function analyzeTaskFile(sourceCode: string, filePath: string, _expectedT
         details: { reason: 'No createTask calls detected' }
       })
       analysisMetadata.success = false
-      
+
       return {
         description: undefined,
         inputSchema: { type: 'object', properties: {} },
