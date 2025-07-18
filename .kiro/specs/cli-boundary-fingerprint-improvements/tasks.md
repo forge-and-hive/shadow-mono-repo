@@ -7,13 +7,13 @@
   - _Requirements: 1.3, 1.4_
 
 - [ ] 2. Create project fingerprints folder utilities
-  - [ ] 2.1 Add ensureFingerprintsFolder boundary to bundle:fingerprint task
+  - [x] 2.1 Add ensureFingerprintsFolder boundary to bundle:fingerprint task
     - Replace ensureForgeFolder with ensureFingerprintsFolder function that takes (cwd, conf) as arguments
     - Create fingerprints folder in project directory using forge.json paths config passed as parameter
     - Add error handling for folder creation failures
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 2.2 Update fingerprint file paths in bundle:fingerprint task
+  - [x] 2.2 Update fingerprint file paths in bundle:fingerprint task
     - Change fingerprintsFile path from .forge folder to project fingerprints folder
     - Update console logging to show correct fingerprint save location
     - Ensure consistent naming conventions for fingerprint files
@@ -53,13 +53,13 @@
     - _Requirements: 2.3, 2.4_
 
 - [ ] 5. Update fingerprint tasks to use new storage system
-  - [ ] 5.1 Modify task:fingerprint to use fingerprints folder
+  - [x] 5.1 Modify task:fingerprint to use fingerprints folder
     - Update fingerprint task to use FingerprintStorageService
     - Change output location from .forge to project fingerprints folder
     - Update file naming conventions for consistency
     - _Requirements: 1.1, 1.4, 1.5_
 
-  - [ ] 5.2 Modify bundle:fingerprint to use fingerprints folder
+  - [x] 5.2 Modify bundle:fingerprint to use fingerprints folder
     - Update bundle fingerprint task to use new storage system
     - Ensure bundle fingerprints are stored in fingerprints folder
     - Update fingerprint file organization and naming
