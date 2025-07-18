@@ -21,7 +21,7 @@ interface TaskFingerprint {
   }
   inputSchema: TaskFingerprintOutput['inputSchema']
   outputType: TaskFingerprintOutput['outputType']
-  boundaries: string[]
+  boundaries: TaskFingerprintOutput['boundaries']
   hash: string
 }
 
@@ -176,7 +176,14 @@ export const fingerprint = createTask({
       description: fp.description,
       inputSchema: fp.inputSchema,
       outputType: fp.outputType,
-      boundaries: fp.boundaries
+      boundaries: fp.boundaries,
+      errors: [], // No errors collected during bundle process
+      analysisMetadata: {
+        timestamp: new Date().toISOString(),
+        filePath: fp.location.file,
+        success: true,
+        analysisVersion: '1.0.0'
+      }
     }))
 
     // Create fingerprint result
