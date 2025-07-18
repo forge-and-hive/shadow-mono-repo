@@ -6,7 +6,6 @@ import { createTask } from '@forgehive/task'
 import { Schema } from '@forgehive/schema'
 import fs from 'fs/promises'
 import path from 'path'
-import os from 'os'
 
 import { load as loadConf } from '../conf/load'
 import { analyzeTaskFile, TaskFingerprintOutput } from '../../utils/taskAnalysis'
@@ -32,14 +31,14 @@ const boundaries = {
   writeFile: async (filePath: string, content: string): Promise<void> => {
     return fs.writeFile(filePath, content)
   },
-  ensureForgeFolder: async (): Promise<string> => {
-    const forgePath = path.join(os.homedir(), '.forge')
+  ensureFingerprintsFolder: async (cwd: string, conf: { paths?: { fingerprints?: string } }): Promise<string> => {
+    const fingerprintsPath = path.join(cwd, conf.paths?.fingerprints || 'fingerprints/')
     try {
-      await fs.access(forgePath)
+      await fs.access(fingerprintsPath)
     } catch {
-      await fs.mkdir(forgePath, { recursive: true })
+      await fs.mkdir(fingerprintsPath, { recursive: true })
     }
-    return forgePath
+    return fingerprintsPath
   }
 }
 
@@ -51,7 +50,7 @@ export const fingerprint = createTask({
     loadConf,
     readFile,
     writeFile,
-    ensureForgeFolder
+    ensureFingerprintsFolder
   }) {
     const cwd = await getCwd()
     const forgeJson = await loadConf({})
@@ -63,8 +62,8 @@ export const fingerprint = createTask({
     }
 
     const filePath = path.join(cwd, taskDescriptor.path)
-    const forgePath = await ensureForgeFolder()
-    const fingerprintFile = path.join(forgePath, `${descriptorName}.task-fingerprint.json`)
+    const fingerprintsPath = await ensureFingerprintsFolder(cwd, forgeJson)
+    const fingerprintFile = path.join(fingerprintsPath, `${descriptorName}.fingerprint.json`)
 
     console.log(`Analyzing task: ${descriptorName}`)
     console.log(`Task file: ${filePath}`)
